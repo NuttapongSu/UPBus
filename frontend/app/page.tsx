@@ -1,101 +1,65 @@
-import Image from "next/image";
+'use client';
+import dynamic from 'next/dynamic';
+import useSWR from 'swr';
+import { getBuses, BusData } from '@/lib/api';
+import SystemOverview from '@/components/Dashboard/SystemOverview';
+import SustainabilityPanel from '@/components/Dashboard/SustainabilityPanel';
+import BusLineCards from '@/components/Dashboard/BusLineCards';
 
-export default function Home() {
+// Dynamic import เพราะ Leaflet ต้องการ window
+const BusMap = dynamic(() => import('@/components/Map/BusMap'), { ssr: false });
+
+export default function HomePage() {
+  const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, {
+    refreshInterval: 10000,
+  });
+
+  const now = new Date().toLocaleString('th-TH', {
+    day: 'numeric', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="flex flex-col h-screen overflow-hidden">
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Header */}
+      <header className="flex items-center gap-4 px-6 py-3 bg-[#0f0f1a] border-b border-[#1e1e2e]">
+        <div>
+          <h1 className="text-lg font-bold">UP Smart Transit</h1>
+          <p className="text-xs text-gray-400">ระบบขนส่งอัจฉริยะเพื่อมหาวิทยาลัยสีเขียว</p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <input
+          className="flex-1 mx-8 bg-[#1a1a2e] border border-[#2a2a4a] rounded-full px-4 py-2 text-sm outline-none"
+          placeholder="ค้นหาเส้นทาง/ป้ายรถ/จุดหมาย..."
+        />
+        <p className="text-sm text-gray-300 ml-auto">อัปเดต {now}</p>
+      </header>
+
+      {/* Main */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* Left Panel */}
+        <aside className="w-64 flex flex-col gap-3 p-3 overflow-y-auto bg-[#0f0f1a] border-r border-[#1e1e2e]">
+          <SystemOverview buses={buses} />
+          <div className="bg-[#1a1a2e] rounded-xl p-4 border border-[#2a2a4a]">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">ป้ายใกล้ฉัน</h3>
+            <p className="text-xs text-gray-500">เปิดใช้ Location เพื่อดูป้ายใกล้เคียง</p>
+          </div>
+        </aside>
+
+        {/* Map */}
+        <main className="flex-1 relative">
+          <BusMap buses={buses} />
+        </main>
+
+        {/* Right Panel */}
+        <aside className="w-72 p-3 overflow-y-auto bg-[#0f0f1a] border-l border-[#1e1e2e]">
+          <SustainabilityPanel />
+        </aside>
+      </div>
+
+      {/* Bottom Bar */}
+      <BusLineCards buses={buses} />
     </div>
   );
 }

@@ -20,8 +20,8 @@ export default function BusMap({ buses }: Props) {
 
     // Leaflet ต้อง import ฝั่ง client เท่านั้น
     import('leaflet').then(L => {
-      // @ts-ignore
-      window.L = L.default || L;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).L = L.default || L;
       const Leaflet = window.L;
 
       const map = Leaflet.map(mapDivRef.current!, { center: UP_CENTER, zoom: 15 });

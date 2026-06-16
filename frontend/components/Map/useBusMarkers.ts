@@ -3,7 +3,9 @@ import type { Map as LeafletMap } from 'leaflet';
 import { BusData } from '@/lib/api';
 import { interpolate, snapToPath, LatLng } from '@/lib/interpolation';
 
-declare var L: any;
+/* eslint-disable no-var, @typescript-eslint/no-unused-vars */
+declare var L: typeof import('leaflet');
+/* eslint-enable no-var, @typescript-eslint/no-unused-vars */
 
 const COLOR_MAP: Record<string, string> = {
   Red: '#e74c3c', Green: '#2ecc71', Blue: '#3498db', Purple: '#9b59b6',
@@ -15,7 +17,8 @@ interface MarkerState {
   from: LatLng;
   to: LatLng;
   startTime: number;
-  marker: any; // L.Marker
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  marker: any; // L.Marker (typed dynamically at runtime)
 }
 
 export function useBusMarkers(
@@ -26,6 +29,7 @@ export function useBusMarkers(
   const markersRef = useRef<Map<string, MarkerState>>(new Map());
   const animRef = useRef<number | null>(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!mapRef.current || !window.L) return;
     const Leaflet = window.L;

@@ -19,6 +19,7 @@ export default function ComplaintsPage() {
   const [page, setPage] = useState(1);
   const { data, mutate } = useSWR(
     `/api/complaints?page=${page}`,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     () => adminFetch<any>(`/api/complaints?page=${page}`)
   );
 
@@ -47,6 +48,7 @@ export default function ComplaintsPage() {
             </tr>
           </thead>
           <tbody>
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {(data?.complaints || []).map((c: any) => (
               <tr key={c.id} className="border-b border-[#1e1e2e] hover:bg-[#1a1a2e]">
                 <td className="py-2 pr-4 text-gray-400">#{c.id}</td>

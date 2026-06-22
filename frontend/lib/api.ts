@@ -8,6 +8,7 @@ export async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> 
 
 export const getBuses = () => apiFetch<BusData[]>('/api/buses');
 export const getSustainability = () => apiFetch<SustainabilityData>('/api/sustainability');
+export const getBusDetail = (busId: string) => apiFetch<BusDetail>(`/api/buses/${busId}`);
 
 export async function postComplaint(form: FormData) {
   const res = await fetch(`${BASE}/api/complaints`, { method: 'POST', body: form });
@@ -32,6 +33,8 @@ export function adminFetch<T>(path: string, opts?: RequestInit): Promise<T> {
 }
 
 // Types
+export type BusColor = 'Red' | 'Green' | 'Blue' | 'Purple' | 'Orange' | 'Yellow' | 'White';
+
 export interface BusData {
   imei_id: string;
   latitude: number | null;
@@ -39,9 +42,24 @@ export interface BusData {
   speed: number;
   bearing: number;
   soc: number;
-  color: 'Red' | 'Green' | 'Blue' | 'Purple';
+  acc: 0 | 1;
+  color: BusColor;
   driver: string;
   date: string;
+  department: string | null;
+}
+
+export interface BusDetail {
+  bus_id: string;
+  color: BusColor;
+  driver: string;
+  department: string | null;
+  odo_total: number;
+  km_today: number;
+  speed: number;
+  acc: 0 | 1;
+  soc: number;
+  history: { date: string; km: number }[];
 }
 
 export interface SustainabilityData {
@@ -50,6 +68,9 @@ export interface SustainabilityData {
     kwh_used: number;
     km_total: number;
     trees_equiv: number;
+    ev_co2_kg: number;
+    ngv_co2_kg: number;
+    buses_active: number;
   };
   weekly: { day: string; co2: number }[];
 }

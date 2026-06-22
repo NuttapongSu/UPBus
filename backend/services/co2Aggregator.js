@@ -18,7 +18,7 @@ async function aggregateLastHour() {
     const [snapshots] = await db.query(
       `SELECT bus_id, odo, bv, be, recorded_at
        FROM gps_snapshots
-       WHERE recorded_at >= ? AND recorded_at < ?
+       WHERE recorded_at >= ? AND recorded_at < ? AND odo > 0
        ORDER BY bus_id, recorded_at ASC`,
       [hourStart, hourEnd]
     );
@@ -38,16 +38,20 @@ async function aggregateLastHour() {
 
     let totalKm = 0;
     let totalKwh = 0;
+    const MAX_KM_PER_BUS_PER_HOUR = 150;
 
     Object.values(busOdo).forEach(bus => {
-      const km = Math.max(0, bus.last - bus.first);
+      const km = Math.min(
+        Math.max(0, bus.last - bus.first) / 1000,
+        MAX_KM_PER_BUS_PER_HOUR
+      ); // odo เป็นเมตร → km พร้อม sanity cap
       totalKm += km;
       const avgBv = bus.count > 0 ? bus.bvSum / bus.count : 0;
       const avgBe = bus.count > 0 ? bus.beSum / bus.count : 0;
       totalKwh += calcKwhUsed(avgBv, avgBe, 3600); // 1 ชั่วโมง
     });
 
-    const co2Saved = calcCO2Saved(totalKm);
+    const co2Saved = calcCO2Saved(totalKm, totalKwh);
 
     await db.query(
       `INSERT INTO sustainability_log (logged_at, co2_saved_kg, kwh_used, km_total, passengers)
@@ -62,10 +66,53 @@ async function aggregateLastHour() {
   }
 }
 
-function start() {
-  // รันทุกต้นชั่วโมง
-  cron.schedule('0 * * * *', aggregateLastHour);
-  console.log('🌿 CO₂ Aggregator started (runs hourly)');
+// รันตอนเที่ยงคืน: snapshot ยอดรวมของวันที่เพิ่งจบ → sustainability_daily_summary
+async function snapshotEndOfDay() {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const statDate = yesterday.toISOString().slice(0, 10);
+
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         COALESCE(SUM(co2_saved_kg), 0) as co2_saved_kg,
+         COALESCE(SUM(kwh_used), 0)     as kwh_used,
+         COALESCE(SUM(km_total), 0)     as km_total
+       FROM sustainability_log
+       WHERE DATE(logged_at) = ?`,
+      [statDate]
+    );
+
+    const [busRows] = await db.query(
+      `SELECT COUNT(DISTINCT bus_id) as cnt
+       FROM gps_snapshots
+       WHERE DATE(recorded_at) = ?`,
+      [statDate]
+    );
+
+    await db.query(
+      `INSERT INTO sustainability_daily_summary (stat_date, co2_saved_kg, kwh_used, km_total, buses_active)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         co2_saved_kg = VALUES(co2_saved_kg),
+         kwh_used     = VALUES(kwh_used),
+         km_total     = VALUES(km_total),
+         buses_active = VALUES(buses_active)`,
+      [statDate, rows[0].co2_saved_kg, rows[0].kwh_used, rows[0].km_total, busRows[0].cnt ?? 0]
+    );
+
+    console.log(`📅 Daily snapshot saved: ${statDate} — CO₂=${rows[0].co2_saved_kg.toFixed(2)}kg`);
+  } catch (err) {
+    console.error('❌ Daily snapshot error:', err.message);
+  }
 }
 
-module.exports = { start, aggregateLastHour };
+function start() {
+  // รันทุก 30 วินาที — aggregate ชั่วโมงที่แล้ว (idempotent ด้วย ON DUPLICATE KEY)
+  cron.schedule('*/30 * * * * *', aggregateLastHour);
+  // รันตอนเที่ยงคืน — snapshot ยอดรวมวันที่เพิ่งจบ
+  cron.schedule('0 0 * * *', snapshotEndOfDay);
+  console.log('🌿 CO₂ Aggregator started (hourly agg every 30s, daily snapshot at midnight)');
+}
+
+module.exports = { start, aggregateLastHour, snapshotEndOfDay };

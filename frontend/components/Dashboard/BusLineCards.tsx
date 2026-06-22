@@ -3,6 +3,8 @@ import { BusData } from '@/lib/api';
 
 interface Props {
   buses: BusData[];
+  selectedLine: string | null;
+  onSelectLine: (line: string | null) => void;
 }
 
 const LINES = [
@@ -17,14 +19,40 @@ const COLOR_HEX: Record<string, string> = {
   Red: '#e74c3c',
 };
 
-export default function BusLineCards({ buses }: Props) {
+export default function BusLineCards({ buses, selectedLine, onSelectLine }: Props) {
   return (
-    <div className="flex gap-3 px-4 py-3">
+    <div className="flex gap-3 px-4 py-3 items-stretch">
+      {/* ทุกสาย button */}
+      <button
+        onClick={() => onSelectLine(null)}
+        className="flex flex-col justify-center items-center px-5 rounded-xl border transition-all"
+        style={{
+          background: selectedLine === null ? '#2a2a4a' : '#1a1a2e',
+          borderColor: selectedLine === null ? '#888' : '#2a2a4a',
+          color: selectedLine === null ? '#fff' : '#888',
+          fontWeight: selectedLine === null ? 'bold' : 'normal',
+          minWidth: 80,
+        }}
+      >
+        <span className="text-sm">ทุกสาย</span>
+        <span className="text-xs mt-1">{buses.length} คัน</span>
+      </button>
+
       {LINES.map(line => {
         const count = buses.filter(b => b.color === line.key).length;
         const vacant = line.capacity - count;
+        const isSelected = selectedLine === line.key;
         return (
-          <div key={line.key} className="flex-1 bg-[#1a1a2e] rounded-xl p-4 border border-[#2a2a4a]">
+          <button
+            key={line.key}
+            onClick={() => onSelectLine(isSelected ? null : line.key)}
+            className="flex-1 rounded-xl p-4 border text-left transition-all"
+            style={{
+              background: isSelected ? '#1e1e3a' : '#1a1a2e',
+              borderColor: isSelected ? COLOR_HEX[line.key] : '#2a2a4a',
+              boxShadow: isSelected ? `0 0 0 2px ${COLOR_HEX[line.key]}44` : 'none',
+            }}
+          >
             <div className="flex items-center justify-between mb-1">
               <span className="font-bold text-sm" style={{ color: COLOR_HEX[line.key] }}>
                 ● {line.name}
@@ -41,7 +69,7 @@ export default function BusLineCards({ buses }: Props) {
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">ว่าง {vacant} ที่นั่ง</p>
-          </div>
+          </button>
         );
       })}
     </div>

@@ -17,14 +17,18 @@ const upload = multer({ storage });
 // POST /api/complaints — สาธารณะ
 router.post('/', upload.single('image'), async (req, res) => {
   const { topic, bus_number, detail } = req.body;
-  if (!topic || !detail) {
-    return res.status(400).json({ error: 'topic and detail required' });
+  if (!topic || !detail || bus_number === undefined || bus_number === '') {
+    return res.status(400).json({ error: 'topic, bus_number, and detail required' });
+  }
+  const busNum = parseInt(bus_number, 10);
+  if (isNaN(busNum)) {
+    return res.status(400).json({ error: 'bus_number must be an integer' });
   }
   try {
     const image_file = req.file ? req.file.filename : null;
     const [result] = await db.query(
       'INSERT INTO complaints (topic, bus_number, detail, image_file) VALUES (?, ?, ?, ?)',
-      [topic, bus_number, detail, image_file]
+      [topic, busNum, detail, image_file]
     );
     res.json({ status: 'success', id: result.insertId });
   } catch (err) {

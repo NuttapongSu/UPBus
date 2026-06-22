@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { getCachedBusData, BUS_IDS } = require('../services/gpsPoller');
+const { getCachedBusData, getCachedBusById, BUS_IDS } = require('../services/gpsPoller');
 
-// GET /api/buses — merge RAM cache + DB
+// GET /api/buses — merge RAM cache + DB + today's reservations
 router.get('/', async (req, res) => {
   try {
     const [dbBuses] = await db.query(`
@@ -12,23 +12,90 @@ router.get('/', async (req, res) => {
       LEFT JOIN drivers ON buses.current_driver_id = drivers.id
     `);
 
+    const [reservations] = await db.query(
+      `SELECT bus_number, department FROM bus_reservations WHERE reserved_date = CURDATE() AND status = 'approved'`
+    );
+
     const dbMap = new Map();
     dbBuses.forEach(bus => {
       const gpsId = 'TC' + String(bus.bus_number).padStart(3, '0');
       dbMap.set(gpsId, bus);
     });
 
+    const reserveMap = new Map();
+    reservations.forEach(r => reserveMap.set(r.bus_number, r.department));
+
     const gpsMap = new Map(getCachedBusData().map(b => [b.imei_id, b]));
 
     const finalData = BUS_IDS.map(tc => {
       const gps = gpsMap.get(tc) || { imei_id: tc, latitude: null, longitude: null, speed: 0, bearing: 0, soc: 0 };
       const dbInfo = dbMap.get(tc) || { status_color: 'Purple', full_name: 'ไม่ระบุคนขับ' };
-      return { ...gps, color: dbInfo.status_color, driver: dbInfo.full_name };
+      const department = reserveMap.get(tc) || null;
+      // มี reservation → สีส้ม (วิ่งนอกเส้นทาง/จองหน่วยงาน)
+      // ไม่มี reservation → ใช้สีจาก DB (Purple = ไม่มีคนขับ)
+      const color = department ? 'Orange' : dbInfo.status_color;
+      return { ...gps, color, driver: dbInfo.full_name, department };
     });
 
     res.json(finalData);
   } catch (err) {
     console.error('Buses route error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/buses/:id — detail for one bus (real-time + daily stats)
+router.get('/:id', async (req, res) => {
+  const busId = req.params.id.toUpperCase();
+  try {
+    const [[dbBus]] = await db.query(`
+      SELECT buses.bus_number, buses.status_color, drivers.full_name
+      FROM buses
+      LEFT JOIN drivers ON buses.current_driver_id = drivers.id
+      WHERE buses.bus_number = ?
+    `, [parseInt(busId.replace('TC', ''), 10)]);
+
+    const [[reservation]] = await db.query(
+      `SELECT department FROM bus_reservations WHERE bus_number = ? AND reserved_date = CURDATE() AND status = 'approved'`,
+      [busId]
+    );
+
+    const gps = getCachedBusById(busId);
+
+    // today's km from bus_daily_stats
+    const [[today]] = await db.query(
+      `SELECT km_today FROM bus_daily_stats WHERE bus_id = ? AND stat_date = CURDATE()`,
+      [busId]
+    );
+
+    // last 7 days history (max odo - min odo per day from snapshots)
+    const [history] = await db.query(`
+      SELECT DATE(recorded_at) AS date,
+             GREATEST(0, MAX(odo) - MIN(odo)) AS km
+      FROM gps_snapshots
+      WHERE bus_id = ? AND odo > 0
+        AND recorded_at >= CURDATE() - INTERVAL 6 DAY
+      GROUP BY DATE(recorded_at)
+      ORDER BY date ASC
+    `, [busId]);
+
+    const department = reservation?.department || null;
+    const color = department ? 'Orange' : (dbBus?.status_color || 'Purple');
+
+    res.json({
+      bus_id:    busId,
+      color,
+      driver:    dbBus?.full_name || 'ไม่มีคนขับ',
+      department,
+      odo_total: gps?.odo         || 0,
+      km_today:  today?.km_today  || 0,
+      speed:     gps?.speed       || 0,
+      acc:       gps?.acc         ?? 0,
+      soc:       gps?.soc         || 0,
+      history,
+    });
+  } catch (err) {
+    console.error('Bus detail error:', err.message);
     res.status(500).json({ error: 'Server error' });
   }
 });

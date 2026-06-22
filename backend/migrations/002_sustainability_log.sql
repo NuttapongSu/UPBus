@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS sustainability_log (
   kwh_used     FLOAT DEFAULT 0,
   km_total     FLOAT DEFAULT 0,
   passengers   INT DEFAULT 0,
-  INDEX idx_logged (logged_at)
+  UNIQUE KEY uq_logged_at (logged_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

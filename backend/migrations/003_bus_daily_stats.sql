@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS bus_daily_stats (
+  id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+  bus_id     VARCHAR(10) NOT NULL,
+  stat_date  DATE NOT NULL,
+  start_odo  FLOAT NOT NULL DEFAULT 0,
+  km_today   FLOAT NOT NULL DEFAULT 0,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_bus_date (bus_id, stat_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

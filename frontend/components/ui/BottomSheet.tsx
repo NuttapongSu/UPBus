@@ -29,10 +29,11 @@ export default function BottomSheet({
     if (isOpen) {
       setMounted(true);
       // Defer to next frame so CSS transition fires
-      requestAnimationFrame(() => {
+      const raf = requestAnimationFrame(() => {
         setSnap(defaultSnap);
         currentSnap.current = defaultSnap;
       });
+      return () => cancelAnimationFrame(raf);
     } else {
       setSnap('hidden');
       currentSnap.current = 'hidden';
@@ -96,7 +97,7 @@ export default function BottomSheet({
         <div
           className="flex flex-col items-center pt-3 pb-2 cursor-grab shrink-0"
           onClick={() => {
-            const next = snap === 'peek' ? 'expanded' : 'peek';
+            const next = currentSnap.current === 'peek' ? 'expanded' : 'peek';
             setSnap(next);
             currentSnap.current = next;
           }}

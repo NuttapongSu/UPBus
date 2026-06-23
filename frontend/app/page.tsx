@@ -28,11 +28,8 @@ export default function HomePage() {
   const [sheet2Open, setSheet2Open] = useState(false);   // right panel sheet (mobile only)
 
   function handleBusFilter(filter: 'charging' | 'available') {
-    setBusFilter(prev => {
-      if (prev === filter) return null;
-      setSelectedLine(null);
-      return filter;
-    });
+    if (busFilter !== filter) setSelectedLine(null);
+    setBusFilter(prev => prev === filter ? null : filter);
   }
 
   // Auto-open right sheet when bus or line is selected (mobile)
@@ -166,7 +163,9 @@ export default function HomePage() {
       </div>
 
       {/* Bottom Bar */}
-      <BusLineCards buses={buses} selectedLine={selectedLine} onSelectLine={setSelectedLine} />
+      <div className="shrink-0">
+        <BusLineCards buses={buses} selectedLine={selectedLine} onSelectLine={setSelectedLine} />
+      </div>
 
       {/* Bottom Sheet 1: left panel (mobile + tablet) */}
       <div className="lg:hidden">

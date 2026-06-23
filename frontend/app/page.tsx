@@ -11,9 +11,14 @@ import BusApproachAlerts from '@/components/Dashboard/BusApproachAlerts';
 import BusRequestModal from '@/components/Dashboard/BusRequestModal';
 import LineDetailPanel from '@/components/Dashboard/LineDetailPanel';
 import BusDetailPanel from '@/components/Dashboard/BusDetailPanel';
-import BottomSheet from '@/components/ui/BottomSheet';
 
 const BusMap = dynamic(() => import('@/components/Map/BusMap'), { ssr: false });
+
+const LINES = [
+  { key: 'Green', name: 'สายหน้ามอ',    color: '#2ecc71' },
+  { key: 'Blue',  name: 'สายประตูสาม',  color: '#3498db' },
+  { key: 'Red',   name: 'สายหอพัก',     color: '#e74c3c' },
+];
 
 export default function HomePage() {
   const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, {
@@ -21,25 +26,25 @@ export default function HomePage() {
   });
 
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
-  const [selectedBus, setSelectedBus] = useState<string | null>(null);
+  const [selectedBus,  setSelectedBus]  = useState<string | null>(null);
   const [busFilter, setBusFilter] = useState<'charging' | 'available' | null>(null);
-  const [showRequest, setShowRequest] = useState(false);
-  const [sheet1Open, setSheet1Open] = useState(false);   // left panel sheet (mobile+tablet)
-  const [sheet2Open, setSheet2Open] = useState(false);   // right panel sheet (mobile only)
+  const [showRequest,     setShowRequest]     = useState(false);
+  const [leftDrawerOpen,  setLeftDrawerOpen]  = useState(false);
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
 
   function handleBusFilter(filter: 'charging' | 'available') {
     if (busFilter !== filter) setSelectedLine(null);
     setBusFilter(prev => prev === filter ? null : filter);
   }
 
-  // Auto-open right sheet when bus or line is selected (mobile)
+  // Auto-open right drawer (mobile) when bus/line selected
   useEffect(() => {
-    if (selectedBus || selectedLine) setSheet2Open(true);
-    else setSheet2Open(false);
+    if (selectedBus || selectedLine) setRightDrawerOpen(true);
+    else setRightDrawerOpen(false);
   }, [selectedBus, selectedLine]);
 
-  function handleSheet2Close() {
-    setSheet2Open(false);
+  function handleRightDrawerClose() {
+    setRightDrawerOpen(false);
     setSelectedBus(null);
     setSelectedLine(null);
   }
@@ -63,7 +68,6 @@ export default function HomePage() {
     return () => clearInterval(id);
   }, []);
 
-  // Right panel content (shared between sidebar and sheet)
   const rightPanelContent = selectedBus ? (
     <BusDetailPanel busId={selectedBus} onBack={() => setSelectedBus(null)} />
   ) : selectedLine ? (
@@ -77,7 +81,6 @@ export default function HomePage() {
     <SustainabilityPanel />
   );
 
-  // Left panel content (shared between sidebar and sheet)
   const leftPanelContent = (
     <>
       <SystemOverview
@@ -100,12 +103,10 @@ export default function HomePage() {
           <h1 className="text-base md:text-lg font-bold leading-tight">UP Smart Transit</h1>
           <p className="text-[10px] text-gray-400 hidden sm:block">ระบบขนส่งอัจฉริยะเพื่อมหาวิทยาลัยสีเขียว</p>
         </div>
-        {/* Search — hidden on mobile */}
         <input
           className="hidden md:flex flex-1 mx-4 bg-[#1a1a2e] border border-[#2a2a4a] rounded-full px-4 py-2 text-sm outline-none"
           placeholder="ค้นหาเส้นทาง/ป้ายรถ/จุดหมาย..."
         />
-        {/* Datetime — desktop only */}
         <p className="hidden lg:block text-sm text-gray-300 ml-auto shrink-0">อัปเดต {now}</p>
         <div className="flex items-center gap-2 ml-auto md:ml-0">
           <button
@@ -135,7 +136,7 @@ export default function HomePage() {
       {/* Main */}
       <div className="flex flex-1 overflow-hidden relative">
 
-        {/* Left Sidebar — desktop only */}
+        {/* Left Sidebar — desktop only (in-flow) */}
         <aside className="hidden lg:flex w-64 flex-col gap-3 p-3 overflow-y-auto bg-[#0f0f1a] border-r border-[#1e1e2e] shrink-0">
           {leftPanelContent}
         </aside>
@@ -143,52 +144,91 @@ export default function HomePage() {
         {/* Map */}
         <main className="flex-1 relative h-full">
           <BusMap buses={displayBuses} selectedLine={selectedLine} selectedBus={selectedBus} />
+
+          {/* Floating line filter — mobile only, top-right of map */}
+          <div className="md:hidden absolute top-4 right-4 z-30 flex flex-col gap-2">
+            <button
+              onClick={() => setSelectedLine(null)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg transition-all border backdrop-blur-sm"
+              style={{
+                background: selectedLine === null ? '#2a2a4a' : 'rgba(15,15,26,0.85)',
+                borderColor: selectedLine === null ? '#888' : '#2a2a4a',
+                color:       selectedLine === null ? '#fff'  : '#888',
+              }}
+            >
+              ทุกสาย
+            </button>
+            {LINES.map(line => (
+              <button
+                key={line.key}
+                onClick={() => setSelectedLine(selectedLine === line.key ? null : line.key)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg transition-all border backdrop-blur-sm"
+                style={{
+                  background:  selectedLine === line.key ? `${line.color}22` : 'rgba(15,15,26,0.85)',
+                  borderColor: selectedLine === line.key ? line.color : '#2a2a4a',
+                  color:       selectedLine === line.key ? line.color : '#888',
+                }}
+              >
+                ● {line.name}
+              </button>
+            ))}
+          </div>
+
+          {/* FAB — open left drawer (mobile + tablet) */}
+          <button
+            onClick={() => setLeftDrawerOpen(true)}
+            className="lg:hidden absolute bottom-4 left-4 z-30 w-12 h-12 rounded-full bg-[#1a1a2e] border border-[#2a2a4a] shadow-lg flex items-center justify-center text-white hover:bg-[#2a2a4a] transition-colors"
+            aria-label="ภาพรวมระบบ"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
         </main>
 
-        {/* Right Sidebar — tablet+ */}
+        {/* Right Sidebar — tablet+ (in-flow) */}
         <aside className="hidden md:flex w-72 flex-col p-3 overflow-y-auto bg-[#0f0f1a] border-l border-[#1e1e2e] shrink-0">
           {rightPanelContent}
         </aside>
 
-        {/* FAB — open left sheet (mobile + tablet) */}
-        <button
-          onClick={() => setSheet1Open(true)}
-          className="lg:hidden fixed bottom-28 left-4 z-30 w-12 h-12 rounded-full bg-[#1a1a2e] border border-[#2a2a4a] shadow-lg flex items-center justify-center text-white hover:bg-[#2a2a4a] transition-colors"
-          aria-label="ภาพรวมระบบ"
+        {/* Backdrop for left drawer (mobile + tablet) */}
+        {leftDrawerOpen && (
+          <div
+            className="lg:hidden absolute inset-0 bg-black/40 z-40"
+            onClick={() => setLeftDrawerOpen(false)}
+          />
+        )}
+
+        {/* Backdrop for right drawer (mobile only) */}
+        {rightDrawerOpen && (
+          <div
+            className="md:hidden absolute inset-0 bg-black/40 z-40"
+            onClick={handleRightDrawerClose}
+          />
+        )}
+
+        {/* Left Drawer — slides from left, mobile + tablet */}
+        <aside
+          className={`lg:hidden absolute top-0 left-0 h-full w-64 z-50 flex flex-col gap-3 p-3 overflow-y-auto bg-[#0f0f1a] border-r border-[#1e1e2e] transform transition-transform duration-300 ease-out ${
+            leftDrawerOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-      </div>
+          {leftPanelContent}
+        </aside>
 
-      {/* Bottom Bar */}
-      <div className="shrink-0">
-        <BusLineCards buses={buses} selectedLine={selectedLine} onSelectLine={setSelectedLine} />
-      </div>
-
-      {/* Bottom Sheet 1: left panel (mobile + tablet) */}
-      <div className="lg:hidden">
-        <BottomSheet
-          isOpen={sheet1Open}
-          onClose={() => setSheet1Open(false)}
-          title="ภาพรวมระบบ"
-        >
-          <div className="flex flex-col gap-3">
-            {leftPanelContent}
-          </div>
-        </BottomSheet>
-      </div>
-
-      {/* Bottom Sheet 2: right panel (mobile only) */}
-      <div className="md:hidden">
-        <BottomSheet
-          isOpen={sheet2Open}
-          onClose={handleSheet2Close}
-          title={selectedBus ? 'รายละเอียดรถ' : selectedLine ? 'รายละเอียดสาย' : 'ความยั่งยืน'}
+        {/* Right Drawer — slides from right, mobile only */}
+        <aside
+          className={`md:hidden absolute top-0 right-0 h-full w-72 z-50 flex flex-col p-3 overflow-y-auto bg-[#0f0f1a] border-l border-[#1e1e2e] transform transition-transform duration-300 ease-out ${
+            rightDrawerOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
         >
           {rightPanelContent}
-        </BottomSheet>
+        </aside>
+      </div>
+
+      {/* Bottom Bar — tablet+ only */}
+      <div className="hidden md:block shrink-0">
+        <BusLineCards buses={buses} selectedLine={selectedLine} onSelectLine={setSelectedLine} />
       </div>
 
       {/* Modal จองรถ */}

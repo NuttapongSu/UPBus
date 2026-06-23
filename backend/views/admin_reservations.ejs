@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html :class="{ 'theme-dark': dark }" x-data="data()" lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UP Bus - จองรถหน่วยงาน</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/css/tailwind.output.css" />
+    <link rel="icon" href="/assets/img/favicon.ico" type="image/x-icon">
+    <style>
+        body, h1, h2, h3, h4, h5, h6, p, span, a, div, table { font-family: 'Kanit', sans-serif !important; }
+        .badge-pending  { background:#fef3c7; color:#92400e; }
+        .badge-approved { background:#d1fae5; color:#065f46; }
+        .badge-rejected { background:#fee2e2; color:#991b1b; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+    <script src="/assets/js/init-alpine.js"></script>
+</head>
+
+<body>
+<div class="flex h-screen bg-gray-50 dark:bg-gray-900" :class="{ 'overflow-hidden': isSideMenuOpen }">
+
+    <!-- Sidebar -->
+    <aside class="z-20 hidden w-64 overflow-y-auto bg-white dark:bg-gray-800 md:block flex-shrink-0">
+        <div class="py-4 text-gray-500 dark:text-gray-400">
+            <a class="ml-6 text-lg font-bold text-gray-800 dark:text-gray-200" href="/admin/dashboard">UP Bus Admin</a>
+            <ul class="mt-6">
+                <li class="relative px-6 py-3">
+                    <a class="inline-flex items-center w-full text-sm font-semibold transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200" href="/admin/dashboard">
+                        <svg class="w-5 h-5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        <span class="ml-4">Dashboard</span>
+                    </a>
+                </li>
+                <li class="relative px-6 py-3">
+                    <a class="inline-flex items-center w-full text-sm font-semibold transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200" href="/admin/complaints">
+                        <svg class="w-5 h-5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        <span class="ml-4">ร้องเรียน</span>
+                    </a>
+                </li>
+                <li class="relative px-6 py-3">
+                    <a class="inline-flex items-center w-full text-sm font-semibold transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200" href="/admin/evaluations">
+                        <svg class="w-5 h-5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"></path></svg>
+                        <span class="ml-4">แบบประเมิน</span>
+                    </a>
+                </li>
+                <li class="relative px-6 py-3">
+                    <span class="absolute inset-y-0 left-0 w-1 bg-purple-600 rounded-tr-lg rounded-br-lg"></span>
+                    <a class="inline-flex items-center w-full text-sm font-semibold text-gray-800 dark:text-gray-100" href="/admin/reservations">
+                        <svg class="w-5 h-5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span class="ml-4">จองรถหน่วยงาน</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="px-6 my-6">
+                <a href="/logout" class="flex items-center justify-between w-full px-4 py-2 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-purple-600 border border-transparent rounded-lg hover:bg-purple-700">
+                    ออกจากระบบ
+                </a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="flex flex-col flex-1 w-full overflow-y-auto">
+        <header class="z-10 py-4 bg-white shadow-md dark:bg-gray-800">
+            <div class="container flex items-center justify-between h-full px-6 mx-auto">
+                <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">จองรถสำหรับหน่วยงานภายใน</h2>
+                <% const pending = reservations.filter(r => r.status === 'pending'); %>
+                <% if (pending.length > 0) { %>
+                <span class="px-3 py-1 text-sm font-bold text-white bg-yellow-500 rounded-full animate-pulse">
+                    <%= pending.length %> รายการรออนุมัติ
+                </span>
+                <% } %>
+            </div>
+        </header>
+
+        <main class="h-full pb-16 overflow-y-auto">
+            <div class="container px-6 mx-auto grid gap-6 my-8">
+
+                <!-- Flash -->
+                <% if (success) { %>
+                <div class="flex items-center p-4 bg-green-50 rounded-lg dark:bg-green-800">
+                    <svg class="w-5 h-5 text-green-600 mr-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                    <span class="text-sm font-medium text-green-700 dark:text-green-200"><%= success %></span>
+                </div>
+                <% } %>
+                <% if (error) { %>
+                <div class="flex items-center p-4 bg-red-50 rounded-lg">
+                    <svg class="w-5 h-5 text-red-600 mr-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+                    <span class="text-sm font-medium text-red-700"><%= error %></span>
+                </div>
+                <% } %>
+
+                <!-- ── คำขอที่รออนุมัติ ──────────────────────────── -->
+                <% const pendingList = reservations.filter(r => r.status === 'pending'); %>
+                <% if (pendingList.length > 0) { %>
+                <div class="min-w-0 p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg shadow-xs border border-yellow-200">
+                    <h4 class="mb-4 font-semibold text-yellow-800 dark:text-yellow-200 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        คำขอจองรถรออนุมัติ (<%= pendingList.length %> รายการ)
+                    </h4>
+                    <div class="flex flex-col gap-3">
+                        <% pendingList.forEach(r => { %>
+                        <div class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-yellow-300 shadow-sm">
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <p class="font-bold text-gray-800 dark:text-gray-100 text-sm"><%= r.bus_number %> — <span class="text-purple-600"><%= r.department %></span></p>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        📅 <%= new Date(r.reserved_date).toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}) %>
+                                        &nbsp;·&nbsp; 👤 <%= r.requester_name || '-' %>
+                                        <% if (r.requester_phone) { %>&nbsp;·&nbsp; 📞 <%= r.requester_phone %><% } %>
+                                    </p>
+                                    <% if (r.note) { %><p class="text-xs text-gray-600 dark:text-gray-400 mt-1">📝 <%= r.note %></p><% } %>
+                                    <% if (r.document_path) { %>
+                                    <a href="/uploads/reservations/<%= r.document_path %>" target="_blank"
+                                       class="inline-flex items-center gap-1 mt-2 text-xs text-blue-600 hover:underline">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        ดูเอกสารบันทึกขอรถ (PDF)
+                                    </a>
+                                    <% } %>
+                                </div>
+                                <div class="flex flex-col gap-2 min-w-[220px]">
+                                    <form action="/admin/reservations/approve" method="POST" class="flex gap-2">
+                                        <input type="hidden" name="id" value="<%= r.id %>" />
+                                        <input type="text" name="admin_note" placeholder="หมายเหตุ (ถ้ามี)"
+                                            class="flex-1 text-xs border rounded px-2 py-1 dark:bg-gray-700 dark:border-gray-600" />
+                                        <button type="submit"
+                                            class="px-3 py-1 text-xs font-bold text-white bg-green-500 rounded hover:bg-green-600 whitespace-nowrap">
+                                            ✓ อนุมัติ
+                                        </button>
+                                    </form>
+                                    <form action="/admin/reservations/reject" method="POST" class="flex gap-2">
+                                        <input type="hidden" name="id" value="<%= r.id %>" />
+                                        <input type="text" name="admin_note" placeholder="เหตุผลที่ปฏิเสธ"
+                                            class="flex-1 text-xs border rounded px-2 py-1 dark:bg-gray-700 dark:border-gray-600" />
+                                        <button type="submit"
+                                            class="px-3 py-1 text-xs font-bold text-white bg-red-500 rounded hover:bg-red-600 whitespace-nowrap">
+                                            ✗ ปฏิเสธ
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+                </div>
+                <% } %>
+
+                <!-- ── Admin จองตรง ─────────────────────────────────── -->
+                <div class="min-w-0 p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
+                    <h4 class="mb-4 font-semibold text-gray-800 dark:text-gray-300">จองรถโดย Admin (อนุมัติทันที)</h4>
+                    <form action="/admin/reservations" method="POST">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-sm text-gray-700 dark:text-gray-400 mb-1">หน่วยงาน <span class="text-red-500">*</span></label>
+                                <select name="department" required class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none rounded-lg border px-3 py-2">
+                                    <option value="">-- เลือกหน่วยงาน --</option>
+                                    <% departments.forEach(d => { %><option value="<%= d %>"><%= d %></option><% }); %>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-700 dark:text-gray-400 mb-1">เลขรถ <span class="text-red-500">*</span></label>
+                                <select name="bus_number" required class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-select focus:border-purple-400 focus:outline-none rounded-lg border px-3 py-2">
+                                    <option value="">-- เลือกรถ --</option>
+                                    <% busList.forEach(b => { %><option value="<%= b %>"><%= b %></option><% }); %>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-700 dark:text-gray-400 mb-1">วันที่จอง <span class="text-red-500">*</span></label>
+                                <input type="date" name="reserved_date" required value="<%= new Date().toISOString().slice(0,10) %>"
+                                    class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-input focus:border-purple-400 focus:outline-none rounded-lg border px-3 py-2" />
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-700 dark:text-gray-400 mb-1">หมายเหตุ</label>
+                                <input type="text" name="note" placeholder="เช่น รับแขก VIP"
+                                    class="block w-full mt-1 text-sm dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 form-input focus:border-purple-400 focus:outline-none rounded-lg border px-3 py-2" />
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <button type="submit" class="px-6 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700">บันทึกการจอง</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ── ตารางทั้งหมด ─────────────────────────────────── -->
+                <div class="min-w-0 p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
+                    <h4 class="mb-4 font-semibold text-gray-800 dark:text-gray-300">รายการจองรถทั้งหมด</h4>
+                    <div class="w-full overflow-x-auto">
+                        <table class="w-full whitespace-no-wrap">
+                            <thead>
+                                <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                                    <th class="px-4 py-3">รถ</th>
+                                    <th class="px-4 py-3">หน่วยงาน / ผู้ขอ</th>
+                                    <th class="px-4 py-3">วันที่จอง</th>
+                                    <th class="px-4 py-3">เอกสาร</th>
+                                    <th class="px-4 py-3">สถานะ</th>
+                                    <th class="px-4 py-3">หมายเหตุ Admin</th>
+                                    <th class="px-4 py-3">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
+                                <% if (reservations.length === 0) { %>
+                                <tr><td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500">ยังไม่มีรายการ</td></tr>
+                                <% } %>
+                                <% reservations.forEach(r => { %>
+                                <tr class="text-gray-700 dark:text-gray-400">
+                                    <td class="px-4 py-3 text-sm font-bold text-purple-600"><%= r.bus_number %></td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <p class="font-medium"><%= r.department %></p>
+                                        <% if (r.requester_name) { %>
+                                        <p class="text-xs text-gray-400"><%= r.requester_name %><% if (r.requester_phone) { %> · <%= r.requester_phone %><% } %></p>
+                                        <% } %>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm"><%= new Date(r.reserved_date).toLocaleDateString('th-TH',{year:'numeric',month:'short',day:'numeric'}) %></td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <% if (r.document_path) { %>
+                                        <a href="/uploads/reservations/<%= r.document_path %>" target="_blank"
+                                           class="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                            PDF
+                                        </a>
+                                        <% } else { %>
+                                        <span class="text-xs text-gray-400">-</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="px-4 py-3 text-xs">
+                                        <span class="px-2 py-1 rounded-full font-bold <%= r.status === 'pending' ? 'badge-pending' : r.status === 'approved' ? 'badge-approved' : 'badge-rejected' %>">
+                                            <%= r.status === 'pending' ? 'รออนุมัติ' : r.status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธ' %>
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-xs text-gray-500"><%= r.admin_note || '-' %></td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <form action="/admin/reservations/delete" method="POST" onsubmit="return confirm('ยืนยันการลบ?')">
+                                            <input type="hidden" name="id" value="<%= r.id %>" />
+                                            <button type="submit" class="px-3 py-1 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600">ลบ</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

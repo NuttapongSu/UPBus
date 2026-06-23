@@ -1,0 +1,69 @@
+/* assets/css/register.css */
+
+/* พื้นฐาน */
+body {
+    font-family: 'Kanit', sans-serif;
+    background-color: #f0f2f5; /* สีพื้นหลังเหมือนกัน */
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* การ์ดลงทะเบียน */
+.register-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(255, 94, 98, 0.2); /* เงาสีส้มแดง */
+    width: 100%;
+    max-width: 450px;
+    overflow: hidden;
+    margin: 20px;
+}
+
+/* ส่วนหัว (โทนส้ม-แดง) */
+.card-header-register {
+    background: linear-gradient(135deg, #ffc966 0%, #9006eb 100%);
+    color: white;
+    padding: 25px;
+    text-align: center;
+}
+
+.card-body {
+    padding: 30px;
+}
+
+.form-label {
+    color: #4a4a4a;
+    font-weight: 500;
+}
+
+/* จัด Input Group ให้สวยงาม */
+.input-group-text {
+    background-color: #fff5f5;
+    border-color: #ced4da;
+    color: #9006eb;
+}
+
+/* ปุ่มลงทะเบียน */
+.btn-register {
+    background-color: #9006eb;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 1.1rem;
+    width: 100%;
+    transition: all 0.3s;
+}
+
+.btn-register:hover {
+    background-color: #ffc966;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 94, 98, 0.3);
+}
+
+.custom-placeholder::placeholder {
+    color: #cecece; 
+    opacity: 1; 
+}

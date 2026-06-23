@@ -1,0 +1,75 @@
+/* assets/css/driver.css */
+
+/* พื้นฐาน */
+body {
+    font-family: 'Kanit', sans-serif;
+    background-color: #f0f2f5;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* การ์ด */
+.driver-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(143, 55, 203, 0.2);
+    width: 100%;
+    max-width: 450px;
+    overflow: hidden;
+    margin: 20px;
+}
+
+/* ส่วนหัว */
+.card-header-custom {
+    background: linear-gradient(135deg, #8F37CB 0%, #682696 100%);
+    color: white;
+    padding: 25px;
+    text-align: center;
+}
+
+.card-body {
+    padding: 30px;
+}
+
+.form-label {
+    color: #4a4a4a;
+    font-weight: 500;
+}
+
+.form-label i {
+    width: 24px;
+    height: 24px;
+}
+
+/* ปุ่ม */
+.btn-upbus {
+    background-color: #8F37CB;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 1.1rem;
+    width: 100%;
+    transition: all 0.3s;
+}
+
+.btn-upbus:hover {
+    background-color: #ffc966;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(116, 44, 163, 0.3);
+}
+
+/* สีใน Dropdown */
+.bg-green { background-color: #28a745; color: white; }
+.bg-red { background-color: #dc3545; color: white; }
+.bg-blue { background-color: #0d6efd; color: white; }
+.bg-yellow { background-color: #ffc107; color: black; }
+.bg-white { background-color: #f8f9fa; color: black; border: 1px solid #ddd; }
+.bg-purple { background-color: #6f42c1; color: white; }
+
+.change-line {
+    width: 60px;
+    height: 60px;
+}

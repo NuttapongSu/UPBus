@@ -1,0 +1,2597 @@
+         * {
+             margin: 0;
+             padding: 0;
+             box-sizing: border-box;
+         }
+
+         button,
+         input,
+         textarea,
+         select {
+             font-family: inherit;
+             /* <-- คำสั่งสำคัญ! */
+         }
+
+         body {
+             font-family: 'Kanit', sans-serif;
+             margin: 0;
+             padding: 0;
+             width: 100%;
+             height: 100%;
+             overflow: hidden;
+         }
+
+         /* ===== Map Container ===== */
+         .map-wrapper {
+             position: relative;
+             width: 100vw;
+             height: 100vh;
+             overflow: hidden;
+             transition: width 0.4s ease-in-out;
+         }
+
+         body.panel-open .map-wrapper {
+             width: calc(100vw - 800px);
+         }
+
+         .map-wrapper iframe {
+             width: 100%;
+             height: 100%;
+         }
+
+         #map {
+             width: 100%;
+             height: 100%;
+             z-index: 0;
+         }
+
+         /* ===== Header Text on Map ===== */
+         .map-header {
+             position: absolute;
+             top: 20px;
+             left: 20px;
+             padding: 1rem 1.5rem;
+             z-index: 20;
+             display: flex;
+             align-items: center;
+             gap: 0.5rem;
+         }
+
+         .map-header img {
+             position: absolute;
+             width: 154px;
+             height: 76px;
+             left: 24px;
+             top: 24px;
+         }
+
+         /* ===========================================
+        [เพิ่ม] CSS สำหรับ "กล่องดีบัก" (โชว์พิกัด)
+        =========================================== */
+
+         #debug-coord-display {
+             position: absolute;
+             bottom: 100px;
+             /* 👈 (วางไว้ "ใต้" Header) */
+             left: 10px;
+             z-index: 2000;
+             /* 👈 (อยู่ "บน" สุด) */
+
+             background: rgba(255, 255, 255, 0.85);
+             /* 👈 (พื้นหลังสีขาว... โปร่งแสงนิดๆ) */
+             border: 1px solid #AAA;
+             border-radius: 5px;
+             padding: 5px 10px;
+
+             color: #333;
+             font-family: 'Courier New', monospace;
+             /* 👈 (ใช้ Font ที่อ่านตัวเลขง่าย) */
+             font-size: 14px;
+             font-weight: bold;
+
+             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+         }
+
+         /* ===== Right UI Container ("ถาด" หลัก) ===== */
+         .right-ui-container {
+             position: fixed;
+             top: 20px;
+             right: 0;
+
+             transform: translateX(calc(100% - 102px));
+
+             z-index: 100;
+             display: flex;
+             align-items: flex-start;
+             border-radius: 24px 0 0 24px;
+
+             transition: transform 0.4s ease-in-out;
+         }
+
+         /* สไตล์เมื่อ Panel ถูกเปิด */
+         .right-ui-container.open {
+             transform: translateX(0);
+         }
+
+         /* ===== Sidebar (ปรับสไตล์เล็กน้อย) ===== */
+         .sidebar {
+             padding: 24px;
+             gap: 24px;
+             display: flex;
+             flex-direction: column;
+             background-color: white;
+             border-radius: 24px 0 0 24px;
+         }
+
+         /* --- Styles for Enhanced Notification Panel --- */
+
+         /* ปรับ Panel หลักเล็กน้อย */
+         #notificationPanel {
+             background-color: #f0f0f0;
+             padding: 0;
+             overflow-x: hidden;
+             overflow-y: auto;
+             height: 100%;
+         }
+
+         .title-container {
+             text-align: center;
+             padding-top: 24px;
+             margin-bottom: 15px;
+         }
+
+         #notificationPanel .panel-title {
+             margin: 0;
+             font-size: 1.5rem;
+             font-weight: 500;
+             color: #454545;
+             position: relative;
+             display: inline-block;
+             padding-bottom: 5px;
+         }
+
+         #notificationPanel .panel-title::after {
+             content: '';
+             position: absolute;
+             bottom: 0;
+             left: 0;
+             width: 100%;
+             height: 3px;
+             background-color: #C4996C;
+             /* สีเดียวกับ Tab Active */
+         }
+
+         /* ✅ เพิ่ม: สไตล์สำหรับกรอบครอบเนื้อหาข่าว (เหมือน .form-body) */
+         .news-panel-body {
+             background-color: #FFFFFF;
+             border: 2px solid #F3ECE2;
+             border-radius: 24px;
+             padding: 24px;
+             box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.1);
+             margin: 0 24px 24px 24px;
+         }
+
+         /* --- Slider Styles --- */
+         .news-slider-container {
+             position: relative;
+             width: 100%;
+             aspect-ratio: 16 / 9;
+             overflow: hidden;
+             border-radius: 12px;
+             background-color: #ddd;
+         }
+
+         .news-slider {
+             display: flex;
+             width: 100%;
+             height: 100%;
+             transition: transform 0.5s ease-in-out;
+         }
+
+         .news-slide {
+             flex-shrink: 0;
+             width: 100%;
+             height: 100%;
+             position: absolute;
+             top: 0;
+             left: 0;
+             opacity: 0;
+             transition: opacity 0.5s ease-in-out;
+             visibility: hidden;
+         }
+
+         .news-slide.active {
+             opacity: 1;
+             visibility: visible;
+             z-index: 1;
+         }
+
+
+         .news-slide img {
+             width: 100%;
+             height: 100%;
+             object-fit: cover;
+         }
+
+         /* (Optional) Text Overlay on Slide */
+         .slide-caption {
+             position: absolute;
+             bottom: 0;
+             left: 0;
+             width: 100%;
+             background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+             color: white;
+             padding: 20px 15px 10px 15px;
+             text-align: left;
+         }
+
+         .slide-caption h4 {
+             margin: 0 0 5px 0;
+             font-size: 1.1em;
+         }
+
+         .slide-caption p {
+             font-size: 0.9em;
+             margin: 0;
+         }
+
+
+         /* Slider Navigation Dots */
+         .slider-dots {
+             position: absolute;
+             bottom: 10px;
+             left: 50%;
+             transform: translateX(-50%);
+             display: flex;
+             gap: 8px;
+             z-index: 2;
+         }
+
+         .dot {
+             width: 10px;
+             height: 10px;
+             border-radius: 50%;
+             background-color: #F6D7FC;
+             cursor: pointer;
+             transition: background-color 0.3s ease;
+         }
+
+         .dot.active {
+             width: 18px;
+             height: 10px;
+             border-radius: 100px;
+             background-color: #8F37CB;
+         }
+
+         /* --- News Grid Styles --- */
+         .news-grid {
+             display: grid;
+             grid-template-columns: repeat(2, 1fr);
+             gap: 15px;
+             padding: 0;
+         }
+
+         .news-grid-item {
+             background-color: #fff;
+             border-radius: 8px;
+             overflow: hidden;
+             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+             cursor: pointer;
+             transition: transform 0.2s ease;
+             display: flex;
+             flex-direction: column;
+         }
+
+         .news-grid-item:hover {
+             transform: translateY(-3px);
+         }
+
+
+         .news-grid-item img {
+             width: 100%;
+             aspect-ratio: 9 / 3;
+             object-fit: cover;
+             display: block;
+             background-color: #fff;
+         }
+
+         /* ===== Drawer Content (ปรับสไตล์) ===== */
+         .drawer-content {
+             padding: 24px;
+
+             width: 800px;
+
+             max-width: calc(100vw - 120px);
+
+             background-color: white;
+             border-left: 1px solid #f0f0f0;
+
+             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+             overflow: hidden;
+             z-index: 20;
+             min-width: 60px;
+             border-radius: 0 0 0 24px;
+         }
+
+         /* ===== สไตล์สำหรับกรอบพื้นหลังฟอร์ม (ให้ดูยุบลงไป) ===== */
+
+         /* กำหนดสไตล์ร่วมกันสำหรับช่องกรอกข้อมูลทุกประเภท */
+         .drawer-content select,
+         .drawer-content textarea {
+             background-color: transparent;
+             border: 1px solid #E5CAA7;
+             border-radius: 12px;
+             padding: 15px;
+         }
+
+         .drawer-content .file-upload-label {
+             background-color: #FCF6EF;
+             border: 1px solid #FCF6EF;
+             border-radius: 12px;
+             padding: 15px;
+             color: #C4996C;
+         }
+
+         /* ลบสไตล์เดิมที่อาจขัดแย้งกัน (ถ้ามี) */
+         .drawer-content select,
+         .drawer-content textarea {
+             width: 100%;
+             font-size: 1rem;
+         }
+
+         .drawer-content textarea {
+             resize: vertical;
+         }
+
+         /* .close-btn และ .overlay ใช้สไตล์เดิมได้เลย */
+         .close-btn {
+             position: absolute;
+             top: 15px;
+             right: 20px;
+             font-size: 2rem;
+             background: none;
+             border: none;
+             cursor: pointer;
+             color: #888;
+         }
+
+         .drawer-overlay {
+             position: fixed;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             background-color: rgba(0, 0, 0, 0.5);
+             z-index: 99;
+             opacity: 0;
+             visibility: hidden;
+             transition: opacity 0.3s ease-in-out;
+         }
+
+         .drawer-overlay.open {
+             opacity: 1;
+             visibility: visible;
+         }
+
+         /* ===== Sidebar UI ===== */
+
+         .sidebar-btn {
+             width: 54px;
+             height: 54px;
+             border: none;
+             cursor: pointer;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             font-size: 1.3rem;
+             transition: all 0.3s ease;
+             background-color: transparent;
+         }
+
+         .sidebar-btn img {
+             width: 54px;
+             height: 54px;
+             display: block;
+             transition: all 0.3s ease;
+         }
+
+         .sidebar-btn.active {
+             background-color: transparent;
+         }
+
+         .sidebar-btn img:last-child {
+             border-bottom: none;
+         }
+
+         .sidebar-btn:hover img {
+             transform: scale(1.5);
+         }
+
+         .sidebar-spacer {
+             position: absolute;
+             top: 220px;
+             right: 0px;
+             background: #FCF6EF;
+             border-radius: 100px 0 0 100px;
+             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+             overflow: hidden;
+             z-index: 21;
+             min-width: 60px;
+             padding: 24px;
+             gap: 24px;
+             display: flex;
+             flex-direction: column;
+         }
+
+         .sidebarspacer-btn {
+             width: 54px;
+             height: 54px;
+             border: none;
+             cursor: pointer;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             font-size: 2rem;
+             transition: all 0.3s ease;
+             color: #FFFFFF;
+             background: none;
+         }
+
+         .sidebarspacer-btn img {
+             width: 54px;
+             height: 54px;
+             display: block;
+             transition: all 0.3s ease;
+         }
+
+         .sidebarspacer-btn:last-child {
+             border-bottom: none;
+         }
+
+         .sidebar-spacer:hover {
+             background-color: #ffffff;
+         }
+
+         .sidebarspacer-btn:hover {
+             background-color: none;
+             color: #C4996C;
+         }
+
+         .sidebarspacer-btn:hover img {
+             transform: scale(1.5);
+         }
+
+         /* ===== Filter Buttons ===== */
+         .filter-buttons {
+             position: absolute;
+             bottom: 30px;
+             left: 50%;
+             transform: translateX(-50%);
+             display: flex;
+             gap: 1rem;
+             z-index: 20;
+         }
+
+         .filter-btn {
+             padding: 0.7rem 1.5rem;
+             border-width: 2px;
+             border-style: solid;
+             border-radius: 25px;
+             background: white;
+             cursor: pointer;
+             font-size: 1rem;
+             font-weight: 600;
+             transition: all 0.3s ease;
+         }
+
+         /* --- กำหนดสีของแต่ละปุ่ม --- */
+         .filter-btn.active-1 {
+             color: #8F37CB;
+             border-color: #8F37CB;
+         }
+
+         .filter-btn.active-2 {
+             color: #27ae60;
+             border-color: #27ae60;
+         }
+
+         .filter-btn.active-3 {
+             color: #1177FC;
+             border-color: #1177FC;
+         }
+
+         .filter-btn.active-4 {
+             color: #FF3859;
+             border-color: #FF3859;
+         }
+
+         /* --- สไตล์เมื่อ Hover หรือ Active (ถูกเลือก) --- */
+         .filter-btn.active-1:hover,
+         .filter-btn.active-1.active {
+             background: #8F37CB;
+             color: white;
+             transform: translateY(-2px);
+         }
+
+         .filter-btn.active-2:hover,
+         .filter-btn.active-2.active {
+             background: #27ae60;
+             color: white;
+             transform: translateY(-2px);
+         }
+
+         .filter-btn.active-3:hover,
+         .filter-btn.active-3.active {
+             background: #1177FC;
+             color: white;
+             transform: translateY(-2px);
+         }
+
+         .filter-btn.active-4:hover,
+         .filter-btn.active-4.active {
+             background: #FF3859;
+             color: white;
+             transform: translateY(-2px);
+         }
+
+         /* ===== Side Panel Wrapper (กล่องแม่) ===== */
+         .side-panel-wrapper {
+             position: fixed;
+             top: 20px;
+             right: -450px;
+             height: auto;
+             z-index: 100;
+
+             display: flex;
+             background-color: white;
+             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+
+             /* ✅ นี่คือส่วนที่ทำให้มุมโค้งสวยงามครอบคลุมทั้งหมด */
+             border-radius: 24px 0 0 24px;
+
+             transition: right 0.4s ease-out;
+         }
+
+         /* สไตล์เมื่อ Panel ถูกเปิด */
+         .side-panel-wrapper.open {
+             right: 0;
+         }
+
+         /* ===== Form Styles inside Drawer ===== */
+
+         /* Tab Navigation */
+         .form-tabs {
+             display: flex;
+             justify-content: center;
+             margin-bottom: 24px;
+         }
+
+         .tab-link {
+             padding: 10px 20px;
+             border: none;
+             background: none;
+             cursor: pointer;
+             font-size: 1.5rem;
+             font-weight: 500;
+             color: #aaa;
+             position: relative;
+             transition: color 0.3s;
+         }
+
+         .tab-link.active {
+             color: #454545;
+         }
+
+         .tab-link.active::after {
+             content: '';
+             position: absolute;
+             bottom: -1px;
+             left: 0;
+             width: 100%;
+             height: 3px;
+             background-color: #C4996C;
+         }
+
+         /* Form Content Area */
+         .form-content {
+             display: none;
+         }
+
+         .form-content.active {
+             display: block;
+         }
+
+         /* กรอบสำหรับหุ้มฟอร์มเพื่อให้ดูยุบลงไป */
+         .form-body {
+             background-color: #FFFFFF;
+             border: 2px solid #F3ECE2;
+             border-radius: 24px;
+             padding: 24px;
+
+             box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.199);
+         }
+
+         .form-body-2 {
+             background-color: #FFFFFF;
+             border: 2px solid #F3ECE2;
+             border-radius: 24px;
+             padding: 0;
+             margin-bottom: 12px;
+
+             box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.199);
+         }
+
+         .form-title {
+             margin-bottom: 20px;
+             color: #454545;
+             font-weight: 400;
+             font-size: 1.25rem;
+             display: flex;
+             justify-content: center;
+         }
+
+         /* กล่องหุ้ม Input เพื่อสร้างขีด | */
+         .input-wrapper {
+             position: relative;
+             margin-bottom: 20px;
+         }
+
+         /* สร้างขีด | จำลองขึ้นมา */
+         .input-wrapper::before {
+             content: '|';
+             position: absolute;
+             left: 15px;
+             top: 50%;
+             transform: translateY(-50%);
+             color: #c0c0c0;
+             font-size: 1.2rem;
+             pointer-events: none;
+             transition: opacity 0.2s ease-out;
+         }
+
+         .input-wrapper.has-content::before {
+             opacity: 0;
+         }
+
+         select:invalid {
+             color: #7D7D7D;
+         }
+
+         /* ขยับข้อความในช่องกรอกไปทางขวาเพื่อไม่ให้ทับขีด */
+         .input-wrapper select,
+         .input-wrapper input[type="text"],
+         .input-wrapper textarea {
+             padding-left: 25px;
+         }
+
+         .form-group {
+             margin-bottom: 0;
+         }
+
+         /* ทำให้กล่องหุ้ม select เป็นตัวอ้างอิงตำแหน่ง */
+         .input-wrapper select {
+             position: relative;
+             z-index: 1;
+             background-color: transparent;
+         }
+
+         /* ===== สไตล์สำหรับจัดแถวฟอร์ม ===== */
+
+         .form-row {
+             display: flex;
+             gap: 15px;
+         }
+
+         .form-row>.input-wrapper:first-child {
+             flex: 2;
+         }
+
+         .form-row>.input-wrapper:last-child {
+             flex: 1;
+         }
+
+         /* ===== Custom Styles for Choices.js (เพิ่มความเฉพาะเจาะจง) ===== */
+         .choices__inner {
+             background-color: transparent;
+         }
+
+         /* 1. กรอบหลักที่แสดงผลตอนแรก */
+         .drawer-content .choices__inner {
+             border: 1px solid #E5CAA7;
+             border-radius: 12px;
+             padding: 7px 15px;
+             min-height: auto;
+             font-size: 1rem;
+         }
+
+         /* ===== ปรับแต่งลูกศร Dropdown ของ Choices.js ===== */
+
+         .choices__inner::after {
+             display: none !important;
+         }
+
+         .drawer-content .choices.is-focused .choices__inner {
+             border-color: #C4996C;
+             box-shadow: 0 0 0 3px rgba(196, 153, 108, 0.2);
+         }
+
+         .drawer-content .choices__inner {
+             position: relative;
+         }
+
+         /* --- ขั้นตอนที่ 3: สร้างลูกศรใหม่ของเรา --- */
+         .drawer-content .choices__inner::after {
+             content: '' !important;
+             display: block !important;
+             position: absolute !important;
+             right: 20px !important;
+             top: 50% !important;
+
+             width: 8px !important;
+             height: 8px !important;
+
+             border-bottom: 2px solid #C4996C !important;
+             border-right: 2px solid #C4996C !important;
+
+             transform: translateY(-75%) rotate(45deg) !important;
+
+             pointer-events: none !important;
+             transition: transform 0.3s ease !important;
+         }
+
+         /* --- ขั้นตอนที่ 4: ทำให้ลูกศรหมุนขึ้นเมื่อ Dropdown เปิด --- */
+         .drawer-content .choices.is-open .choices__inner::after {
+             transform: translateY(-25%) rotate(225deg) !important;
+         }
+
+         .choices__list--single {
+             display: inline-block;
+             padding: 4px 16px 4px 10px;
+             width: 100%;
+         }
+
+         .choices__list--single .choices__item {
+             color: #555;
+         }
+
+         /* 3. ลิสต์รายการที่เด้งออกมา */
+         .drawer-content .choices__list--dropdown {
+             background: #ffffff;
+             border-radius: 12px;
+             border: 1px solid #E5CAA7;
+             margin-top: 5px;
+         }
+
+         /* 4. แต่ละรายการในลิสต์ */
+         .drawer-content .choices__item--choice {
+             font-size: 1rem;
+             color: #555;
+         }
+
+         /* 5. สีไฮไลท์ตอนเอาเมาส์ไปชี้ */
+         .drawer-content .choices__item--choice.is-highlighted {
+             background-color: #FAF3E9 !important;
+             color: #555 !important;
+         }
+
+         .choices[data-type*=select-one]::after {
+             display: none;
+         }
+
+         .is-open .choices__list--dropdown,
+         .is-open .choices__list[aria-expanded] {
+             border-color: #C4996C;
+         }
+
+         /* ===== อัปเดตสไตล์เดิมให้รองรับ Text Input ===== */
+
+         /* เพิ่ม input[type="text"] เข้าไปใน selector เดิม */
+         select,
+         textarea,
+         input[type="text"] {
+             -webkit-appearance: none;
+             appearance: none;
+
+             width: 100%;
+             padding: 12px 15px;
+             border: 1px solid #E5CAA7;
+             border-radius: 12px;
+             background-color: #ffffff;
+             font-size: 1rem;
+             color: #555;
+         }
+
+         /* --- สไตล์เมื่อผู้ใช้คลิกเข้ามาในช่อง (Focus State) --- */
+
+         select:focus,
+         textarea:focus,
+         input[type="text"]:focus {
+             border-color: #C4996C;
+
+             box-shadow: 0 0 0 3px rgba(196, 153, 108, 0.2);
+
+             outline: none;
+         }
+
+         /* เปลี่ยนสีพื้นหลังและสีตัวอักษรของ option */
+         select option {
+             background-color: #FAF3E9;
+             color: #555;
+         }
+
+         /* สร้างลูกศรใหม่ด้วย ::after */
+         .input-wrapper:has(select)::after {
+             content: '';
+             position: absolute;
+             right: 20px;
+             top: 50%;
+             transform: translateY(-50%) rotate(45deg);
+             width: 7px;
+             height: 7px;
+             border-bottom: 2px solid #aaa;
+             border-right: 2px solid #aaa;
+             pointer-events: none;
+             z-index: 2;
+             display: none;
+         }
+
+         /* ใช้พื้นหลังที่ input-wrapper แทน */
+         .input-wrapper:has(select) {
+             background-color: transparent;
+             border-radius: 12px;
+         }
+
+         /* เจาะจงสไตล์สำหรับขีด '|' ที่อยู่ในกล่อง textarea เท่านั้น */
+         .input-wrapper:has(textarea)::before {
+             top: 15px;
+             transform: none;
+         }
+
+         .input-wrapper:has(input[type="text"])::before {
+             top: 10px;
+             transform: none;
+         }
+
+         /* Styling for select dropdown */
+         select {
+             -webkit-appearance: none;
+             appearance: none;
+
+             width: 100%;
+             padding: 12px 15px;
+             border: 1px solid #E5CAA7;
+             border-radius: 12px;
+             background-color: #FAF3E9;
+             font-size: 1rem;
+             color: #7D7D7D;
+         }
+
+         textarea {
+             resize: vertical;
+         }
+
+         /* Custom File Upload Button */
+         input[type="file"] {
+             display: none;
+         }
+
+         .file-upload-label {
+             display: flex;
+             flex-direction: column;
+             justify-content: center;
+             align-items: center;
+             width: 100%;
+             padding: 30px;
+             border: 2px dashed #E0D3C1;
+             border-radius: 12px;
+             background-color: #FAF3E9;
+             cursor: pointer;
+             transition: background-color 0.3s;
+         }
+
+         .file-upload-label:hover {
+             background-color: #f5e9d5;
+         }
+
+         .file-upload-label i {
+             font-size: 4rem;
+             color: #C4996C;
+             margin-top: 30px;
+         }
+
+         .file-upload-label span {
+             font-size: 1rem;
+             color: #C4996C;
+             margin-bottom: 30px;
+         }
+
+         #upload-placeholder {
+            display: flex;           /* เปิดโหมด Flexbox */
+            flex-direction: column;  /* สั่งให้เรียงแนวตั้ง (ไอคอนอยู่บน ข้อความอยู่ล่าง) */
+            align-items: center;     /* จัดให้อยู่กึ่งกลางแนวนอน */
+            justify-content: center; /* จัดให้อยู่กึ่งกลางแนวตั้ง */
+            height: 100%;            /* ดันให้เต็มพื้นที่ */
+            width: 100%;
+            text-align: center;
+        }
+
+        /* (แถม) ปรับขนาดไอคอนให้ใหญ่ขึ้นหน่อย จะได้สมดุล */
+        #upload-placeholder i {
+            font-size: 4rem;      /* ปรับขนาดตามใจชอบ (เช่น 24px, 30px) */
+        }
+
+        /* ปรับสีข้อความ */
+        #upload-placeholder span {
+            font-weight: 500;
+        }
+
+         /* กล่องสำหรับจัดปุ่มให้อยู่ตรงกลาง */
+         .submit-container {
+             display: flex;
+             justify-content: center;
+             margin-top: 20px;
+         }
+
+         /* Submit Button */
+         .submit-btn {
+             width: auto;
+             padding: 12px 24px;
+             border: none;
+             border-radius: 100px;
+             background: #8F37CB;
+             color: white;
+             font-size: 1rem;
+             font-weight: 400;
+             cursor: pointer;
+             transition: background-color 0.3s;
+         }
+
+         .submit-btn:hover {
+             background: #7a2cb0;
+         }
+
+         /* ===== Submit Button Success State ===== */
+
+         .submit-btn.success {
+             background-color: #E6D7F9;
+             color: #8F37CB;
+             cursor: not-allowed;
+             opacity: 0.8;
+             box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.199);
+         }
+
+         /* ลบเอฟเฟกต์ hover เมื่อส่งแล้ว */
+         .submit-btn.success:hover {
+             background-color: #F6D7FC;
+         }
+
+         /* ===== สไตล์สำหรับ Placeholder (ตัวหนังสือสีจาง) ===== */
+
+         /* 1. สำหรับช่อง input และ textarea */
+         /* ใช้ ::placeholder เพื่อกำหนดสไตล์ */
+         input[type="text"]::placeholder,
+         textarea::placeholder {
+             color: #999;
+             opacity: 1;
+         }
+
+         /* --- เพิ่มโค้ดสำหรับ Browser อื่นๆ เพื่อความเข้ากันได้ --- */
+         input[type="text"]::-webkit-input-placeholder,
+         textarea::-webkit-input-placeholder {
+             color: #999;
+         }
+
+         input[type="text"]::-moz-placeholder,
+         textarea::-moz-placeholder {
+             color: #999;
+         }
+
+         input[type="text"]:-ms-input-placeholder,
+         textarea:-ms-input-placeholder {
+             color: #999;
+         }
+
+         input[type="text"]:-moz-placeholder,
+         textarea:-moz-placeholder {
+             color: #999;
+         }
+
+         /* 2. สำหรับช่อง select (หัวข้อเรื่อง) */
+         /* เราจะใช้ :invalid เพื่อกำหนดสไตล์ให้ตัวเลือกแรกที่ยังไม่ถูกเลือก */
+         select:invalid {
+             color: #999;
+         }
+
+         /* ===== Evaluation Form Specific Styles ===== */
+
+         .form-eva {
+             border: 1px solid #E5CAA7;
+             border-radius: 24px;
+             padding: 24px 24px 0px 24px;
+         }
+
+         /* (Optional) ปุ่มเลือกประเภทการประเมิน */
+         .evaluation-type-selector {
+             display: flex;
+             justify-content: center;
+             gap: 10px;
+             margin-bottom: 15px;
+         }
+
+         .eval-type-btn {
+             padding: 8px 20px;
+             border: 1px solid #E5CAA7;
+             border-radius: 100px;
+             background-color: #C4996C;
+             color: #FFFFFF;
+             font-size: 1.1rem;
+             cursor: pointer;
+             transition: all 0.3s ease;
+         }
+
+         .eval-type-btn.active {
+             background-color: #FCF6EF;
+             color: #C4996C;
+             box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.199);
+         }
+
+         /* ส่วนหัวข้อการประเมิน */
+         .rating-section {
+             gap: 24px;
+             padding-bottom: 12px;
+         }
+
+         .rating-section:last-of-type {
+             border-bottom: none;
+             margin-bottom: 0;
+         }
+
+
+         .rating-section-title {
+             display: block;
+             font-weight: 500;
+             font-size: 1.1rem;
+             color: #555;
+             text-align: center;
+             margin-bottom: 12px;
+         }
+
+         /* ปรับสไตล์กลุ่มดาวและคำอธิบาย */
+         .rating-group {
+             display: flex;
+             justify-content: space-around;
+             align-items: flex-start;
+             flex-direction: row-reverse;
+             text-align: center;
+             border: 1px solid #FCF6EF;
+             border-radius: 12px;
+             padding: 6px;
+         }
+
+         /* ทำให้ label (ดาว + คำอธิบาย) มีขนาด */
+         .rating-group label {
+             display: inline-block;
+             font-size: 2rem;
+             color: #e0e0e0;
+             cursor: pointer;
+             transition: color 0.2s ease-out;
+             padding: 0 5px;
+             flex: 1;
+             min-width: 0;
+         }
+
+         /* คำอธิบายใต้ดาว */
+         .rating-label-text {
+             display: block;
+             font-size: 1rem;
+             color: #7D7D7D;
+             margin-top: 5px;
+         }
+
+         .rating-label-textrate {
+             display: block;
+             font-size: 0.9rem;
+             color: #C7C7C7;
+             margin-top: 5px;
+             margin-bottom: 15px;
+         }
+
+         /* ===== ซ่อน Radio Button ดั้งเดิมให้สนิท ===== */
+         .rating-group input[type="radio"] {
+             position: absolute;
+             opacity: 0;
+             pointer-events: none;
+         }
+
+         /* ===== สี Gradient แบบ Custom สำหรับแต่ละระดับ (ตอนเลือก) ===== */
+
+         /* ระดับ 1 - น้อยมาก (สีม่วงอ่อนมาก) */
+         .rating-group input[type="radio"][value="1"]:checked~label[for$="-1"] i {
+             -webkit-text-stroke: 0;
+             color: #F6D7FC;
+         }
+
+         .rating-group input[type="radio"][value="1"]:checked~label[for$="-1"] .rating-label-text {
+             color: #F6D7FC;
+         }
+
+         /* ระดับ 2 - น้อย (เมื่อเลือก 2 จะเต็มสี 2 และ 1) */
+         .rating-group input[type="radio"][value="2"]:checked~label[for$="-2"] i,
+         .rating-group input[type="radio"][value="2"]:checked~label[for$="-1"] i {
+             -webkit-text-stroke: 0;
+         }
+
+         .rating-group input[type="radio"][value="2"]:checked~label[for$="-2"] i {
+             color: #CAA8F5;
+         }
+
+         .rating-group input[type="radio"][value="2"]:checked~label[for$="-1"] i {
+             color: #E6D7F9;
+         }
+
+         .rating-group input[type="radio"][value="2"]:checked~label[for$="-2"] .rating-label-text {
+             color: #CAA8F5;
+         }
+
+         .rating-group input[type="radio"][value="2"]:checked~label[for$="-1"] .rating-label-text {
+             color: #E6D7F9;
+         }
+
+         /* ระดับ 3 - พอใช้ (เมื่อเลือก 3 จะเต็มสี 3, 2, 1) */
+         .rating-group input[type="radio"][value="3"]:checked~label[for$="-3"] i,
+         .rating-group input[type="radio"][value="3"]:checked~label[for$="-2"] i,
+         .rating-group input[type="radio"][value="3"]:checked~label[for$="-1"] i {
+             -webkit-text-stroke: 0;
+         }
+
+         .rating-group input[type="radio"][value="3"]:checked~label[for$="-3"] i {
+             color: #A679E8;
+         }
+
+         .rating-group input[type="radio"][value="3"]:checked~label[for$="-2"] i {
+             color: #CAA8F5;
+         }
+
+         .rating-group input[type="radio"][value="3"]:checked~label[for$="-1"] i {
+             color: #E6D7F9;
+         }
+
+         .rating-group input[type="radio"][value="3"]:checked~label[for$="-3"] .rating-label-text {
+             color: #A679E8;
+         }
+
+         .rating-group input[type="radio"][value="3"]:checked~label[for$="-2"] .rating-label-text {
+             color: #CAA8F5;
+         }
+
+         .rating-group input[type="radio"][value="3"]:checked~label[for$="-1"] .rating-label-text {
+             color: #E6D7F9;
+         }
+
+         /* ระดับ 4 - ดี (เมื่อเลือก 4 จะเต็มสี 4, 3, 2, 1) */
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-4"] i,
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-3"] i,
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-2"] i,
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-1"] i {
+             -webkit-text-stroke: 0;
+         }
+
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-4"] i {
+             color: #8F37CB;
+         }
+
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-3"] i {
+             color: #A679E8;
+         }
+
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-2"] i {
+             color: #CAA8F5;
+         }
+
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-1"] i {
+             color: #E6D7F9;
+         }
+
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-4"] .rating-label-text {
+             color: #8F37CB;
+         }
+
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-3"] .rating-label-text {
+             color: #A679E8;
+         }
+
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-2"] .rating-label-text {
+             color: #CAA8F5;
+         }
+
+         .rating-group input[type="radio"][value="4"]:checked~label[for$="-1"] .rating-label-text {
+             color: #E6D7F9;
+         }
+
+         /* ระดับ 5 - ดีมาก (เมื่อเลือก 5 จะเต็มสีทั้งหมด 5, 4, 3, 2, 1) */
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-5"] i,
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-4"] i,
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-3"] i,
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-2"] i,
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-1"] i {
+             -webkit-text-stroke: 0;
+         }
+
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-5"] i {
+             color: #6B1FA8;
+         }
+
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-4"] i {
+             color: #8F37CB;
+         }
+
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-3"] i {
+             color: #A679E8;
+         }
+
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-2"] i {
+             color: #CAA8F5;
+         }
+
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-1"] i {
+             color: #E6D7F9;
+         }
+
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-5"] .rating-label-text {
+             color: #6B1FA8;
+         }
+
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-4"] .rating-label-text {
+             color: #8F37CB;
+         }
+
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-3"] .rating-label-text {
+             color: #A679E8;
+         }
+
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-2"] .rating-label-text {
+             color: #CAA8F5;
+         }
+
+         .rating-group input[type="radio"][value="5"]:checked~label[for$="-1"] .rating-label-text {
+             color: #E6D7F9;
+         }
+
+         /* --- เอฟเฟกต์ Hover --- */
+         .rating-group label:hover i,
+         .rating-group label:hover~label i {
+             -webkit-text-stroke: 1px;
+             opacity: 0.7;
+         }
+
+         /* ===== ซ่อน/แสดง Form Section ===== */
+         .eval-form-section {
+             display: none;
+         }
+
+         .eval-form-section.active {
+             display: block;
+         }
+
+         /* ทำให้ป้ายชื่อรถ (Tooltip) โปร่งใส */
+         .bus-label {
+             background-color: transparent;
+             border: none;
+             box-shadow: none;
+
+             font-size: 14px;
+             font-weight: bold;
+             color: #000;
+             /* เพิ่มเงาให้ตัวหนังสือ จะได้อ่านง่ายขึ้น */
+             text-shadow: 1px 1px 2px #fff, -1px -1px 2px #fff, 1px -1px 2px #fff, -1px 1px 2px #fff;
+         }
+
+         /*=====================================
+        CSS สำหรับเปลี่ยนสีป้ายรถบัส
+        =====================================
+
+         /* 1. สไตล์สำหรับ "ไอคอน" (ตัว Div) */
+         .bus-div-icon {
+             background-image: url('../images/bus-purple-base-2.png');
+             background-size: contain;
+
+             background-repeat: no-repeat;
+             background-position: center bottom;
+
+             width: 80px !important;
+             height: 80px !important;
+
+             position: relative;
+         }
+
+         /* 2. สไตล์สำหรับ "ป้ายตัวเลข" (วงกลมสีม่วง) */
+         .bus-div-icon .bus-number-badge {
+             color: #ffffff;
+             font-family: Arial, sans-serif;
+             font-size: 1.1rem;
+             font-weight: 500;
+             text-align: center;
+             border-radius: 50%;
+
+             /* --- "ขนาด" ของป้าย --- */
+             width: 16px;
+             height: 16px;
+             line-height: 16px;
+
+             /* --- "ตำแหน่ง" ของป้าย --- */
+             position: absolute;
+             top: 15px;
+             left: 47%;
+             transform: translateX(-50%);
+
+             background-color: transparent;
+             box-shadow: none;
+         }
+
+         .bus-div-icon.line-green {
+             background-image: url('../images/bus-green-base.png');
+         }
+
+         .bus-div-icon.line-blue {
+             background-image: url('../images/bus-blue-base.png');
+         }
+         .bus-div-icon.line-red {
+             background-image: url('../images/bus-red-base.png');
+         }
+
+         .bus-div-icon.line-purple {
+            background-image: url('../images/bus-purple-base-2.png');
+         }
+
+         .bus-div-icon.line-yellow {
+            background-image: url('../images/bus-yellow-base.png');
+         }
+         
+         .bus-div-icon.line-white {
+            background-image: url('../images/bus-white-base.png');
+         }
+
+         /* 1. ---------------------------------------- */
+         /* แก้ปัญหา "กรอบใหญ่เกิน" (Fix Big Frame)    */
+         /* ------------------------------------------ */
+
+         .leaflet-popup-content-wrapper {
+             padding: 1px !important;
+             border-radius: 8px;
+         }
+
+         .leaflet-popup-content {
+             margin: 12px !important;
+             width: auto !important;
+         }
+
+
+         /* 2. ------------------------------------------ */
+         /* แก้ปัญหา "ตัวหนังสือไม่เรียง" (Fix Alignment) */
+         /* ------------------------------------------ */
+
+
+         /* (สไตล์ "หัวข้อ" ... TC013) */
+         .bus-popup-header {
+             font-weight: bold;
+             font-size: 15px;
+             color: #333;
+             margin-bottom: 6px;
+         }
+
+         /* (สไตล์ "แต่ละบรรทัด" ... Lat, Lng, Date) */
+         .bus-popup-line {
+             color: #555;
+             font-size: 13px;
+             margin-bottom: 4px;
+         }
+
+         .bus-popup-line:last-child {
+             margin-bottom: 0;
+         }
+
+         /* ===========================================
+        CSS สำหรับ "แผงสไลด์" (Bottom Panel)
+        ===========================================
+        */
+
+         .bottom-panel {
+             position: fixed;
+             bottom: 0;
+             left: 50%;
+             width: 85%;
+             background: #ffffff;
+             border-radius: 20px 20px 0 0;
+             box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.1);
+             z-index: 1010;
+             padding: 24px;
+             gap: 24px;
+             box-sizing: border-box;
+
+             display: flex;
+             flex-direction: column;
+             gap: 24px;
+
+             transform: translate(-50%, 100%);
+             transition: transform 0.4s ease-out;
+         }
+
+         .bottom-panel.open {
+             transform: translate(-50%, 0%);
+         }
+
+         .panel-header {
+             font-size: 1.5rem;
+             font-weight: 500;
+             color: #C4996C;
+             padding-left: 5px;
+         }
+
+
+
+         /* ===========================================
+        CSS สำหรับ Overlay 
+        ===========================================
+        */
+         .panel-overlay-hidden {
+             display: none;
+         }
+
+         .panel-overlay-visible {
+             position: fixed;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             background: rgba(0, 0, 0, 0.4);
+             z-index: 1009;
+         }
+
+         /* ===========================================
+        CSS สำหรับ "ข้างใน" (กล่องค้นหา + ผลลัพธ์)
+        ===========================================
+        */
+         .route-inputs {
+             display: flex;
+             flex-direction: column;
+             gap: 12px;
+             border-bottom: 1px solid #eee;
+             padding-bottom: 16px;
+             margin-bottom: 16px;
+             position: relative;
+         }
+
+         /* --- คอลัมน์ซ้าย (เลือกเส้นทาง) --- */
+         .route-selection-area {
+             display: flex;
+             align-items: center;
+             gap: 24px;
+         }
+
+         .route-row {
+             flex: 1;
+             display: flex;
+             align-items: center;
+             gap: 6px;
+         }
+
+         .start-end {
+             display: flex;
+             align-items: center;
+             font-size: 1.2rem;
+             font-weight: 500;
+             color: #C4996C;
+         }
+
+         .input-group {
+             flex: 1;
+             display: flex;
+             align-items: center;
+             background: #FCF6EF;
+             border-radius: 100px;
+             padding: 10px 15px;
+             width: auto;
+             height: 63px;
+             flex-grow: 1;
+             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+             margin-left: 12px;
+         }
+
+         .input-group-1 {
+             flex: 1;
+             display: flex;
+             align-items: center;
+             background: #F6D7FC;
+             border-radius: 100px;
+             padding: 10px 15px;
+             width: auto;
+             height: 63px;
+             flex-grow: 1;
+             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+             margin-left: 12px;
+         }
+
+         .input-group-icon {
+             width: 63px;
+             height: 63px;
+             display: block;
+         }
+
+         .line-hori-icon {
+             width: 3px;
+             height: 48px;
+             display: block;
+         }
+
+         .route-button {
+             border: none;
+             background: none;
+             font-size: 1.5rem;
+             color: #454545;
+             text-align: left;
+             width: 100%;
+             cursor: pointer;
+             font-weight: 400;
+             padding: 12px 24px;
+         }
+
+         .route-button.placeholder-active {
+             color: #9c9797;
+         }
+
+         .route-dot {
+             color: #E5CAA7;
+             font-size: 1.5rem;
+             line-height: 1;
+             flex-shrink: 0;
+         }
+
+         .route-dot-1 {
+             color: #8F37CB80;
+             font-size: 1.5rem;
+             line-height: 1;
+             flex-shrink: 0;
+         }
+
+         /* ===== ผลลัพธ์การค้นหา ===== */
+
+         #route-results-container {
+             display: none;
+             flex-direction: column;
+
+             padding: 12px 20px;
+             gap: 15px;
+             max-height: 60vh;
+             min-height: 100px;
+             background-color: #FFFFFF;
+             border: 2px solid #F3ECE2;
+             border-radius: 24px;
+             box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.25);
+
+             margin-top: 10px;
+             opacity: 0;
+             transform: translateY(20px);
+             transition: opacity 0.3s ease, transform 0.3s ease;
+         }
+
+         #route-results-container.results-visible {
+             display: flex;
+             opacity: 1;
+             transform: translateY(0);
+         }
+
+         .results-body {
+             display: flex;
+             flex-direction: column;
+             gap: 12px;
+
+             max-height: 40vh;
+             overflow-y: auto;
+         }
+
+         .recommend-badge {
+             font-size: 1.3rem;
+             font-weight: 500;
+             color: #8F37CB;
+         }
+
+         .other-routes-title {
+             font-size: 1.3rem;
+             font-weight: 500;
+             color: #C4996C;
+             padding-left: 5px;
+             margin-top: 10px;
+         }
+
+         .route-result-item {
+             display: flex;
+             flex-direction: row;
+             align-items: center;
+             flex-wrap: nowrap;
+             gap: 12px;
+             padding: 12px;
+             background: #fff;
+             border-radius: 24px;
+             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+             border: 1px solid #C4996C;
+
+             max-width: 100%;
+             box-sizing: border-box;
+         }
+
+        .route-result-item.recommended {
+             border: 1px solid #8F37CB;
+             border-radius: 24px;
+         }
+
+        .route-single-line-wrapper {
+             display: flex;
+             align-items: center;
+             gap: 12px;
+
+             flex: 1;
+             min-width: 0;
+             overflow-x: auto;
+             white-space: nowrap;
+
+         }
+
+        .route-single-line-wrapper .arrow-right-icon img,
+        .route-single-line-wrapper .route-arrow img {
+             width: 24px;
+             height: 24px;
+             object-fit: contain;
+             display: block;
+         }
+
+        /* ===========================================
+        [เพิ่ม] สไตล์สำหรับวงกลมสลับสาย (Transfer Circle)
+        =========================================== */
+
+        .transfer-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            
+            width: 36px;  /* ขนาดวงกลม */
+            height: 36px;
+            border-radius: 50%; /* ทำเป็นวงกลม */
+            
+            margin: 0 4px; /* ระยะห่างซ้ายขวา */
+            flex-shrink: 0; /* ห้ามบี้ */
+            
+            background-color: #ffffff; 
+            border: 3px solid #ccc; 
+        }
+
+        /* กำหนดสีพื้นหลัง (Background) ตามชื่อสายรถ */
+        /* (ใช้โค้ดสีเดียวกับ .route-line เป๊ะๆ) */
+        .transfer-circle.line-สายหอพัก {
+            border-color: #FF3859;
+        }
+        .transfer-circle.line-สายประตูสาม {
+            border-color: #1177FC;
+        }
+        .transfer-circle.line-สายหน้ามอ {
+            border-color: #44B678;
+        }
+
+        /* ปรับไอคอน arrange-square ข้างใน */
+        .transfer-circle img {
+            width: 24px;
+            height: 24px;
+            display: block;
+        }
+
+        /* สไตล์สำหรับจุดจอด (Parking) */
+        .route-stop-tag.is-parking {
+            background-color: #FFFFFF !important;
+            border: 1px solid #8F37CB; 
+            color: #8F37CB;            
+            font-weight: 500;
+        }
+
+        /* ปรับขนาดไอคอน P (ถ้าใช้รูป) */
+        .route-stop-tag.is-parking .route-stop-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* 1. ตั้งค่าพื้นฐานรูปภาพ */
+        .arrow-icon {
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+            margin: 0 4px;
+            
+            transition: filter 0.3s; 
+        }
+
+
+        .arrow-icon.line-สายหน้ามอ {
+            filter: brightness(0) saturate(100%) invert(56%) sepia(66%) saturate(361%) hue-rotate(95deg) brightness(96%) contrast(91%);
+        }
+
+        .arrow-icon.line-สายประตูสาม {
+            filter: brightness(0) saturate(100%) invert(28%) sepia(99%) saturate(3241%) hue-rotate(212deg) brightness(110%) contrast(98%);
+        }
+
+        .arrow-icon.line-สายหอพัก {
+            filter: brightness(0) saturate(100%) invert(34%) sepia(18%) saturate(6050%) hue-rotate(324deg) brightness(103%) contrast(104%);
+        }
+
+         .route-item-icon {
+             width: 48px;
+             height: 48px;
+             flex-shrink: 0;
+         }
+
+         .route-result-item > span:first-child .route-item-icon {
+             width: 48px;
+             height: 48px;
+         }
+
+         .stop-count {
+             font-size: 1rem;
+             color: #8F37CB;
+             font-weight: 500;
+             flex-shrink: 0;
+         }
+         
+         .route-line {
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-weight: 500;
+            font-size: 1.4rem;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 30px;
+            overflow: visible;
+         }
+
+         .route-stop-tag {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #454545;
+        }
+
+         .route-result-item span:first-child {
+             font-size: 1.25rem;
+             line-height: 1;
+         }
+
+         .route-summary {
+             display: flex;
+             align-items: center;
+             gap: 8px;
+         }
+
+         .route-summary .input-group-icon {
+             width: 48px;
+             height: 48px;
+         }
+
+         .route-summary .route-arrow {
+             display: flex;
+             align-items: center;
+             justify-content: center;
+         }
+
+         .route-summary .route-arrow img {
+             width: 24px;
+             height: 24px;
+         }
+
+         .route-summary .route-divider {
+             display: flex;
+             align-items: center;
+             justify-content: center;
+         }
+
+         .route-summary .route-divider img {
+             width: 3px;
+             height: 48px;
+             display: block;
+         }
+
+         /* (แถวรายละเอียด... แถวล่าง) */
+         .route-details {
+             display: flex;
+             flex-direction: row;
+             align-items: center;
+             gap: 8px;
+         }
+
+         .stop-count {
+             font-size: 1.25rem;
+             color: rgba(143, 55, 203, 1);
+             font-weight: 500;
+         }
+
+         /* (ป้ายรถ [ไอคอน] [ชื่อป้าย]) */
+         .route-stop-name {
+             display: flex;
+             align-items: center;
+             gap: 6px;
+             background-color: #f3e8ff;
+             color: #454545;
+             padding: 4px 8px;
+             border-radius: 100px;
+             font-size: 1.25rem;
+             font-weight: 500;
+             white-space: nowrap;
+         }
+
+         /* (สร้าง "สีจาง" ... ที่ "ตรง" กับ "สีเข้ม") */
+        .route-stop-tag.line-สายประตูสาม-light {
+            background-color: #1177FC40; 
+        }
+        .route-stop-tag.line-สายหน้ามอ-light {
+            background-color: #44B67840; 
+        }
+        .route-stop-tag.line-สายหอพัก-light {
+            background-color: #FF385940; 
+        }
+
+        .final-stop-highlight-สายประตูสาม {
+            border: 1px solid #1177FC; 
+        }
+        .final-stop-highlight-สายหน้ามอ {
+            border: 1px solid #44B678; 
+        }
+        .final-stop-highlight-สายหอพัก {
+            border: 1px solid #FF3859; 
+        }
+
+        .route-divider,
+        .route-time {
+            flex-shrink: 0; 
+        }
+        .route-divider img {
+            width: 3px;
+            height: 48px;
+            display: block;
+        }
+
+         .route-stop-name.is-destination {
+             border: 1px solid #8F37CB;
+         }
+
+         .route-single-line-wrapper .route-stop-icon {
+             width: 24px;
+             height: 24px;
+             opacity: 1;
+         }
+
+         .route-single-line-wrapper .route-stop-icon-1 {
+             width: 3px;
+             height: 24px;
+             display: block;
+         }
+
+         .route-single-line-wrapper .route-stop-icon-2 {
+             width: 24px;
+             height: 24px;
+             opacity: 1;
+             margin-top: 4px;
+         }
+
+         /*เส้น*/
+         .route-line::before {
+            content: "";
+            position: absolute;
+            width: 30px;
+            height: 12px;
+
+            right: -18px; 
+            top: 50%;
+            transform: translateY(-50%); 
+            z-index: 1;
+        }
+
+        /*วงกลม*/
+         .route-line::after {
+            content: "";
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+
+            right: -35px; 
+            top: 50%;
+            transform: translateY(-50%); 
+            z-index: 3;
+        }
+
+         .route-line.line-สายหอพัก {
+             background: #FF3859;
+             color: #FFFFFF;
+             padding: 6px 12px;
+             border-radius: 100px;
+             font-weight: 500;
+             font-size: 1.4rem;
+         }
+
+        .route-line.line-สายหอพัก::after { background-color: #FF3859;}
+        .route-line.line-สายหอพัก::before { background: #FF3859; }
+
+         .route-line.line-สายประตูสาม {
+             background: #1177FC;
+             color: #FFFFFF;
+             padding: 6px 12px;
+             border-radius: 100px;
+             font-weight: 500;
+             font-size: 1.4rem;
+         }
+
+        .route-line.line-สายประตูสาม::before { background: #1177FC; }
+        .route-line.line-สายประตูสาม::after { background: #1177FC; }
+
+         .route-line.line-สายหน้ามอ {
+             background: #44B678;
+             color: #FFFFFF;
+             padding: 6px 12px;
+             border-radius: 100px;
+             font-weight: 500;
+             font-size: 1.4rem;
+         }
+
+        .route-line.line-สายหน้ามอ::before { background: #44B678; }
+        .route-line.line-สายหน้ามอ::after { background: #44B678; }
+
+        .route-line.no-extension::before,
+        .route-line.no-extension::after {
+            display: none !important; 
+            content: none;
+        }
+
+        .route-line.no-extension {
+            margin-right: 0 !important; 
+            padding-right: 12px !important; 
+        }
+
+        /* =========================================================
+        [ใหม่] เส้นเชื่อมซ้าย (Connect Left)
+        ========================================================= */
+
+        .route-line-1 {
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-weight: 500;
+            font-size: 1.4rem;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 30px;
+            overflow: visible;
+        }
+
+        /*เส้น-1*/
+         .route-line-1.connect-left::before {
+            content: "";
+            position: absolute;
+            width: 30px;
+            height: 12px;
+
+            left: -18px; 
+            top: 50%;
+            transform: translateY(-50%); 
+            z-index: 1;
+        }
+
+        /*เส้นวงกลม-1*/
+         .route-line-1.connect-left::after {
+            content: "";
+            position: absolute;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            left: -55px; 
+            top: 50%;
+            transform: translateY(-50%); 
+            flex-shrink: 0;
+            z-index: 3;
+
+            background-color: #ffffff; 
+            border: 3px solid #ccc; 
+
+            background-image: url('../images/arrow-square-right.png');
+            background-size: 24px 24px; /* ปรับขนาดไอคอนตามต้องการ */
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .route-line-1.line-สายหอพัก.connect-left::after {
+            border-color: #FF3859;
+        }
+        .route-line-1.line-สายประตูสาม.connect-left::after {
+            border-color: #1177FC;
+        }
+        .route-line-1.line-สายหน้ามอ.connect-left::after {
+            border-color: #44B678;
+        }
+        
+        .route-line-1.connect-left {
+            margin-left: 55px; 
+            margin-right: 0;
+        }
+
+        .route-line-1.line-สายหอพัก.connect-left::before { background: #FF3859; }
+        .route-line-1.line-สายประตูสาม.connect-left::before { background: #1177FC; }
+        .route-line-1.line-สายหน้ามอ.connect-left::before { background: #44B678; }
+
+         .route-line-1.line-สายหอพัก {
+             background: #FF3859;
+             color: #FFFFFF;
+             padding: 6px 12px;
+             border-radius: 100px;
+             font-weight: 500;
+             font-size: 1.4rem;
+         }
+
+         .route-line-1.line-สายประตูสาม {
+             background: #1177FC;
+             color: #FFFFFF;
+             padding: 6px 12px;
+             border-radius: 100px;
+             font-weight: 500;
+             font-size: 1.4rem;
+         }
+
+         .route-line-1.line-สายหน้ามอ {
+             background: #44B678;
+             color: #FFFFFF;
+             padding: 6px 12px;
+             border-radius: 100px;
+             font-weight: 500;
+             font-size: 1.4rem;
+         }
+
+         .route-time {
+             white-space: nowrap;
+             background: #F6D7FC;
+             color: #454545;
+             padding: 12px 10px;
+             border-radius: 12px;
+             font-weight: 500;
+             font-size: 1.4rem;
+         }
+
+         /* เพิ่ม CSS สำหรับกรณีไม่มีเส้นทาง/อยู่ที่จุดหมายแล้ว */
+         .route-results-container .route-result-item:first-child:not(:has(.route-line)) {
+             justify-content: center;
+             color: #666;
+             font-style: italic;
+             background: #f9f9f9;
+         }
+
+        /*
+        ===========================================
+        CSS สำหรับ "Modal ค้นหาแบบลอย" (อัปเกรด)
+        ===========================================
+        */
+         #stop-selector-modal {
+             position: fixed;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             background: rgba(0, 0, 0, 0.4);
+             z-index: 2000;
+             display: flex;
+             justify-content: center;
+             align-items: center;
+             padding: 1rem;
+
+             opacity: 1;
+             visibility: visible;
+             transition: opacity 0.3s ease, visibility 0.3s ease;
+         }
+
+         #stop-selector-modal.modal-hidden {
+             opacity: 0;
+             visibility: hidden;
+         }
+
+         .modal-content {
+             background: #FFFFFF;
+             padding: 1rem;
+             border-radius: 16px;
+             width: 90%;
+             max-width: 35vw;
+             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+
+             display: flex;
+             flex-direction: column;
+             max-height: 80vh;
+         }
+
+         .modal-header {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             margin-bottom: 1rem;
+             padding: 0 0.5rem;
+         }
+
+         .modal-header h3 {
+             margin: 0;
+             font-size: 1.5rem;
+             font-weight: 500;
+             color: #C4996C;
+         }
+
+         #close-modal-btn {
+             background: transparent;
+             border: none;
+             cursor: pointer;
+             padding: 0.5rem;
+         }
+
+         #close-modal-btn img {
+             width: 20px;
+             height: 20px;
+             opacity: 0.7;
+             transition: opacity 0.2s ease;
+         }
+
+         #close-modal-btn:hover img {
+             opacity: 1;
+         }
+
+         .search-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 1rem;
+         }
+         
+         .search-icon-wrapper {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            width: 48px;
+            height: 48px;
+
+            background: #FCF6EF;
+            border: 1px solid #C4996C;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+         }
+
+         .search-icon-wrapper img {
+            width: 22px;
+            height: 22px;
+            opacity: 1;
+         }
+
+         .search-input-wrapper {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+
+            border: 1px solid transparent;
+            background: #FCF6EF;
+            border-radius: 100px;
+
+            padding: 0 0.75rem;
+            transition: all 0.2s ease;
+         }
+
+         /*
+        ==================================================
+        CSS สำหรับ "กล่องสถานะ" ใน Modal
+        ==================================================
+        */
+
+        .modal-route-context {
+            display: flex;
+            flex-direction: column; 
+            gap: 8px; 
+            margin-bottom: 1rem; 
+        }
+
+        .modal-row {
+             display: flex;
+             align-items: center;
+             gap: 6px;
+         }
+
+        .modal-row .input-icon {
+            width: 63px;
+            height: 63px;
+            opacity: 1;
+            margin: 0;
+        }
+
+        .modal-row .modal-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .route-context-box {
+            flex: 1;
+            background: #FCF6EF; 
+            border: transparent;
+            border-radius: 100px;
+            padding: 0.9rem 1rem;
+        }
+
+        /* ข้อความข้างใน */
+        .route-context-box span {
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: #454545 !important;
+        }
+
+        /* --- [สำคัญ] ธีมสีสำหรับ "กล่องสถานะ" --- */
+
+        /* (เมื่อเลือก "จุดเริ่มต้น") */
+        #stop-selector-modal.theme-start #modal-context-start {
+            background: #FCF6EF;
+        }
+        #stop-selector-modal.theme-start #modal-context-start span {
+            color: #454545; 
+            font-weight: 400;
+        }
+        #stop-selector-modal.theme-start .start-row .modal-dot {
+            background: rgba(229, 202, 167, 1);   
+        }
+        #stop-selector-modal.theme-start .end-row {
+            display: none;
+        }
+
+        /* (เมื่อเลือก "จุดหมาย") */
+        #stop-selector-modal.theme-end #modal-context-end {
+            background: #FAF7FF;
+        }
+        #stop-selector-modal.theme-end #modal-context-end span {
+            color: #8F37CB; 
+            font-weight: 400;
+        }
+        #stop-selector-modal.theme-end .end-row .modal-dot {
+            background: rgba(143, 55, 203, 0.5);   
+        }
+        #stop-selector-modal.theme-end .start-row {
+            display: none;
+        }
+
+        #modal-start-text:empty::before,
+        #modal-end-text:empty::before {
+            content: "\00a0"; /* ช่องว่าง */
+        }
+        
+
+        #modal-search-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            padding: 0.75rem 0;
+            font-size: 1.25rem;
+            outline: none;
+         }
+
+        #modal-search-input:focus {
+            outline: none;
+            box-shadow: none;
+         }
+
+        #stop-list {
+             flex-grow: 1;
+             overflow-y: auto;
+             display: flex;
+             flex-direction: column;
+             gap: 8px;
+             padding: 0 5px 5px 5px;
+         }
+
+        .stop-choice-btn {
+             width: 100%;
+             padding: 1rem;
+             background: transparent;
+             border: 1px solid transparent;
+             border-radius: 10px;
+             text-align: left;
+             cursor: pointer;
+             font-size: 1.25rem;
+             font-weight: 500;
+             color: #333;
+             transition: all 0.2s ease;
+         }
+
+         .no-results {
+             padding: 2rem;
+             text-align: center;
+             color: #888;
+         }
+
+         .stop-list-helper {
+            padding: 3rem 1rem;
+            text-align: center;
+         }
+         
+         .stop-list-helper img {
+            width: 84px;
+            height: 84px;
+            opacity: 1;
+         }
+
+         .stop-list-helper p {
+            font-size: 1rem;
+            font-weight: 500;
+            color: rgba(196, 153, 108, 0.5);
+            margin: 0;
+         }
+
+         .stop-list-helper h1 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: rgba(196, 153, 108, 0.5);
+            margin: 0;
+         }
+
+        #selected-stop-container .stop-choice-btn {
+            transition: none;
+        }
+
+        #stop-selector-modal.theme-start .stop-list-helper .icon-start {
+            display: inline-block;
+        }
+        #stop-selector-modal.theme-start .stop-list-helper .icon-end {
+            display: none;
+        }
+
+        #stop-selector-modal.theme-end .stop-list-helper h1,
+        #stop-selector-modal.theme-end .stop-list-helper p {
+            color: rgba(143, 55, 203, 0.5); 
+        }
+        #stop-selector-modal.theme-end .stop-list-helper .icon-start {
+            display: none;
+        }
+        #stop-selector-modal.theme-end .stop-list-helper .icon-end {
+            display: inline-block; 
+        }
+
+
+         /* --- ธีมสีส้ม (Start Point) --- */
+         #stop-selector-modal.theme-start .search-icon-wrapper {
+             border-color: #C4996C;
+             background: #FCF6EF;
+         }
+
+         #stop-selector-modal.theme-start .search-input-wrapper {
+            border-color: #C4996C;
+            background: #FFF;
+         }
+
+         #stop-selector-modal.theme-start .search-input-wrapper:focus-within {
+            background: #FCF6EF;
+        }
+
+         #stop-selector-modal.theme-start .stop-choice-btn:hover {
+             background: #FFFBF7;
+             border-color: #FFD2A8;
+             border-radius: 100px;
+         }
+
+         /* (ปุ่มที่ "ถูกเลือก") */
+         #stop-selector-modal.theme-start .stop-choice-btn.is-selected {
+             background: #FCF6EF;
+             border-color: #C4996C;
+             border-radius: 100px;
+             color: #454545;
+             font-weight: 400;
+         }
+
+         #stop-selector-modal.theme-start #modal-context-end {
+            display: none;
+        }
+
+         /* --- ธีมสีม่วง (End Point) --- */
+         #stop-selector-modal.theme-end .search-icon-wrapper {
+             border-color: #8F37CB;
+             background: #FAEBFD;
+         }
+
+         #stop-selector-modal.theme-end .search-input-wrapper {
+            border-color: #8F37CB;
+            background: #fff;
+         }
+
+         #stop-selector-modal.theme-end .search-input-wrapper:focus-within {
+            background: #FAEBFD; 
+        }
+
+         #stop-selector-modal.theme-end .stop-choice-btn:hover {
+             background: #FAEBFD;
+             border-color: #8F37CB;
+             border-radius: 100px;
+         }
+
+         /* (ปุ่มที่ "ถูกเลือก") */
+         #stop-selector-modal.theme-end .stop-choice-btn.is-selected {
+             background: #FAEBFD;
+             border-color: #8F37CB;
+             border-radius: 100px;
+             color: #454545;
+             font-weight: 400;
+         }
+
+        #stop-selector-modal.theme-end #modal-context-start {
+            display: none;
+        }
+
+        #stop-selector-modal.is-empty .modal-route-context {
+            display: none;
+        }
+
+         /*
+         ===============
+         swap btn
+         ===============
+         */
+
+         #swap-routes-btn {
+
+             border: none;
+             background: none;
+             box-shadow: none;
+             width: auto;
+             height: auto;
+             border-radius: 0;
+             padding: 5px;
+
+             cursor: pointer;
+             flex-shrink: 0;
+             display: flex;
+             justify-content: center;
+             align-items: center;
+             transition: transform 0.2s ease-in-out;
+         }
+
+         #swap-routes-btn img {
+             width: 48px;
+             height: auto;
+             display: block;
+             transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+         }
+
+         #swap-routes-btn:hover {
+            background-color: rgba(0,0,0,0.05); /* ไฮไลท์พื้นหลังนิดหน่อย */
+            border-radius: 50%;
+             transform: scale(1.2);
+         }
+
+         #swap-routes-btn:active {
+             transform: scale(1);
+         }
+
+         #point-routes-btn {
+             position: absolute;
+             top: 48%;
+             left: 14px;
+             transform: translateY(-50%);
+
+             border: none;
+             background: none;
+             box-shadow: none;
+             width: auto;
+             height: auto;
+             border-radius: 0;
+             padding: 5px;
+
+             flex-shrink: 0;
+             display: flex;
+             justify-content: center;
+             align-items: center;
+             transition: transform 0.2s ease-in-out;
+         }
+
+         #point-routes-btn img {
+             width: 24px;
+             height: auto;
+             display: block;
+         }
+
+         /* ===========================================
+        [เพิ่ม] CSS สำหรับ "แถบบน" (ที่ "ยืด" ได้)
+        =========================================== */
+
+        .route-summary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto; 
+        }
+
+        .route-lines-wrapper {
+            display: flex; 
+            align-items: center;
+            gap: 8px; 
+        }
+
+        .route-summary .input-group-icon,
+        .route-summary .summary-arrow,
+        .route-summary .route-divider,
+        .route-summary .route-time {
+            flex-shrink: 0; 
+        }
+
+        /* ===========================================
+        จุดซ้ำ/กลุ่มเดียวกัน
+        =========================================== */
+        .alert-icons {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* ระยะห่างระหว่างไอคอนแต่ละตัว */
+        }
+
+        .icon-3d {
+            width: 45px; 
+            height: 45px;
+            object-fit: contain;
+        }
+
+        .arrow-circle {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .arrow-circle::before {
+            content: ""; 
+            padding-left: 2px; 
+        }
+
+        .alert-text {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #8F37CB; 
+        }
+
+         @media (max-width: 768px) {
+             .sidebar {
+                 min-width: 50px;
+             }
+
+             .sidebar-btn {
+                 width: 50px;
+                 height: 50px;
+             }
+
+             .filter-buttons {
+                 bottom: 20px;
+             }
+
+             .filter-btn {
+                 padding: 0.5rem 1rem;
+                 font-size: 0.9rem;
+             }
+
+             .map-header {
+                 top: 10px;
+                 left: 10px;
+                 padding: 0.8rem 1rem;
+             }
+
+             .map-header h2 {
+                 font-size: 1.2rem;
+             }
+         }

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html :class="{ 'theme-dark': dark }" x-data="data()" lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UP Bus - Admin </title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/css/tailwind.output.css" />
+    <link rel="icon" href="/assets/img/favicon.ico" type="image/x-icon">
+
+    <style>
+        body, h1, h2, h3, h4, h5, h6, p, span, a, div, table {
+            font-family: 'Kanit', sans-serif !important;
+        }
+    </style>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+    <script src="/assets/js/init-alpine.js"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.3/Chart.min.js" defer></script>
+</head>
+
+<body>
+    <div class="flex h-screen bg-gray-50 dark:bg-gray-900" :class="{ 'overflow-hidden': isSideMenuOpen }">
+        
+        <aside class="z-20 hidden w-64 overflow-y-auto bg-white dark:bg-gray-800 md:block flex-shrink-0">
+            <div class="py-4 text-gray-500 dark:text-gray-400">
+                <a class="ml-6 text-lg font-bold text-gray-800 dark:text-gray-200" href="/admin/dashboard">
+                    UP Bus Admin
+                </a>
+                <ul class="mt-6">
+                    <li class="relative px-6 py-3">
+                        <span class="absolute inset-y-0 left-0 w-1 bg-purple-600 rounded-tr-lg rounded-br-lg" aria-hidden="true"></span>
+                        <a class="inline-flex items-center w-full text-sm font-semibold text-gray-800 transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200 dark:text-gray-100" href="/admin/dashboard">
+                            <svg class="w-5 h-5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                            <span class="ml-4">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="relative px-6 py-3">
+                        <a class="inline-flex items-center w-full text-sm font-semibold transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200" href="/admin/complaints">
+                            <svg class="w-5 h-5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"></path></svg>
+                            <span class="ml-4">ร้องเรียน</span>
+                        </a>
+                    </li>
+                    <li class="relative px-6 py-3">
+                        <a class="inline-flex items-center w-full text-sm font-semibold transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200" href="/admin/evaluations">
+                            <svg class="w-5 h-5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"></path></svg>
+                            <span class="ml-4">แบบประเมิน</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </aside>
+
+        <div class="flex flex-col flex-1 w-full">
+            <header class="z-10 py-4 bg-white shadow-md dark:bg-gray-800">
+                <div class="container flex items-center justify-end h-full px-6 mx-auto text-purple-600 dark:text-purple-300">
+                    <button class="rounded-md focus:outline-none focus:shadow-outline-purple" @click="toggleTheme" aria-label="Toggle color mode">
+                        <template x-if="!dark">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                        </template>
+                        <template x-if="dark">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path></svg>
+                        </template>
+                    </button>
+                </div>
+            </header>
+
+            <main class="h-full overflow-y-auto">
+                <div class="container px-6 mx-auto grid">
+                    
+                    <h2 class="my-6 text-2xl font-semibold text-gray-700 dark:text-gray-200">
+                        ร้องเรียน
+                    </h2>
+
+                    <div class="grid gap-6 mb-8 md:grid-cols-2 xl:grid-cols-4">
+                        <div class="flex items-center p-4 bg-white rounded-lg shadow-xs dark:bg-gray-800">
+                            <div class="p-3 mr-4 text-orange-500 bg-orange-100 rounded-full dark:text-orange-100 dark:bg-orange-500">
+                                <svg class="w-5 h-5" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            </div>
+                            <div>
+                                <p class="mb-2 text-lm font-medium text-gray-600 dark:text-gray-400">ร้องเรียนทั้งหมด</p>
+                                <p class="text-lm font-semibold text-gray-700 dark:text-gray-200"><%= totalItems %> เรื่อง</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h4 class="mb-4 text-2xl font-semibold text-gray-600 dark:text-gray-300">
+                        รายการร้องเรียนล่าสุด
+                    </h4>
+                    <div class="w-full overflow-hidden rounded-lg shadow-xs">
+                        <div class="w-full overflow-x-auto">
+                            <table class="w-full whitespace-no-wrap">
+                                <thead>
+                                    <tr class="text-xl font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
+                                        <th class="px-4 py-3">หัวข้อ / เบอร์รถ</th>
+                                        <th class="px-4 py-3">รายละเอียด</th>
+                                        <th class="px-4 py-3">รูปภาพ</th>
+                                        <th class="px-4 py-3">วันที่</th>
+                                        <th class="px-4 py-3">สถานะ</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
+                                    <% if (complaints.length > 0) { %>
+                                        <% complaints.forEach(function(item) { %>
+                                          <% 
+                                              // แปลงหัวข้อ (แก้คำทางซ้ายให้ตรงกับใน Database ของคุณ)
+                                              let topicTH = item.topic;
+                                              if (item.topic === 'driver-service') topicTH = 'พฤติกรรมคนขับ';
+                                              else if (item.topic === 'bus-condition') topicTH = 'สภาพรถ';
+                                              else if (item.topic === 'system-wrong') topicTH = 'ระบบ';
+                                          %>
+                                            <tr class="text-gray-700 dark:text-gray-400">
+                                                <td class="px-4 py-3">
+                                                    <div class="flex items-center text-sm">
+                                                        <div>
+                                                            <p class="font-semibold"><%= topicTH %></p>
+                                                            <p class="text-xs text-gray-600 dark:text-gray-400">เบอร์รถ - <%= item.bus_number %></p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-3 text-sm truncate" style="max-width: 200px;"><%= item.detail %></td>
+                                                <td class="px-4 py-3 text-xs">
+                                                    <% if (item.image_file) { %>
+                                                        <a href="/uploads/<%= item.image_file %>" target="_blank" class="text-purple-600 underline">ดูหลักฐาน</a>
+                                                    <% } else { %> - <% } %>
+                                                </td>
+                                                <td class="px-4 py-3 text-sm">
+                                                    <%= new Date(item.created_at).toLocaleDateString('th-TH', { 
+                                                        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                                                    }) %>
+                                                </td>
+                                                <td class="px-4 py-3 text-sm">
+                                                    <form action="/admin/update-status" method="POST">
+                                                        <input type="hidden" name="id" value="<%= item.id %>">
+                                                        
+                                                        <select name="status" onchange="this.form.submit()" 
+                                                            class="block w-full mt-1 text-sm rounded-md border-gray-300 shadow-sm 
+                                                            focus:border-purple-400 focus:ring focus:ring-purple-200 focus:ring-opacity-50 
+                                                            dark:text-gray-300 dark:border-gray-600 dark:bg-gray-700 font-bold
+                                                            <%= item.status === 'resolved' ? 'text-green-600' : 
+                                                            (item.status === 'in_progress' ? 'text-yellow-600' : 'text-red-600') %>">
+                                                            
+                                                            <option value="pending" <%= item.status === 'pending' ? 'selected' : '' %>>
+                                                                🔴 รอดำเนินการ
+                                                            </option>
+                                                            <option value="in_progress" <%= item.status === 'in_progress' ? 'selected' : '' %>>
+                                                                🟡 กำลังดำเนินการ
+                                                            </option>
+                                                            <option value="resolved" <%= item.status === 'resolved' ? 'selected' : '' %>>
+                                                                🟢 เสร็จสิ้น
+                                                            </option>
+                                                        
+                                                        </select>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }); %>
+                                    <% } else { %>
+                                        <tr><td colspan="4" class="p-4 text-center">ยังไม่มีข้อมูล</td></tr>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                            <div class="grid px-4 py-3 text-xs font-semibold tracking-wide text-gray-500 uppercase border-t dark:border-gray-700 bg-gray-50 sm:grid-cols-9 dark:text-gray-400 dark:bg-gray-800">
+    
+                              <span class="flex items-center col-span-3">
+                                  Showing <%= (currentPage - 1) * limit + 1 %>-<%= Math.min(currentPage * limit, totalItems) %> of <%= totalItems %>
+                              </span>
+
+                              <span class="col-span-2"></span>
+
+                              <span class="flex col-span-4 mt-2 sm:mt-auto sm:justify-end">
+                                  <nav aria-label="Table navigation">
+                                      <ul class="inline-flex items-center">
+                                          
+                                          <li>
+                                              <% if (currentPage > 1) { %>
+                                                  <a href="/admin/complaints?page=<%= currentPage - 1 %>" class="px-3 py-1 rounded-md rounded-l-lg focus:outline-none focus:shadow-outline-purple" aria-label="Previous">
+                                                      <svg aria-hidden="true" class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                                                          <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" fill-rule="evenodd"></path>
+                                                      </svg>
+                                                  </a>
+                                              <% } else { %>
+                                                  <button class="px-3 py-1 rounded-md rounded-l-lg focus:outline-none focus:shadow-outline-purple opacity-50 cursor-not-allowed" disabled aria-label="Previous">
+                                                      <svg aria-hidden="true" class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                                                          <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" fill-rule="evenodd"></path>
+                                                      </svg>
+                                                  </button>
+                                              <% } %>
+                                          </li>
+
+                                          <% for(let i = 1; i <= totalPages; i++) { %>
+                                              <li>
+                                                  <% if (i === currentPage) { %>
+                                                      <button class="px-3 py-1 text-white transition-colors duration-150 bg-purple-600 border border-r-0 border-purple-600 rounded-md focus:outline-none focus:shadow-outline-purple">
+                                                          <%= i %>
+                                                      </button>
+                                                  <% } else { %>
+                                                      <a href="/admin/complaints?page=<%= i %>" class="px-3 py-1 rounded-md focus:outline-none focus:shadow-outline-purple">
+                                                          <%= i %>
+                                                      </a>
+                                                  <% } %>
+                                              </li>
+                                          <% } %>
+
+                                          <li>
+                                              <% if (currentPage < totalPages) { %>
+                                                  <a href="/admin/complaints?page=<%= currentPage + 1 %>" class="px-3 py-1 rounded-md rounded-r-lg focus:outline-none focus:shadow-outline-purple" aria-label="Next">
+                                                      <svg class="w-4 h-4 fill-current" aria-hidden="true" viewBox="0 0 20 20">
+                                                          <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" fill-rule="evenodd"></path>
+                                                      </svg>
+                                                  </a>
+                                              <% } else { %>
+                                                  <button class="px-3 py-1 rounded-md rounded-r-lg focus:outline-none focus:shadow-outline-purple opacity-50 cursor-not-allowed" disabled aria-label="Next">
+                                                      <svg class="w-4 h-4 fill-current" aria-hidden="true" viewBox="0 0 20 20">
+                                                          <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" fill-rule="evenodd"></path>
+                                                      </svg>
+                                                  </button>
+                                              <% } %>
+                                          </li>
+
+                                      </ul>
+                                  </nav>
+                              </span>
+                          </div>
+                        </div>
+                    </div>
+
+                    
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    
+      
+</body>
+</html>

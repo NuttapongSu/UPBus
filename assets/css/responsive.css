@@ -1,0 +1,364 @@
+/* =========================================================
+   Responsive Design for UPBusTransit
+   ไฟล์สำหรับจัดการการแสดงผลบนหน้าจอขนาดต่างๆ
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   1. สำหรับ Tablet และ Laptop หน้าจอเล็ก (Max Width: 1024px)
+   - ปรับขนาด Drawer ให้เล็กลงจาก 800px เหลือ 500px
+   --------------------------------------------------------- */
+@media screen and (max-width: 1024px) {
+    
+    /* ลดความกว้างของถาดข้อมูล (Panel) */
+    .drawer-content {
+        width: 500px;
+    }
+
+    /* ปรับการขยับของแผนที่เมื่อเปิด Panel */
+    body.panel-open .map-wrapper {
+        width: calc(100vw - 500px);
+    }
+    
+    /* ปรับตำแหน่ง Side Panel Wrapper (ถ้ามีใช้งาน) */
+    .side-panel-wrapper {
+        right: -500px;
+        width: 400px;
+    }
+}
+
+/* ---------------------------------------------------------
+   2. สำหรับ Mobile และ Tablet แนวตั้ง (Max Width: 768px)
+   - โหมด Overlay: Panel จะทับแผนที่แทนการดันแผนที่
+   - ปรับขนาดปุ่มและตัวหนังสือให้ใช้นิ้วกดง่าย
+   --------------------------------------------------------- */
+@media screen and (max-width: 768px) {
+
+    /* --- ส่วน Header และ Logo --- */
+    .map-header {
+        top: 10px;
+        left: 10px;
+        padding: 0;
+        gap: 0;
+    }
+
+    .map-header img {
+        /* ปรับโลโก้ให้เล็กลงและไม่กินพื้นที่ */
+        position: static;
+        width: 100px; 
+        height: auto;
+    }
+
+    .right-ui-container {
+        /* ให้โผล่ขอบออกมา 70px เพื่อเป็น Background ให้ปุ่ม */
+        transform: translateX(calc(100% - 70px)); 
+        right: 0;
+        top: 0;
+        height: 100%;
+        width: 100%;
+        z-index: 1000;
+        background: transparent; /* ให้เห็นพื้นหลังแผนที่ในส่วนที่ไม่ได้บัง */
+        pointer-events: none; /* ป้องกันการบัง Map ในส่วนที่โปร่งใส */
+    }
+
+    /* --- ส่วน Map Container --- */
+    /* เมื่อเปิด Panel บนมือถือ ไม่ต้องย่อแผนที่ (ให้ Panel บังไปเลย) */
+    body.panel-open .map-wrapper {
+        width: 100vw; 
+    }
+
+    .sidebar {
+        width: 70px; 
+        height: auto;
+        background: #fff; /* สีพื้นหลังแถบ */
+        pointer-events: auto; /* ให้กดเมนูในแถบได้ */
+        padding-bottom: 150px; /* เว้นที่ด้านล่างไว้ไม่ให้เนื้อหาทับปุ่ม Location */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+    }
+    
+    /* เมื่อเปิด Panel (Full Screen) */
+    .right-ui-container.open {
+        transform: translateX(0);
+        background: transparent; /* ถมขาวเมื่อเปิดเต็ม */
+        pointer-events: auto;
+    }
+
+    .sidebar-spacer {
+        width: 10%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .sidebar-spacer img {
+        width: 50%;
+        height: auto;
+        object-fit: contain; 
+        display: block;
+    }
+    
+
+    /* ซ่อน Debug Coord บนมือถือถ้าเกะกะ (หรือปรับตำแหน่ง) */
+    #debug-coord-display {
+        bottom: 140px; /* ขยับหนีปุ่ม Filter */
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        text-align: center;
+        font-size: 12px;
+    }
+
+    /* --- ส่วน Right UI Container (Sidebar + Panel) --- */
+    .right-ui-container {
+        /* ปรับระยะโผล่ของปุ่ม Sidebar ให้พอดีกับนิ้ว */
+        transform: translateX(calc(100% - 70px)); 
+        top: 0;
+        height: 100%; /* ให้เต็มความสูง */
+    }
+
+    /* เมื่อเปิด Panel ให้เลื่อนออกมาเต็มจอ */
+    .right-ui-container.open {
+        transform: translateX(0);
+        width: 100%; /* เต็มจอ */
+    }
+
+    /* ปรับแถบปุ่มด้านข้าง (Sidebar Icons) */
+    .sidebar {
+        width: 70px; /* ลดความกว้างแถบ */
+        padding: 15px 0;
+        align-items: center;
+    }
+
+    .sidebar-btn {
+        width: 45px;
+        height: 45px;
+        margin-bottom: 10px;
+    }
+
+    .sidebar-btn img {
+        width: 30px;
+        height: 30px;
+    }
+
+    .bottom-panel {
+        width: 100%;
+        border-radius: 24px 24px 0 0;
+        padding: 20px;
+        gap: 15px; 
+        z-index: 1050; 
+    }
+
+    .panel-header {
+        font-size: 1.2rem;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .route-button {
+        padding: 0.5rem 1rem;
+        font-size: 1.2rem;
+    }
+
+    .input-group-icon {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .modal-content {
+        max-width: 95vw; /* หรือจะใช้ none ไปเลยก็ได้ */
+        width: 90%;      /* ให้กว้าง 90% ของหน้าจอมือถือ */
+        padding: 20px;
+        max-height: 85vh; /* ให้สูงได้เกือบสุดจอ */
+        overflow-y: auto; 
+    }
+
+    /* ปรับเนื้อหาใน Panel (Drawer) */
+    .drawer-content {
+        width: calc(100vw - 70px); 
+        max-width: none;
+        border-radius: 0;
+        padding: 15px; /* ลด Padding ภายใน */
+    }
+
+    /* ปุ่มปิด Panel */
+    .close-btn {
+        top: 10px;
+        right: 10px;
+    }
+
+    /* --- ส่วน Filter Buttons (ปุ่มตัวเลือกด้านล่าง) --- */
+    .filter-buttons {
+        bottom: 80px; /* ขยับขึ้นหลบ UI มือถือ */
+        width: 95%;
+        flex-wrap: wrap; /* ให้ปุ่มขึ้นบรรทัดใหม่ได้ถ้าจอเล็ก */
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .filter-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        flex: 1 1 auto; /* ยืดหดได้ตามเนื้อหา */
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    /* --- ส่วนฟอร์ม (Form Elements) --- */
+    .form-row {
+        flex-direction: column; /* เรียง Input แนวตั้ง */
+        gap: 0;
+    }
+
+    .form-row > .input-wrapper:first-child,
+    .form-row > .input-wrapper:last-child {
+        flex: 1; /* เต็มความกว้าง */
+        width: 100%;
+    }
+
+    .input-wrapper {
+        margin-bottom: 15px;
+    }
+
+    /* ปรับขนาด Tab หัวข้อ */
+    .tab-link {
+        font-size: 1.2rem;
+        padding: 10px;
+    }
+
+    /* --- ส่วน News Grid (ข่าวสาร) --- */
+    .news-grid {
+        grid-template-columns: 1fr; /* แสดงแถวละ 1 ข่าว */
+    }
+
+    /* ปรับ Slider */
+    .news-slider-container {
+        aspect-ratio: 16 / 10; /* ปรับสัดส่วนรูปเล็กน้อย */
+    }
+}
+
+/* =========================================================
+   3. สำหรับ Mobile จอเล็ก (Max Width: 480px)
+   - ปรับลดขนาด Elements ต่างๆ ให้เล็กลงอีก
+   - ประหยัดพื้นที่หน้าจอ
+   ========================================================= */
+@media screen and (max-width: 480px) {
+
+    /* --- 1. ปรับ Sidebar และปุ่ม Location ให้เล็กลง --- */
+    
+    .right-ui-container {
+        /* ลดความกว้างส่วนที่โผล่ออกมาเหลือ 60px */
+        transform: translateX(calc(100% - 60px)); 
+    }
+
+    .sidebar {
+        width: 60px; /* ลดความกว้างแถบ */
+    }
+
+    /* ปุ่มเมนูใน Sidebar */
+    .sidebar-btn {
+        width: 40px;
+        height: 40px;
+        margin-bottom: 8px;
+    }
+    
+    .sidebar-btn img {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* ปุ่ม Location (Sidebar Spacer) */
+    #sidebar-spacer {
+        width: 60px; /* ต้องเท่ากับ Sidebar */
+    }
+    
+    #swap-routes-btn img {
+        width: 30px; /* ลดขนาดไอคอน */
+    }
+
+    #open-route-panel-btn.sidebarspacer-btn {
+        width: 40px; 
+    }
+
+    #open-route-panel-btn.sidebarspacer-btn img {
+        width: 22px; /* ลดขนาดไอคอน */
+        height: 22px;
+    }
+
+    /* เนื้อหาข้างใน Panel เมื่อเปิดออกมา */
+    .drawer-content {
+        width: calc(100vw - 60px); /* ปรับคำนวณตามขนาด Sidebar ใหม่ */
+        height: 100%;
+        padding: 10px; /* ลด Padding */
+        overflow-y: auto;
+    }
+
+    .rating-label-textrate {
+        font-size: 0.75rem; /* ลดขนาดตัวหนังสือ */
+    }
+
+    /* --- 2. ปรับ Header และ Logo --- */
+    .map-header img {
+        width: 80px; /* ลดขนาดโลโก้ให้ไม่เกะกะ */
+    }
+
+
+    /* --- 3. ปรับปุ่ม Filter ด้านล่าง --- */
+    .filter-buttons {
+        bottom: 60px; /* ขยับลงต่ำอีกนิด */
+        width: 98%;   /* กางเกือบเต็มจอ */
+        gap: 5px;     /* ลดช่องว่างระหว่างปุ่ม */
+    }
+
+    .filter-btn {
+        padding: 0.4rem 0.6rem; /* ปุ่มเล็กลง */
+        font-size: 0.8rem;      /* ตัวหนังสือเล็กลง */
+    }
+
+
+    /* --- 4. ปรับ Bottom Panel (แถบด้านล่าง) --- */
+    .bottom-panel {
+        padding: 15px; /* ลด Padding ภายใน */
+        gap: 10px;
+        border-radius: 20px 20px 0 0;
+    }
+
+    .panel-header {
+        font-size: 1.1rem; /* หัวข้อเล็กลงนิดนึง */
+    }
+
+    .route-button {
+        font-size: 1rem; /* ปุ่มเลือกเส้นทางตัวเล็กลง */
+        padding: 0.5rem;
+    }
+
+
+    /* --- 5. ปรับ Modal (Popup) --- */
+    .modal-content {
+        width: 95%; /* เกือบเต็มจอ */
+        padding: 15px;
+        max-height: 90vh; /* ให้สูงได้เกือบสุดจอ */
+    }
+    
+    /* ปรับขนาดไอคอนใน Modal */
+    .icon-3d {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .alert-text {
+        font-size: 1.1rem;
+    }
+
+
+    /* --- 6. ปรับขนาดฟอนต์ Tab --- */
+    .tab-link {
+        font-size: 1rem;
+        padding: 8px;
+    }
+
+    .form-eva {
+        padding: 12px 0;
+    }
+}

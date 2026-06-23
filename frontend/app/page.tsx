@@ -37,11 +37,11 @@ export default function HomePage() {
     setBusFilter(prev => prev === filter ? null : filter);
   }
 
-  // Auto-open right drawer (mobile) when bus/line selected
+  // Auto-open right drawer (mobile) only when a bus is selected
   useEffect(() => {
-    if (selectedBus || selectedLine) setRightDrawerOpen(true);
+    if (selectedBus) setRightDrawerOpen(true);
     else setRightDrawerOpen(false);
-  }, [selectedBus, selectedLine]);
+  }, [selectedBus]);
 
   function handleRightDrawerClose() {
     setRightDrawerOpen(false);
@@ -181,15 +181,21 @@ export default function HomePage() {
           {rightPanelContent}
         </aside>
 
-        {/* FAB — outside <main> to avoid Leaflet touch event capture */}
+        {/* FAB — toggle left drawer */}
         <button
-          onClick={() => setLeftDrawerOpen(true)}
+          onClick={() => setLeftDrawerOpen(prev => !prev)}
           className="lg:hidden absolute bottom-4 left-4 z-[1050] w-12 h-12 rounded-full bg-[#1a1a2e] border border-[#2a2a4a] shadow-lg flex items-center justify-center text-white hover:bg-[#2a2a4a] transition-colors"
           aria-label="ภาพรวมระบบ"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          {leftDrawerOpen ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
         </button>
 
         {/* Backdrop for left drawer (mobile + tablet) */}
@@ -210,20 +216,39 @@ export default function HomePage() {
 
         {/* Left Drawer — slides from left, mobile + tablet */}
         <aside
-          className={`lg:hidden absolute top-0 left-0 h-full w-64 z-[1045] flex flex-col gap-3 p-3 overflow-y-auto bg-[#0f0f1a] border-r border-[#1e1e2e] transform transition-transform duration-300 ease-out ${
+          className={`lg:hidden absolute top-0 left-0 h-full w-64 z-[1045] flex flex-col bg-[#0f0f1a] border-r border-[#1e1e2e] transform transition-transform duration-300 ease-out ${
             leftDrawerOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          {leftPanelContent}
+          <div className="flex items-center justify-between px-3 pt-3 pb-1 shrink-0">
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">ภาพรวมระบบ</span>
+            <button onClick={() => setLeftDrawerOpen(false)} className="text-gray-400 hover:text-white p-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex flex-col gap-3 px-3 pb-3 overflow-y-auto flex-1">
+            {leftPanelContent}
+          </div>
         </aside>
 
         {/* Right Drawer — slides from right, mobile only */}
         <aside
-          className={`md:hidden absolute top-0 right-0 h-full w-72 z-[1045] flex flex-col p-3 overflow-y-auto bg-[#0f0f1a] border-l border-[#1e1e2e] transform transition-transform duration-300 ease-out ${
+          className={`md:hidden absolute top-0 right-0 h-full w-72 z-[1045] flex flex-col bg-[#0f0f1a] border-l border-[#1e1e2e] transform transition-transform duration-300 ease-out ${
             rightDrawerOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
-          {rightPanelContent}
+          <div className="flex items-center justify-end px-3 pt-3 pb-1 shrink-0">
+            <button onClick={handleRightDrawerClose} className="text-gray-400 hover:text-white p-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex flex-col p-3 overflow-y-auto flex-1">
+            {rightPanelContent}
+          </div>
         </aside>
       </div>
 

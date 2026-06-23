@@ -146,7 +146,7 @@ export default function HomePage() {
           <BusMap buses={displayBuses} selectedLine={selectedLine} selectedBus={selectedBus} />
 
           {/* Floating line filter — mobile only, top-right of map */}
-          <div className="md:hidden absolute top-4 right-4 z-30 flex flex-col gap-2">
+          <div className="md:hidden absolute top-4 right-4 z-[1050] flex flex-col gap-2">
             <button
               onClick={() => setSelectedLine(null)}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg transition-all border backdrop-blur-sm"
@@ -177,7 +177,7 @@ export default function HomePage() {
           {/* FAB — open left drawer (mobile + tablet) */}
           <button
             onClick={() => setLeftDrawerOpen(true)}
-            className="lg:hidden absolute bottom-4 left-4 z-30 w-12 h-12 rounded-full bg-[#1a1a2e] border border-[#2a2a4a] shadow-lg flex items-center justify-center text-white hover:bg-[#2a2a4a] transition-colors"
+            className="lg:hidden absolute bottom-4 left-4 z-[1050] w-12 h-12 rounded-full bg-[#1a1a2e] border border-[#2a2a4a] shadow-lg flex items-center justify-center text-white hover:bg-[#2a2a4a] transition-colors"
             aria-label="ภาพรวมระบบ"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

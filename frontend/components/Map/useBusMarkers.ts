@@ -14,6 +14,9 @@ const BUS_IMG: Record<string, string> = {
   Purple: '/images/bus-purple-base-2.png',
 };
 
+// CSS filter ที่ทำให้รูป Red กลายเป็นสีส้ม (hue shift ~20deg)
+const ORANGE_FILTER = 'hue-rotate(20deg) saturate(1.3) brightness(1.05)';
+
 const POLL_INTERVAL = 10000;
 
 interface MarkerState {
@@ -27,7 +30,8 @@ interface MarkerState {
 
 function parseBusDateMs(dateStr: string): number {
   if (!dateStr) return 0;
-  return new Date(dateStr.replace(' ', 'T') + 'Z').getTime();
+  // GPS vendor returns Bangkok time (UTC+7), not UTC
+  return new Date(dateStr.replace(' ', 'T') + '+07:00').getTime();
 }
 
 function fmtThai(ms: number): string {
@@ -104,16 +108,23 @@ export function useBusMarkers(
         `SOC: ${bus.soc}%<br>` +
         `เวลา: <span class="bus-popup-time">...</span>`;
 
-      const isOffRoute = bus.color === 'Orange';
-      // Orange → ใช้ภาพ Purple เป็น fallback (ยังไม่มีภาพสีส้ม)
-      const imgSrc = BUS_IMG[bus.color] || BUS_IMG.Purple;
+      const isOffRoute  = bus.color === 'Orange';
+      const isReserved  = !!bus.department;
+      const isCharging  = bus.acc === 0;
+
+      // รถจอง → ภาพ Red + filter ส้ม, รถนอกเส้นทาง/ทั่วไป → ภาพตามสาย
+      const imgSrc   = BUS_IMG[bus.color] || BUS_IMG.Purple;
+      const imgFilter = isReserved ? ORANGE_FILTER : '';
+
+      // ⚡ overlay เมื่อรถกำลังชาร์จ (acc === 0)
+      const chargeBadge = `<div class="charge-badge" style="position:absolute;bottom:6px;right:4px;font-size:16px;line-height:1;pointer-events:none;filter:drop-shadow(0 0 2px rgba(0,0,0,0.6));display:${isCharging ? '' : 'none'};">⚡</div>`;
 
       // label แสดงเหนือรถ
       const shortDept = (s: string) => s.length > 14 ? s.slice(0, 13) + '…' : s;
       const deptLabel = isOffRoute
         ? `<div style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(230,126,34,0.92);color:#fff;font-size:10px;font-family:sans-serif;font-weight:bold;padding:2px 6px;border-radius:6px;pointer-events:none;max-width:140px;overflow:hidden;text-overflow:ellipsis;">🟠 ${bus.department ? shortDept(bus.department) : 'นอกเส้นทาง'}</div>`
-        : bus.department
-        ? `<div style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(155,89,182,0.92);color:#fff;font-size:10px;font-family:sans-serif;font-weight:bold;padding:2px 6px;border-radius:6px;pointer-events:none;max-width:140px;overflow:hidden;text-overflow:ellipsis;">${shortDept(bus.department)}</div>`
+        : isReserved
+        ? `<div style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(230,126,34,0.92);color:#fff;font-size:10px;font-family:sans-serif;font-weight:bold;padding:2px 6px;border-radius:6px;pointer-events:none;max-width:140px;overflow:hidden;text-overflow:ellipsis;">🟠 ${shortDept(bus.department!)}</div>`
         : '';
 
       const existing = markersRef.current.get(bus.imei_id);
@@ -123,9 +134,15 @@ export function useBusMarkers(
         existing.startTime = Date.now();
         existing.bearing = bus.bearing;
         existing.marker.setPopupContent(popupHtml);
-        // อัปเดตรูปถ้าสีเปลี่ยน
+        // อัปเดตรูปและ filter ถ้าสีหรือสถานะเปลี่ยน
         const imgEl = existing.marker.getElement()?.querySelector('img') as HTMLImageElement | null;
-        if (imgEl && imgEl.src !== window.location.origin + imgSrc) imgEl.src = imgSrc;
+        if (imgEl) {
+          if (imgEl.src !== window.location.origin + imgSrc) imgEl.src = imgSrc;
+          imgEl.style.filter = imgFilter;
+        }
+        // อัปเดต charge badge
+        const chargeEl = existing.marker.getElement()?.querySelector('.charge-badge') as HTMLElement | null;
+        if (chargeEl) chargeEl.style.display = isCharging ? '' : 'none';
         // อัปเดต dept label
         const deptEl = existing.marker.getElement()?.querySelector('.dept-label') as HTMLElement | null;
         if (deptEl) deptEl.innerHTML = bus.department
@@ -133,7 +150,7 @@ export function useBusMarkers(
           : '';
       } else {
         const icon = Leaflet.divIcon({
-          html: `<div style="width:84px;height:84px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));position:relative;">${deptLabel}<img src="${imgSrc}" style="width:100%;height:100%;object-fit:contain;" /><span style="position:absolute;top:10px;left:50%;transform:translateX(-50%);color:white;font-weight:bold;font-size:15px;font-family:sans-serif;text-shadow:0 1px 3px rgba(0,0,0,0.6);pointer-events:none;">${bus.imei_id.slice(-2)}</span></div>`,
+          html: `<div style="width:84px;height:84px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));position:relative;">${deptLabel}<img src="${imgSrc}" style="width:100%;height:100%;object-fit:contain;filter:${imgFilter};" /><span style="position:absolute;top:10px;left:50%;transform:translateX(-50%);color:white;font-weight:bold;font-size:15px;font-family:sans-serif;text-shadow:0 1px 3px rgba(0,0,0,0.6);pointer-events:none;">${bus.imei_id.slice(-2)}</span>${chargeBadge}</div>`,
           iconSize: [84, 84],
           iconAnchor: [42, 42],
           className: '',

@@ -21,7 +21,7 @@ const COLOR_HEX: Record<string, string> = {
 
 export default function BusLineCards({ buses, selectedLine, onSelectLine }: Props) {
   return (
-    <div className="flex gap-3 px-4 py-3 items-stretch">
+    <div className="flex gap-3 px-4 py-3 items-stretch overflow-x-auto scrollbar-hide">
       {/* ทุกสาย button */}
       <button
         onClick={() => onSelectLine(null)}
@@ -46,7 +46,7 @@ export default function BusLineCards({ buses, selectedLine, onSelectLine }: Prop
           <button
             key={line.key}
             onClick={() => onSelectLine(isSelected ? null : line.key)}
-            className="flex-1 rounded-xl p-4 border text-left transition-all"
+            className="flex-1 shrink-0 min-w-[160px] rounded-xl p-4 border text-left transition-all"
             style={{
               background: isSelected ? '#1e1e3a' : '#1a1a2e',
               borderColor: isSelected ? COLOR_HEX[line.key] : '#2a2a4a',

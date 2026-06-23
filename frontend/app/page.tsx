@@ -195,7 +195,7 @@ export default function HomePage() {
         {/* Backdrop for left drawer (mobile + tablet) */}
         {leftDrawerOpen && (
           <div
-            className="lg:hidden absolute inset-0 bg-black/40 z-40"
+            className="lg:hidden absolute inset-0 bg-black/40 z-[1040]"
             onClick={() => setLeftDrawerOpen(false)}
           />
         )}
@@ -203,14 +203,14 @@ export default function HomePage() {
         {/* Backdrop for right drawer (mobile only) */}
         {rightDrawerOpen && (
           <div
-            className="md:hidden absolute inset-0 bg-black/40 z-40"
+            className="md:hidden absolute inset-0 bg-black/40 z-[1040]"
             onClick={handleRightDrawerClose}
           />
         )}
 
         {/* Left Drawer — slides from left, mobile + tablet */}
         <aside
-          className={`lg:hidden absolute top-0 left-0 h-full w-64 z-50 flex flex-col gap-3 p-3 overflow-y-auto bg-[#0f0f1a] border-r border-[#1e1e2e] transform transition-transform duration-300 ease-out ${
+          className={`lg:hidden absolute top-0 left-0 h-full w-64 z-[1045] flex flex-col gap-3 p-3 overflow-y-auto bg-[#0f0f1a] border-r border-[#1e1e2e] transform transition-transform duration-300 ease-out ${
             leftDrawerOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -219,7 +219,7 @@ export default function HomePage() {
 
         {/* Right Drawer — slides from right, mobile only */}
         <aside
-          className={`md:hidden absolute top-0 right-0 h-full w-72 z-50 flex flex-col p-3 overflow-y-auto bg-[#0f0f1a] border-l border-[#1e1e2e] transform transition-transform duration-300 ease-out ${
+          className={`md:hidden absolute top-0 right-0 h-full w-72 z-[1045] flex flex-col p-3 overflow-y-auto bg-[#0f0f1a] border-l border-[#1e1e2e] transform transition-transform duration-300 ease-out ${
             rightDrawerOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >

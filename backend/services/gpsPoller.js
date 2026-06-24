@@ -3,6 +3,7 @@ const axios = require('axios');
 const crypto = require('crypto');
 const db = require('../db');
 const mockGps = require('./mockGps');
+const pushNotify = require('./pushNotify');
 
 const CNAME = 'PHAYAO01';
 const API_URL = 'https://api01.sitgps.com/api/get_list_deviceV2';
@@ -139,6 +140,18 @@ async function fetchAndStore() {
     }
 
     console.log(`✅ GPS Updated: ${cachedBusData.length} คัน`);
+
+    db.query(`SELECT bus_number, status_color FROM buses`).then(([rows]) => {
+      const colorMap = new Map(rows.map(r => [
+        'TC' + String(r.bus_number).padStart(3, '0'),
+        r.status_color,
+      ]));
+      const busesWithColor = cachedBusData.map(b => ({
+        ...b,
+        color: colorMap.get(b.imei_id) || 'Purple',
+      }));
+      pushNotify.dispatch(busesWithColor);
+    }).catch(err => console.error('❌ Push color fetch:', err.message));
   } catch (err) {
     console.error('❌ GPS Fetch Error:', err.message || err.code || String(err));
     if (err.response) console.error('Vendor:', JSON.stringify(err.response.data));

@@ -4,6 +4,7 @@ import { StyleSheet, TouchableOpacity, Text, View, Platform } from 'react-native
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
 import { useBuses } from '@/hooks/useBuses';
 import { LINE_STOPS, LINE_COLORS } from '@/constants/stops';
+import { ROUTE_COORDS } from '@/constants/routes';
 import BusMarker from '@/components/BusMarker';
 import BusStopMarker from '@/components/BusStopMarker';
 
@@ -28,7 +29,7 @@ export default function MapScreen() {
       <MapView style={s.map} provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT} initialRegion={UP_REGION} showsUserLocation>
         {ALL_LINES.filter(l => active.has(l)).map(line => (
           <Polyline key={line}
-            coordinates={LINE_STOPS[line].map(st => ({ latitude: st.lat, longitude: st.lng }))}
+            coordinates={ROUTE_COORDS[line]}
             strokeColor={LINE_COLORS[line]} strokeWidth={3} />
         ))}
         {ALL_LINES.filter(l => active.has(l)).flatMap(line =>

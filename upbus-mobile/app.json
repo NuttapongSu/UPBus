@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "UP Smart Transit",
+    "slug": "upbus-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "upbus",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "th.ac.up.smarttransit",
+      "config": {
+        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+      }
+    },
+    "android": {
+      "package": "th.ac.up.smarttransit",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "config": {
+        "googleMaps": { "apiKey": "YOUR_GOOGLE_MAPS_API_KEY" }
+      }
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-notifications", { "color": "#5c2d91" }]
+    ],
+    "experiments": { "typedRoutes": true }
+  }
+}

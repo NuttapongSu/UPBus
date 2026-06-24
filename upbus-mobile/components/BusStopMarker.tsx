@@ -1,6 +1,8 @@
-import { Text, View, StyleSheet } from 'react-native';
-import { Marker } from 'react-native-maps';
+import { Image, View, StyleSheet } from 'react-native';
+import { Marker, Callout } from 'react-native-maps';
 import { Stop } from '@/constants/stops';
+
+const STOP_IMG = require('@/assets/images/bus-stop.png');
 
 export default function BusStopMarker({ stop, color }: { stop: Stop; color: string }) {
   return (
@@ -8,42 +10,26 @@ export default function BusStopMarker({ stop, color }: { stop: Stop; color: stri
       coordinate={{ latitude: stop.lat, longitude: stop.lng }}
       title={stop.name}
       anchor={{ x: 0.5, y: 1 }}
+      tracksViewChanges={false}
     >
-      <View style={s.container}>
-        <View style={[s.bubble, { borderColor: color }]}>
-          <Text style={s.icon}>🚏</Text>
-        </View>
-        <View style={[s.triangle, { borderTopColor: color }]} />
+      <View style={[s.wrapper, { borderColor: color }]}>
+        <Image source={STOP_IMG} style={s.img} resizeMode="contain" />
       </View>
     </Marker>
   );
 }
 
 const s = StyleSheet.create({
-  container: { alignItems: 'center' },
-  bubble: {
+  wrapper: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    borderWidth: 2,
+    borderRadius: 20,
+    borderWidth: 2.5,
     padding: 3,
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.25,
-    shadowRadius: 2,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
   },
-  icon: { fontSize: 14 },
-  triangle: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderTopWidth: 6,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-  },
+  img: { width: 28, height: 28 },
 });

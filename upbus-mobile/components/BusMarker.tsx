@@ -1,7 +1,15 @@
 import { useEffect, useRef } from 'react';
-import { Text, View, StyleSheet } from 'react-native';
+import { Image, Text, View, StyleSheet } from 'react-native';
 import { Marker, Callout, AnimatedRegion } from 'react-native-maps';
 import { BusData, BusColor } from '@/lib/api';
+
+const BUS_IMAGE: Record<string, any> = {
+  Red:    require('@/assets/images/bus-red.png'),
+  Green:  require('@/assets/images/bus-green.png'),
+  Blue:   require('@/assets/images/bus-blue.png'),
+  Purple: require('@/assets/images/bus-purple.png'),
+  Orange: require('@/assets/images/bus-purple.png'),
+};
 
 const COLOR_HEX: Record<BusColor, string> = {
   Red: '#e74c3c', Green: '#2ecc71', Blue: '#3498db',
@@ -30,19 +38,19 @@ export default function BusMarker({ bus }: { bus: BusData }) {
     })
   ).current;
 
-  // Called every 1s by usePredictedBuses → animate smoothly to new predicted position
   useEffect(() => {
     coordinate.timing({
       latitude: bus.latitude!,
       longitude: bus.longitude!,
       latitudeDelta: 0,
       longitudeDelta: 0,
-      duration: 900, // slightly under 1s so next frame arrives before animation ends
+      duration: 900,
       useNativeDriver: false,
     }).start();
   }, [bus.latitude, bus.longitude]);
 
   const color = COLOR_HEX[bus.color] ?? '#9b59b6';
+  const img = BUS_IMAGE[bus.color] ?? BUS_IMAGE.Purple;
   const num = busNumber(bus.imei_id);
 
   return (
@@ -51,8 +59,12 @@ export default function BusMarker({ bus }: { bus: BusData }) {
       anchor={{ x: 0.5, y: 0.5 }}
       tracksViewChanges={false}
     >
-      <View style={[s.circle, { backgroundColor: color }]}>
-        <Text style={s.num}>{num}</Text>
+      {/* รูปรถพร้อมเลขรถด้านล่าง */}
+      <View style={s.wrapper}>
+        <Image source={img} style={s.busImg} resizeMode="contain" />
+        <View style={[s.badge, { backgroundColor: color }]}>
+          <Text style={s.badgeText}>{num}</Text>
+        </View>
       </View>
 
       <Callout tooltip>
@@ -85,25 +97,16 @@ function Row({ icon, label, value }: { icon: string; label: string; value: strin
 }
 
 const s = StyleSheet.create({
-  circle: {
-    width: 40, height: 40, borderRadius: 20,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#fff',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4, shadowRadius: 3, elevation: 6,
-  },
-  num: { color: '#fff', fontWeight: '900', fontSize: 14 },
-  callout: {
-    width: 220, borderRadius: 12, overflow: 'hidden',
-    backgroundColor: '#fff',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 6, elevation: 8,
-  },
-  calloutHeader: { paddingVertical: 8, paddingHorizontal: 12 },
+  wrapper:      { alignItems: 'center' },
+  busImg:       { width: 52, height: 52 },
+  badge:        { marginTop: -6, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8, borderWidth: 1.5, borderColor: '#fff' },
+  badgeText:    { color: '#fff', fontSize: 10, fontWeight: '900' },
+  callout:      { width: 220, borderRadius: 12, overflow: 'hidden', backgroundColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 8 },
+  calloutHeader:{ paddingVertical: 8, paddingHorizontal: 12 },
   calloutTitle: { color: '#fff', fontWeight: '800', fontSize: 15 },
-  calloutBody: { padding: 10, gap: 4 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rowIcon: { fontSize: 13, width: 20 },
-  rowLabel: { fontSize: 12, color: '#666', width: 65 },
-  rowValue: { fontSize: 12, color: '#111', fontWeight: '600', flex: 1 },
+  calloutBody:  { padding: 10, gap: 4 },
+  row:          { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rowIcon:      { fontSize: 13, width: 20 },
+  rowLabel:     { fontSize: 12, color: '#666', width: 65 },
+  rowValue:     { fontSize: 12, color: '#111', fontWeight: '600', flex: 1 },
 });

@@ -3,6 +3,7 @@ import { StyleSheet, TouchableOpacity, Text, View, Platform, ScrollView } from '
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useBuses } from '@/hooks/useBuses';
+import { usePredictedBuses } from '@/hooks/usePredictedBuses';
 import { LINE_STOPS, LINE_COLORS, LINE_NAMES } from '@/constants/stops';
 import { ROUTE_COORDS } from '@/constants/routes';
 import { BusData } from '@/lib/api';
@@ -40,6 +41,7 @@ function nearestBus(buses: BusData[], line: LineKey, stopLat: number, stopLng: n
 
 export default function MapScreen() {
   const { buses, error } = useBuses();
+  const predicted = usePredictedBuses(buses);
   const [active, setActive] = useState<Set<LineKey>>(new Set(ALL_LINES));
   const [selectedLine, setSelectedLine] = useState<LineKey | null>(null);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -70,7 +72,7 @@ export default function MapScreen() {
     }, 800);
   }
 
-  const visible = buses.filter(b =>
+  const visible = predicted.filter(b =>
     b.color === 'Purple' || (ALL_LINES.includes(b.color as LineKey) && active.has(b.color as LineKey))
   );
 

@@ -1,5 +1,6 @@
+import { useEffect, useRef } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
-import { Marker, Callout } from 'react-native-maps';
+import { Marker, Callout, AnimatedRegion } from 'react-native-maps';
 import { BusData, BusColor } from '@/lib/api';
 
 const COLOR_HEX: Record<BusColor, string> = {
@@ -20,21 +21,40 @@ function busNumber(imeiId: string) {
 export default function BusMarker({ bus }: { bus: BusData }) {
   if (!bus.latitude || !bus.longitude) return null;
 
+  const coordinate = useRef(
+    new AnimatedRegion({
+      latitude: bus.latitude,
+      longitude: bus.longitude,
+      latitudeDelta: 0,
+      longitudeDelta: 0,
+    })
+  ).current;
+
+  // Called every 1s by usePredictedBuses → animate smoothly to new predicted position
+  useEffect(() => {
+    coordinate.timing({
+      latitude: bus.latitude!,
+      longitude: bus.longitude!,
+      latitudeDelta: 0,
+      longitudeDelta: 0,
+      duration: 900, // slightly under 1s so next frame arrives before animation ends
+      useNativeDriver: false,
+    }).start();
+  }, [bus.latitude, bus.longitude]);
+
   const color = COLOR_HEX[bus.color] ?? '#9b59b6';
   const num = busNumber(bus.imei_id);
 
   return (
-    <Marker
-      coordinate={{ latitude: bus.latitude, longitude: bus.longitude }}
+    <Marker.Animated
+      coordinate={coordinate}
       anchor={{ x: 0.5, y: 0.5 }}
       tracksViewChanges={false}
     >
-      {/* วงกลมสีตามสาย + เลขรถ (เหมือน web) */}
       <View style={[s.circle, { backgroundColor: color }]}>
         <Text style={s.num}>{num}</Text>
       </View>
 
-      {/* Popup เมื่อกด */}
       <Callout tooltip>
         <View style={s.callout}>
           <View style={[s.calloutHeader, { backgroundColor: color }]}>
@@ -50,7 +70,7 @@ export default function BusMarker({ bus }: { bus: BusData }) {
           </View>
         </View>
       </Callout>
-    </Marker>
+    </Marker.Animated>
   );
 }
 

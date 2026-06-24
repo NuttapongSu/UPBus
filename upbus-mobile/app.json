@@ -16,7 +16,7 @@
       "supportsTablet": false,
       "bundleIdentifier": "th.ac.up.cesm.upbus",
       "config": {
-        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        "googleMapsApiKey": "AIzaSyAF4LPuPR4z4ylmFexJIQl8VIl4CFohkVE"
       }
     },
     "android": {
@@ -26,7 +26,7 @@
         "backgroundColor": "#ffffff"
       },
       "config": {
-        "googleMaps": { "apiKey": "YOUR_GOOGLE_MAPS_API_KEY" }
+        "googleMaps": { "apiKey": "AIzaSyAF4LPuPR4z4ylmFexJIQl8VIl4CFohkVE" }
       }
     },
     "plugins": [

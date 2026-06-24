@@ -1,12 +1,22 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Text, View, StyleSheet } from 'react-native';
-import { Marker, AnimatedRegion } from 'react-native-maps';
+import { Text, View, StyleSheet } from 'react-native';
+import { Marker, Callout, AnimatedRegion } from 'react-native-maps';
 import { BusData, BusColor } from '@/lib/api';
 
 const COLOR_HEX: Record<BusColor, string> = {
   Red: '#e74c3c', Green: '#2ecc71', Blue: '#3498db',
   Purple: '#9b59b6', Orange: '#e67e22', Yellow: '#f1c40f', White: '#bdc3c7',
 };
+
+const LINE_LABEL: Record<BusColor, string> = {
+  Red: 'Red Line', Green: 'Green Line', Blue: 'Blue Line',
+  Purple: 'ไม่ระบุสาย', Orange: 'Orange Line', Yellow: 'Yellow Line', White: 'White Line',
+};
+
+function busNumber(imeiId: string) {
+  const m = imeiId.match(/TC0*(\d+)/);
+  return m ? m[1] : imeiId;
+}
 
 export default function BusMarker({ bus }: { bus: BusData }) {
   if (!bus.latitude || !bus.longitude) return null;
@@ -26,51 +36,75 @@ export default function BusMarker({ bus }: { bus: BusData }) {
       longitude: bus.longitude!,
       latitudeDelta: 0,
       longitudeDelta: 0,
-      duration: 1000,
+      duration: 4000,
       useNativeDriver: false,
     }).start();
   }, [bus.latitude, bus.longitude]);
 
   const color = COLOR_HEX[bus.color] ?? '#9b59b6';
+  const num = busNumber(bus.imei_id);
 
   return (
     <Marker.Animated
       coordinate={coordinate}
-      title={bus.imei_id}
-      description={`สาย: ${bus.color} | ${bus.driver}`}
       anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={false}
     >
-      <View style={[s.bubble, { backgroundColor: color }]}>
-        <Text style={s.icon}>🚌</Text>
+      {/* ไอคอนวงกลม + เลขรถ (เหมือน web) */}
+      <View style={[s.circle, { backgroundColor: color }]}>
+        <Text style={s.num}>{num}</Text>
       </View>
-      <View style={[s.triangle, { borderTopColor: color }]} />
+
+      {/* Popup เมื่อกด */}
+      <Callout tooltip>
+        <View style={s.callout}>
+          <View style={[s.calloutHeader, { backgroundColor: color }]}>
+            <Text style={s.calloutTitle}>🚌 {bus.imei_id}</Text>
+          </View>
+          <View style={s.calloutBody}>
+            <Row icon="🎨" label="สาย" value={LINE_LABEL[bus.color] ?? bus.color} />
+            <Row icon="👤" label="คนขับ" value={bus.driver || 'ไม่ระบุ'} />
+            <Row icon="💨" label="ความเร็ว" value={`${bus.speed ?? 0} km/h`} />
+            <Row icon="🔋" label="แบตเตอรี่" value={`${bus.soc ?? 0}%`} />
+            <Row icon="📍" label="Lat" value={bus.latitude?.toFixed(6) ?? 'N/A'} />
+            <Row icon="📍" label="Lng" value={bus.longitude?.toFixed(6) ?? 'N/A'} />
+          </View>
+        </View>
+      </Callout>
     </Marker.Animated>
   );
 }
 
+function Row({ icon, label, value }: { icon: string; label: string; value: string }) {
+  return (
+    <View style={s.row}>
+      <Text style={s.rowIcon}>{icon}</Text>
+      <Text style={s.rowLabel}>{label}:</Text>
+      <Text style={s.rowValue}>{value}</Text>
+    </View>
+  );
+}
+
 const s = StyleSheet.create({
-  bubble: {
-    borderRadius: 20,
-    padding: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 36,
-    height: 36,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
+  circle: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: '#fff',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4, shadowRadius: 3, elevation: 6,
   },
-  icon: { fontSize: 18 },
-  triangle: {
-    alignSelf: 'center',
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 8,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
+  num: { color: '#fff', fontWeight: '900', fontSize: 14 },
+  callout: {
+    width: 220, borderRadius: 12, overflow: 'hidden',
+    backgroundColor: '#fff',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 6, elevation: 8,
   },
+  calloutHeader: { paddingVertical: 8, paddingHorizontal: 12 },
+  calloutTitle: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  calloutBody: { padding: 10, gap: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  rowIcon: { fontSize: 13, width: 20 },
+  rowLabel: { fontSize: 12, color: '#666', width: 65 },
+  rowValue: { fontSize: 12, color: '#111', fontWeight: '600', flex: 1 },
 });

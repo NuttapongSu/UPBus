@@ -15,8 +15,8 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "th.ac.up.cesm.upbus",
-      "config": {
-        "googleMapsApiKey": "AIzaSyAF4LPuPR4z4ylmFexJIQl8VIl4CFohkVE"
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

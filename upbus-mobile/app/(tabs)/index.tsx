@@ -1,7 +1,7 @@
 // upbus-mobile/app/(tabs)/index.tsx
 import { useState } from 'react';
-import { StyleSheet, TouchableOpacity, Text, View } from 'react-native';
-import MapView, { PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
+import { StyleSheet, TouchableOpacity, Text, View, Platform } from 'react-native';
+import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
 import { useBuses } from '@/hooks/useBuses';
 import { LINE_STOPS, LINE_COLORS } from '@/constants/stops';
 import BusMarker from '@/components/BusMarker';
@@ -25,7 +25,7 @@ export default function MapScreen() {
 
   return (
     <View style={s.container}>
-      <MapView style={s.map} provider={PROVIDER_GOOGLE} initialRegion={UP_REGION} showsUserLocation>
+      <MapView style={s.map} provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT} initialRegion={UP_REGION} showsUserLocation>
         {ALL_LINES.filter(l => active.has(l)).map(line => (
           <Polyline key={line}
             coordinates={LINE_STOPS[line].map(st => ({ latitude: st.lat, longitude: st.lng }))}

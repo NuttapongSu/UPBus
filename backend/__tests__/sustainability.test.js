@@ -3,10 +3,18 @@ const express = require('express');
 
 jest.mock('../db', () => ({
   query: jest.fn()
-    .mockResolvedValueOnce([[  // today aggregate
-      { co2_saved_kg: 120, kwh_used: 842, km_total: 1240 }
+    .mockResolvedValueOnce([[  // 1. sustainability_log (today co2/kwh)
+      { co2_saved_kg: 120, kwh_used: 842 }
     ]])
-    .mockResolvedValueOnce([[  // weekly chart
+    .mockResolvedValueOnce([[  // 2. bus_daily_stats (km_total)
+      { km_total: 1240000 }    // metres
+    ]])
+    .mockResolvedValueOnce([[  // 3. gps_snapshots (live current hour)
+    ]])
+    .mockResolvedValueOnce([[  // 4. gps_snapshots COUNT (buses_active)
+      { cnt: 5 }
+    ]])
+    .mockResolvedValueOnce([[  // 5. sustainability_daily_summary (weekly)
       { day: '2026-06-09', co2: 80 },
       { day: '2026-06-10', co2: 95 },
     ]])

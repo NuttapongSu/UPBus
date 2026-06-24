@@ -38,6 +38,12 @@
         {
           "color": "#5c2d91"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "แอปต้องการตำแหน่งของคุณเพื่อแสดงป้ายหยุดรถใกล้เคียงและแจ้งเตือนเมื่อรถใกล้ถึง"
+        }
       ]
     ],
     "experiments": {

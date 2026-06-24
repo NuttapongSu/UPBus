@@ -19,13 +19,11 @@ export default function AlertsScreen() {
     });
   }, []);
 
-  async function toggle(line: LineKey) {
-    setSubscribed(prev => {
-      const next = new Set(prev);
-      next.has(line) ? next.delete(line) : next.add(line);
-      updateLines([...next]);
-      return next;
-    });
+  function toggle(line: LineKey) {
+    const next = new Set(subscribed);
+    next.has(line) ? next.delete(line) : next.add(line);
+    setSubscribed(next);
+    updateLines([...next]);
   }
 
   return (

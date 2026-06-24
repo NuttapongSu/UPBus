@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { registerPushToken } from '@/lib/api';
 
 const TOKEN_KEY  = '@upbus/pushToken';
@@ -16,7 +17,13 @@ export function usePushToken() {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') return;
 
-      const { data } = await Notifications.getExpoPushTokenAsync();
+      const projectId =
+        Constants.expoConfig?.extra?.eas?.projectId ??
+        Constants.easConfig?.projectId;
+
+      const { data } = await Notifications.getExpoPushTokenAsync(
+        projectId ? { projectId } : {}
+      );
       tokenRef.current = data;
       setToken(data);
       await AsyncStorage.setItem(TOKEN_KEY, data);

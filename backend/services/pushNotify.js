@@ -67,7 +67,12 @@ async function dispatch(busesWithColor) {
         if (haversineM(bus.latitude, bus.longitude, stop.lat, stop.lng) > NOTIFY_RADIUS_M) continue;
 
         for (const row of tokenRows) {
-          const lines = JSON.parse(row.lines);
+          let lines;
+          try {
+            lines = JSON.parse(row.lines);
+          } catch {
+            continue; // skip this token, don't abort the whole cycle
+          }
           if (!lines.includes(bus.color)) continue;
 
           const key = `${row.token}:${bus.imei_id}:${stop.name}`;

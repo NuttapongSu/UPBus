@@ -20,7 +20,7 @@
       }
     },
     "android": {
-      "package": "th.ac.up.cesm.upbus",
+      "package": "up.ac.th",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

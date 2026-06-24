@@ -14,13 +14,13 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "th.ac.up.smarttransit",
+      "bundleIdentifier": "th.ac.up.cesm.upbus",
       "config": {
         "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
       }
     },
     "android": {
-      "package": "th.ac.up.smarttransit",
+      "package": "th.ac.up.cesm.upbus",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

@@ -26,13 +26,29 @@
         "backgroundColor": "#ffffff"
       },
       "config": {
-        "googleMaps": { "apiKey": "AIzaSyAF4LPuPR4z4ylmFexJIQl8VIl4CFohkVE" }
+        "googleMaps": {
+          "apiKey": "AIzaSyAF4LPuPR4z4ylmFexJIQl8VIl4CFohkVE"
+        }
       }
     },
     "plugins": [
       "expo-router",
-      ["expo-notifications", { "color": "#5c2d91" }]
+      [
+        "expo-notifications",
+        {
+          "color": "#5c2d91"
+        }
+      ]
     ],
-    "experiments": { "typedRoutes": true }
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "97135214-1cb4-4c69-8987-0d4bb9bd4909"
+      }
+    },
+    "owner": "nuttapongsu"
   }
 }

@@ -22,7 +22,6 @@
     "production": {
       "ios": {
         "appleId": "backend.cesm@hotmail.com",
-        "ascAppId": "",
         "appleTeamId": "UFCA5HC4H5"
       },
       "android": {

@@ -18,7 +18,7 @@ async function aggregateLastHour() {
     const [snapshots] = await db.query(
       `SELECT bus_id, odo, bv, be, recorded_at
        FROM gps_snapshots
-       WHERE recorded_at >= ? AND recorded_at < ? AND odo > 0
+       WHERE recorded_at >= ? AND recorded_at < ? AND odo > 0 AND speed > 0
        ORDER BY bus_id, recorded_at ASC`,
       [hourStart, hourEnd]
     );

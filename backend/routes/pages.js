@@ -59,7 +59,7 @@ router.get('/admin/dashboard', requireSession, async (req, res) => {
         DATE_FORMAT(created_at, '%Y-%m') as month,
         SUM(topic = 'driver-service') as behavior,
         SUM(topic = 'bus-condition') as cond,
-        SUM(topic = 'system-wrong') as system
+        SUM(topic = 'system-wrong') as sys
       FROM complaints
       WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
       GROUP BY month
@@ -69,7 +69,7 @@ router.get('/admin/dashboard', requireSession, async (req, res) => {
       labels: lineRows.map(r => r.month),
       behavior: lineRows.map(r => r.behavior),
       condition: lineRows.map(r => r.cond),
-      system: lineRows.map(r => r.system),
+      system: lineRows.map(r => r.sys),
     };
 
     const [[appStats]] = await db.query(`
@@ -101,7 +101,7 @@ router.get('/admin/dashboard', requireSession, async (req, res) => {
     });
   } catch (err) {
     console.error('Dashboard error:', err);
-    res.status(500).send('Server error');
+    res.status(500).send('Dashboard error: ' + err.message);
   }
 });
 
@@ -331,6 +331,131 @@ router.post('/admin/reservations/delete', requireSession, async (req, res) => {
   } catch (err) {
     console.error('Delete reservation error:', err.message);
     res.redirect('/admin/reservations?error=เกิดข้อผิดพลาด');
+  }
+});
+
+// ─── DRIVERS ────────────────────────────────────────────────────────────────
+
+// GET /admin/drivers
+router.get('/admin/drivers', requireSession, async (req, res) => {
+  try {
+    const [drivers] = await db.query(`
+      SELECT d.id, d.full_name, d.line_user_id,
+             b.bus_number
+      FROM drivers d
+      LEFT JOIN buses b ON b.current_driver_id = d.id
+      ORDER BY d.id ASC
+    `);
+    res.render('admin_drivers', {
+      drivers,
+      success: req.query.success || null,
+      error:   req.query.error   || null,
+    });
+  } catch (err) {
+    console.error('Drivers page error:', err);
+    res.status(500).send('Drivers error: ' + err.message);
+  }
+});
+
+// POST /admin/drivers — เพิ่มคนขับ
+router.post('/admin/drivers', requireSession, async (req, res) => {
+  const { full_name, line_user_id } = req.body;
+  if (!full_name) return res.redirect('/admin/drivers?error=กรุณากรอกชื่อ');
+  try {
+    await db.query(
+      'INSERT INTO drivers (full_name, line_user_id) VALUES (?, ?)',
+      [full_name.trim(), line_user_id?.trim() || null]
+    );
+    res.redirect('/admin/drivers?success=เพิ่มคนขับสำเร็จ');
+  } catch (err) {
+    console.error('Add driver error:', err);
+    res.redirect('/admin/drivers?error=เกิดข้อผิดพลาด: ' + err.message);
+  }
+});
+
+// POST /admin/drivers/edit — แก้ไขคนขับ
+router.post('/admin/drivers/edit', requireSession, async (req, res) => {
+  const { id, full_name, line_user_id } = req.body;
+  if (!full_name) return res.redirect('/admin/drivers?error=กรุณากรอกชื่อ');
+  try {
+    await db.query(
+      'UPDATE drivers SET full_name=?, line_user_id=? WHERE id=?',
+      [full_name.trim(), line_user_id?.trim() || null, id]
+    );
+    res.redirect('/admin/drivers?success=แก้ไขสำเร็จ');
+  } catch (err) {
+    console.error('Edit driver error:', err);
+    res.redirect('/admin/drivers?error=เกิดข้อผิดพลาด');
+  }
+});
+
+// POST /admin/drivers/delete — ลบคนขับ
+router.post('/admin/drivers/delete', requireSession, async (req, res) => {
+  const { id } = req.body;
+  try {
+    await db.query('UPDATE buses SET current_driver_id=NULL WHERE current_driver_id=?', [id]);
+    await db.query('DELETE FROM drivers WHERE id=?', [id]);
+    res.redirect('/admin/drivers?success=ลบคนขับสำเร็จ');
+  } catch (err) {
+    console.error('Delete driver error:', err);
+    res.redirect('/admin/drivers?error=เกิดข้อผิดพลาด');
+  }
+});
+
+// ─── ADMINS ─────────────────────────────────────────────────────────────────
+
+// GET /admin/admins
+router.get('/admin/admins', requireSession, async (req, res) => {
+  try {
+    const [admins] = await db.query('SELECT id, username, created_at FROM admins ORDER BY id ASC');
+    res.render('admin_admins', {
+      admins,
+      currentAdminId: req.session.admin.id,
+      success: req.query.success || null,
+      error:   req.query.error   || null,
+    });
+  } catch (err) {
+    console.error('Admins page error:', err);
+    res.status(500).send('Admins error: ' + err.message);
+  }
+});
+
+// POST /admin/admins — เพิ่ม admin
+router.post('/admin/admins', requireSession, async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.redirect('/admin/admins?error=กรุณากรอกข้อมูลให้ครบ');
+  try {
+    await db.query('INSERT INTO admins (username, password) VALUES (?, ?)', [username.trim(), password]);
+    res.redirect('/admin/admins?success=เพิ่ม Admin สำเร็จ');
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.redirect('/admin/admins?error=Username นี้มีอยู่แล้ว');
+    res.redirect('/admin/admins?error=เกิดข้อผิดพลาด');
+  }
+});
+
+// POST /admin/admins/reset-password — เปลี่ยนรหัสผ่าน
+router.post('/admin/admins/reset-password', requireSession, async (req, res) => {
+  const { id, password } = req.body;
+  if (!password) return res.redirect('/admin/admins?error=กรุณากรอกรหัสผ่านใหม่');
+  try {
+    await db.query('UPDATE admins SET password=? WHERE id=?', [password, id]);
+    res.redirect('/admin/admins?success=เปลี่ยนรหัสผ่านสำเร็จ');
+  } catch (err) {
+    res.redirect('/admin/admins?error=เกิดข้อผิดพลาด');
+  }
+});
+
+// POST /admin/admins/delete — ลบ admin
+router.post('/admin/admins/delete', requireSession, async (req, res) => {
+  const { id } = req.body;
+  if (parseInt(id) === req.session.admin.id) {
+    return res.redirect('/admin/admins?error=ไม่สามารถลบบัญชีตัวเองได้');
+  }
+  try {
+    await db.query('DELETE FROM admins WHERE id=?', [id]);
+    res.redirect('/admin/admins?success=ลบ Admin สำเร็จ');
+  } catch (err) {
+    res.redirect('/admin/admins?error=เกิดข้อผิดพลาด');
   }
 });
 

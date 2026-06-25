@@ -12,10 +12,8 @@ const BUS_IMG: Record<string, string> = {
   Green:  '/images/bus-green-base.png',
   Blue:   '/images/bus-blue-base.png',
   Purple: '/images/bus-purple-base-2.png',
+  Orange: '/images/bus-orange-base.png',
 };
-
-// CSS filter ที่ทำให้รูป Red กลายเป็นสีส้ม (hue shift ~20deg)
-const ORANGE_FILTER = 'hue-rotate(20deg) saturate(1.3) brightness(1.05)';
 
 const POLL_INTERVAL = 10000;
 
@@ -112,9 +110,9 @@ export function useBusMarkers(
       const isReserved  = !!bus.department;
       const isCharging  = bus.acc === 0;
 
-      // รถจอง → ภาพ Red + filter ส้ม, รถนอกเส้นทาง/ทั่วไป → ภาพตามสาย
-      const imgSrc   = BUS_IMG[bus.color] || BUS_IMG.Purple;
-      const imgFilter = isReserved ? ORANGE_FILTER : '';
+      // รถจอง/นอกเส้นทาง → รูปส้มจริง, ทั่วไป → รูปตามสาย
+      const imgSrc   = (isReserved || isOffRoute) ? BUS_IMG.Orange : (BUS_IMG[bus.color] || BUS_IMG.Purple);
+      const imgFilter = '';
 
       // ⚡ overlay เมื่อรถกำลังชาร์จ (acc === 0)
       const chargeBadge = `<div class="charge-badge" style="position:absolute;bottom:6px;right:4px;font-size:16px;line-height:1;pointer-events:none;filter:drop-shadow(0 0 2px rgba(0,0,0,0.6));display:${isCharging ? '' : 'none'};">⚡</div>`;

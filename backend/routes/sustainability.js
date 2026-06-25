@@ -36,22 +36,27 @@ async function getLiveCurrentHour() {
 // GET /api/sustainability
 router.get('/', async (req, res) => {
   try {
-    // ยอดรวมชั่วโมงที่ผ่านมาแล้ว (จาก log)
+    // kwh จาก sustainability_log (hourly aggregation)
     const [todayRows] = await db.query(`
       SELECT
         COALESCE(SUM(co2_saved_kg), 0) as co2_saved_kg,
-        COALESCE(SUM(kwh_used), 0)     as kwh_used,
-        COALESCE(SUM(km_total), 0)     as km_total
+        COALESCE(SUM(kwh_used), 0)     as kwh_used
       FROM sustainability_log
       WHERE DATE(logged_at) = CURDATE()
     `);
     const today = todayRows[0];
 
-    // บวกข้อมูล live ชั่วโมงปัจจุบันที่ยังไม่ถูก aggregate
+    // km จาก bus_daily_stats: km_today = odo_ปัจจุบัน - odo_แรกของวัน (start_odo)
+    const [[statsRow]] = await db.query(
+      `SELECT COALESCE(SUM(km_today), 0) AS km_total FROM bus_daily_stats WHERE stat_date = CURDATE()`
+    );
+    today.km_total = statsRow.km_total / 1000; // metres → km
+
+    // บวก live kwh ชั่วโมงปัจจุบันที่ยังไม่ถูก aggregate
     const live = await getLiveCurrentHour();
     today.co2_saved_kg = +(Number(today.co2_saved_kg) + live.liveC02).toFixed(3);
     today.kwh_used     = +(Number(today.kwh_used)     + live.liveKwh).toFixed(3);
-    today.km_total     = +(Number(today.km_total)     + live.liveKm).toFixed(3);
+    // km ไม่บวก live เพราะ bus_daily_stats อัปเดต real-time อยู่แล้ว
 
     const km  = today.km_total;
     const kwh = today.kwh_used;
@@ -79,7 +84,10 @@ router.get('/', async (req, res) => {
       ORDER BY stat_date ASC
     `);
 
-    res.json({ today, weekly: weeklyRows });
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const weekly = [...weeklyRows, { day: todayStr, co2: today.co2_saved_kg }];
+
+    res.json({ today, weekly });
   } catch (err) {
     console.error('Sustainability route error:', err);
     res.status(500).json({ error: 'Server error' });

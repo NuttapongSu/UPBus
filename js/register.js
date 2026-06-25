@@ -19,13 +19,12 @@ async function initializeLiff() {
         currentLineUserId = profile.userId;
 
         try {
-            const checkRes = await fetch(`${API_BASE}/check-driver?line_id=${currentLineUserId}`);
+            const checkRes = await fetch(`${API_BASE}/driver/check?line_id=${currentLineUserId}`);
             const checkData = await checkRes.json();
-            
+
             if (checkData.is_driver) {
-                // alert("คุณลงทะเบียนแล้ว เข้าสู่ระบบอัตโนมัติ");
-                window.location.replace('driver.php'); 
-                return; 
+                window.location.replace('driver.php');
+                return;
             }
         } catch (e) {
             console.log("Check driver error, showing register form anyway");
@@ -64,7 +63,7 @@ async function handleRegister(e) {
 
     try {
         // ยิงข้อมูลไปที่ Backend
-        const response = await fetch(`${API_BASE}/register`, {
+        const response = await fetch(`${API_BASE}/driver/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -77,25 +76,24 @@ async function handleRegister(e) {
 
         if (result.success) {
             messageDiv.innerHTML = `<div class="alert alert-success">✅ ลงทะเบียนสำเร็จ! ยินดีต้อนรับคุณ ${fullName}</div>`;
-            
+
             setTimeout(() => {
                 window.location.href = 'driver.php';
             }, 2000);
         } else {
-            if (result.message.includes("ลงทะเบียนแล้ว") || result.message.includes("already")) {
-                
+            const errMsg = result.error || '';
+            if (errMsg.includes("ลงทะเบียนแล้ว") || errMsg.includes("already")) {
                 messageDiv.innerHTML = `
                     <div class="alert alert-info">
                         ℹ️ คุณเคยลงทะเบียนไว้แล้ว<br>
                         กำลังพาไปหน้าคนขับ...
                     </div>`;
-            
+
                 setTimeout(() => {
                     window.location.replace('driver.php');
                 }, 2000);
-
             } else {
-                messageDiv.innerHTML = `<div class="alert alert-warning">⚠️ ${result.message}</div>`;
+                messageDiv.innerHTML = `<div class="alert alert-warning">⚠️ ${errMsg || 'เกิดข้อผิดพลาด'}</div>`;
             }
         }
 

@@ -68,8 +68,7 @@
                         <option value="Green" class="bg-green">🟢 สายหน้ามอ (สีเขียว)</option>
                         <option value="Red" class="bg-red">🔴 สายหอพัก (สีแดง)</option>
                         <option value="Blue" class="bg-blue">🔵 สายประตูสาม (สีน้ำเงิน)</option>
-                        <option value="Yellow" class="bg-yellow">🟡 รถสำหรับชมงาน (เช่น ดูงานภายในมอ)</option>
-                        <option value="White" class="bg-white">⚪ รถสำหรับงานอื่นๆ (เช่น คอนเสิร์ต, ยืมรถ)</option>
+
                         <option value="Orange">🟠 วิ่งนอกเส้นทาง</option>
                     </select>
                 </div>

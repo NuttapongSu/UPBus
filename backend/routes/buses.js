@@ -68,31 +68,32 @@ router.get('/:id', async (req, res) => {
       [busId]
     );
 
-    // last 7 days history (max odo - min odo per day from snapshots)
+    // last 7 days history — km_today = current_odo - start_odo (first odo of day)
     const [history] = await db.query(`
-      SELECT DATE(recorded_at) AS date,
-             GREATEST(0, MAX(odo) - MIN(odo)) AS km
-      FROM gps_snapshots
-      WHERE bus_id = ? AND odo > 0
-        AND recorded_at >= CURDATE() - INTERVAL 6 DAY
-      GROUP BY DATE(recorded_at)
-      ORDER BY date ASC
+      SELECT stat_date AS date, km_today AS km
+      FROM bus_daily_stats
+      WHERE bus_id = ?
+        AND stat_date >= CURDATE() - INTERVAL 6 DAY
+      ORDER BY stat_date ASC
     `, [busId]);
 
     const department = reservation?.department || null;
     const color = department ? 'Orange' : (dbBus?.status_color || 'Purple');
+
+    // odo from vendor is in metres — convert to km for display
+    const odoToKm = v => Math.round((v || 0) / 1000 * 10) / 10;
 
     res.json({
       bus_id:    busId,
       color,
       driver:    dbBus?.full_name || 'ไม่มีคนขับ',
       department,
-      odo_total: gps?.odo         || 0,
-      km_today:  today?.km_today  || 0,
+      odo_total: odoToKm(gps?.odo),
+      km_today:  odoToKm(today?.km_today),
       speed:     gps?.speed       || 0,
       acc:       gps?.acc         ?? 0,
       soc:       gps?.soc         || 0,
-      history,
+      history:   history.map(h => ({ ...h, km: odoToKm(h.km) })),
     });
   } catch (err) {
     console.error('Bus detail error:', err.message);

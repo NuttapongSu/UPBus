@@ -65,14 +65,21 @@ export default function NearbyStops() {
     ).then(results => setAllStops(results.flat()));
   }, []);
 
-  // คำนวณระยะห่างเมื่อ userPos หรือ allStops เปลี่ยน
+  // คำนวณระยะห่าง — เลือกป้ายใกล้สุด 1 ป้ายต่อสาย (สูงสุด 3 สาย)
   useEffect(() => {
     if (!userPos || allStops.length === 0) return;
-    const withDist = allStops
-      .map(s => ({ ...s, distance: haversine(userPos.lat, userPos.lng, s.lat, s.lng) }))
-      .sort((a, b) => a.distance - b.distance)
-      .slice(0, 5);
-    setStops(withDist);
+    const withDist = allStops.map(s => ({
+      ...s,
+      distance: haversine(userPos.lat, userPos.lng, s.lat, s.lng),
+    }));
+    // หาป้ายใกล้ที่สุดของแต่ละสาย
+    const nearestPerLine: Record<string, typeof withDist[0]> = {};
+    withDist.forEach(s => {
+      if (!nearestPerLine[s.line] || s.distance < nearestPerLine[s.line].distance) {
+        nearestPerLine[s.line] = s;
+      }
+    });
+    setStops(Object.values(nearestPerLine).sort((a, b) => a.distance - b.distance));
   }, [userPos, allStops]);
 
   function requestLocation() {

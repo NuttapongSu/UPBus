@@ -1,5 +1,5 @@
 // js/driver.js
-const LIFF_ID = "2010471860-Y8Jlapgj";
+const LIFF_ID = "2010481006-cQSkfPTr";
 const API_BASE = 'https://bustransit.up.ac.th/api'; // http://localhost:5000/api https://bustransit.up.ac.th/api
 
 let dbDriverId = null;
@@ -32,15 +32,15 @@ async function initializeLiff() {
 
     } catch (err) {
         console.error("LIFF Init Error:", err);
-        document.getElementById('loading').innerHTML = 
-            `<div class="alert alert-danger">❌ กรุณาเปิดผ่าน LINE เท่านั้น</div>`;
+        document.getElementById('loading').innerHTML =
+            `<div class="alert alert-danger">❌ LIFF Error: ${err.code || ''} ${err.message || err}</div>`;
     }
 }
 
 // ฟังก์ชันเช็คสถานะสมาชิก
 async function checkDriverStatus(lineUserId) {
     try {
-        const res = await fetch(`${API_BASE}/check-driver?line_id=${lineUserId}`);
+        const res = await fetch(`${API_BASE}/driver/check?line_id=${lineUserId}`);
         const data = await res.json();
 
         if (data.is_driver) {
@@ -60,7 +60,7 @@ async function checkDriverStatus(lineUserId) {
 
 async function checkCurrentJob() {
     try {
-        const res = await fetch(`${API_BASE}/current-job?driver_id=${dbDriverId}`);
+        const res = await fetch(`${API_BASE}/driver/current-job?driver_id=${dbDriverId}`);
         const data = await res.json();
 
         if (data.is_driving) {
@@ -114,7 +114,7 @@ async function loadBuses() {
     select.innerHTML = '<option value="" selected disabled>⏳ กำลังโหลด...</option>';
 
     try {
-        const res = await fetch(`${API_BASE}/buses`);
+        const res = await fetch(`${API_BASE}/driver/buses`);
         const buses = await res.json();
 
         select.innerHTML = '<option value="" selected disabled>-- กรุณาเลือกรถ --</option>';
@@ -156,7 +156,7 @@ async function handleFormSubmit(e) {
     messageDiv.innerHTML = '<span class="text-primary">⏳ กำลังบันทึกข้อมูล...</span>';
 
     try {
-        const res = await fetch(`${API_BASE}/update-status`, {
+        const res = await fetch(`${API_BASE}/driver/update-status`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -172,7 +172,7 @@ async function handleFormSubmit(e) {
             messageDiv.innerHTML = `<div class="alert alert-success mt-2">✅ สำเร็จ!</div>`;
             setTimeout(() => location.reload(), 1000);
         } else {
-            messageDiv.innerHTML = `<div class="alert alert-danger mt-2">❌ ${result.message}</div>`;
+            messageDiv.innerHTML = `<div class="alert alert-danger mt-2">❌ ${result.error || 'เกิดข้อผิดพลาด'}</div>`;
         }
     } catch (error) {
         console.error(error);
@@ -184,7 +184,7 @@ window.stopDriving = async function() {
     if(!confirm("ต้องการเปลี่ยนคัน?")) return;
 
     try {
-        const res = await fetch(`${API_BASE}/stop-driving`, {
+        const res = await fetch(`${API_BASE}/driver/stop`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

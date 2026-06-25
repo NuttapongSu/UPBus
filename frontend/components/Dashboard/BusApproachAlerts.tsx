@@ -23,15 +23,18 @@ const LINE_COLOR: Record<string, string> = {
 
 const LINE_STOPS: Record<string, { name: string; lat: number; lng: number }[]> = {
   Green: [
-    { name: 'จุดจอดรถบัสหน้ามหาวิทยาลัย',               lat: 19.030564,  lng: 99.923098  },
-    { name: 'สถานีหน้าคณะทันตแพทยศาสตร์',                lat: 19.0298661, lng: 99.9154259 },
-    { name: 'สถานีหน้าคณะวิศวกรรมศาสตร์',                lat: 19.0307963, lng: 99.9011997 },
-    { name: 'สถานีหน้าคณะพยาบาลศาสตร์',                  lat: 19.0306625, lng: 99.897615  },
-    { name: 'สถานีหน้าอาคารสำนักงานอธิการบดี',           lat: 19.0290339, lng: 99.8960666 },
-    { name: 'สถานีหน้าคณะศิลปศาสตร์',                    lat: 19.0294776, lng: 99.8957507 },
-    { name: 'สถานีหน้าเรือนเอื้องคำ',                    lat: 19.028584,  lng: 99.906696  },
+    // ขากลับ: PKY → ศิลปศาสตร์ → พยาบาล → วิศวะ(ขากลับ) → ทันตะ → หน้ามอ
+    // ขาไป:   หน้ามอ → เรือนเอื้องคำ → วิศวะ(ขาไป) → หอประชุม → อธิการ → PKY
     { name: 'จุดจอดรถบัส PKY',                           lat: 19.02562,   lng: 99.895015  },
+    { name: 'สถานีหน้าคณะศิลปศาสตร์',                    lat: 19.0294776, lng: 99.8957507 },
+    { name: 'สถานีหน้าคณะพยาบาลศาสตร์',                  lat: 19.0306625, lng: 99.897615  },
+    { name: 'สถานีหน้าคณะวิศวกรรมศาสตร์',                lat: 19.0307963, lng: 99.9011997 },
+    { name: 'สถานีหน้าคณะทันตแพทยศาสตร์',                lat: 19.0298661, lng: 99.9154259 },
+    { name: 'จุดจอดรถบัสหน้ามหาวิทยาลัย',               lat: 19.030564,  lng: 99.923098  },
+    { name: 'สถานีหน้าเรือนเอื้องคำ',                    lat: 19.028584,  lng: 99.906696  },
+    { name: 'สถานีหน้าคณะวิศวกรรมศาสตร์',                lat: 19.0305663, lng: 99.901226  },
     { name: 'สถานีหน้าหอประชุมพญางำเมือง',               lat: 19.0299998, lng: 99.8977114 },
+    { name: 'สถานีหน้าอาคารสำนักงานอธิการบดี',           lat: 19.0290339, lng: 99.8960666 },
   ],
   Blue: [
     { name: 'จุดจอดรถบัสประตูสาม',                       lat: 19.02281,   lng: 99.89537   },
@@ -58,33 +61,6 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-/**
- * Project bus position onto the ordered stop polyline of a one-way route.
- * Returns a float like 2.7 = "70% through segment stops[2]→stops[3]".
- * Segment with the smallest perpendicular distance wins.
- */
-function progressOnRoute(
-  busLat: number, busLng: number,
-  stops: { lat: number; lng: number }[]
-): number {
-  let bestSeg = 0;
-  let bestT = 0;
-  let bestDist = Infinity;
-  const n = stops.length;
-  for (let i = 0; i < n; i++) {
-    const a = stops[i];
-    const b = stops[(i + 1) % n];
-    const dx = b.lat - a.lat;
-    const dy = b.lng - a.lng;
-    const lenSq = dx * dx + dy * dy;
-    const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1,
-      ((busLat - a.lat) * dx + (busLng - a.lng) * dy) / lenSq
-    ));
-    const d = haversine(busLat, busLng, a.lat + t * dx, a.lng + t * dy);
-    if (d < bestDist) { bestDist = d; bestSeg = i; bestT = t; }
-  }
-  return bestSeg + bestT;
-}
 
 const MAX_BUS_DIST_M = 8000; // ไม่แจ้งเตือนถ้ารถอยู่ไกลกว่า 8 กม.
 
@@ -111,44 +87,41 @@ export default function BusApproachAlerts({ buses }: Props) {
     const newAlerts: Alert[] = [];
 
     for (const [line, stops] of Object.entries(LINE_STOPS) as [keyof typeof LINE_STOPS, typeof LINE_STOPS[string]][]) {
-      // หารถในสายนี้ที่มี GPS
       const lineBuses = buses.filter(
         b => b.color === line && b.latitude !== null && b.longitude !== null
       );
       if (lineBuses.length === 0) continue;
 
-      // หารถที่ใกล้ผู้ใช้มากที่สุดในสายนี้
+      // 1. หาป้ายในสายนี้ที่ใกล้ผู้ใช้มากที่สุด
+      const userStopIdx = stops.reduce((bestIdx, stop, idx) => {
+        const d = haversine(userPos.lat, userPos.lng, stop.lat, stop.lng);
+        const best = haversine(userPos.lat, userPos.lng, stops[bestIdx].lat, stops[bestIdx].lng);
+        return d < best ? idx : bestIdx;
+      }, 0);
+      const userStop = stops[userStopIdx];
+
+      // 2. หารถที่ใกล้ป้ายของผู้ใช้มากที่สุด
       let closestBus: BusData | null = null;
-      let closestDist = Infinity;
+      let closestDistToStop = Infinity;
       lineBuses.forEach(bus => {
-        const d = haversine(userPos.lat, userPos.lng, bus.latitude!, bus.longitude!);
-        if (d < closestDist) { closestDist = d; closestBus = bus; }
+        const d = haversine(bus.latitude!, bus.longitude!, userStop.lat, userStop.lng);
+        if (d < closestDistToStop) { closestDistToStop = d; closestBus = bus; }
       });
 
-      if (!closestBus || closestDist > MAX_BUS_DIST_M) continue;
+      if (!closestBus || closestDistToStop > MAX_BUS_DIST_M) continue;
 
       const bus = closestBus as BusData;
-
-      // Project ตำแหน่งรถลง polyline ของเส้นทาง one-way เพื่อหาว่ารถอยู่บน segment ไหน
-      // ไม่พึ่ง bus.bearing เลย — ใช้ geometry ล้วนๆ
-      const progress = progressOnRoute(bus.latitude!, bus.longitude!, stops);
-      const segIdx = Math.floor(progress) % stops.length;
-      const atStopIdx = (segIdx + 1) % stops.length; // ปลาย segment = ป้ายที่รถกำลังมุ่งไป
-      const atStopData = stops[atStopIdx];
-      const nextStopData = stops[(atStopIdx + 1) % stops.length];
-
-      // ETA ถึงป้ายหน้า
-      const distToAt = haversine(bus.latitude!, bus.longitude!, atStopData.lat, atStopData.lng);
+      const nextStopData = stops[(userStopIdx + 1) % stops.length];
       const speedMps = ((bus.speed || 20) * 1000) / 3600;
-      const etaMin = Math.max(1, Math.round(distToAt / speedMps / 60));
+      const etaMin = Math.max(1, Math.round(closestDistToStop / speedMps / 60));
 
       newAlerts.push({
         line: line as Alert['line'],
         busId: bus.imei_id,
         etaMin,
-        atStop: atStopData.name,
+        atStop: userStop.name,
         nextStop: nextStopData.name,
-        distanceM: distToAt,
+        distanceM: closestDistToStop,
       });
     }
 

@@ -103,10 +103,12 @@ export default function MapScreen() {
         showsUserLocation
         showsMyLocationButton={false}
       >
-        {ALL_LINES.filter(l => active.has(l)).map(line => (
-          <Polyline key={line} coordinates={ROUTE_COORDS[line]}
-            strokeColor={LINE_COLORS[line]} strokeWidth={3} />
-        ))}
+        {ALL_LINES.filter(l => active.has(l)).flatMap(line =>
+          ROUTE_COORDS[line].map((coords, i) => (
+            <Polyline key={`${line}-${i}`} coordinates={coords}
+              strokeColor={LINE_COLORS[line]} strokeWidth={3} />
+          ))
+        )}
         {ALL_LINES.filter(l => active.has(l)).flatMap(line =>
           LINE_STOPS[line].map(stop =>
             <BusStopMarker key={`${line}-${stop.name}`} stop={stop} color={LINE_COLORS[line]} />

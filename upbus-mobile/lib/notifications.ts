@@ -50,7 +50,7 @@ export interface EtaRow {
 export interface TrackingState {
   isTracking: boolean;
   destinationStop: BusStop | null;
-  boardingStop: BusStop | null;
+  boardingStops: Record<string, BusStop>;
   etaRows: EtaRow[];
   startTracking: (dest: BusStop, boardingStops: { lineColor: string; stop: BusStop }[]) => Promise<void>;
   stopTracking: () => Promise<void>;
@@ -84,7 +84,7 @@ function getOrCreateState(): TrackingState {
   _state = {
     isTracking: false,
     destinationStop: null,
-    boardingStop: null,
+    boardingStops: {},
     etaRows: [],
 
     setEtaRows: (rows: EtaRow[]) => {
@@ -115,7 +115,7 @@ function getOrCreateState(): TrackingState {
       if (_state) {
         _state.isTracking = true;
         _state.destinationStop = dest;
-        _state.boardingStop = boardingStops[0]?.stop ?? null;
+        _state.boardingStops = Object.fromEntries(boardingStops.map(bs => [bs.lineColor, bs.stop]));
         _state.etaRows = boardingStops.map(bs => ({
           lineColor: bs.lineColor,
           lineName: LINE_NAMES[bs.lineColor] ?? bs.lineColor,
@@ -138,7 +138,7 @@ function getOrCreateState(): TrackingState {
       if (_state) {
         _state.isTracking = false;
         _state.destinationStop = null;
-        _state.boardingStop = null;
+        _state.boardingStops = {};
         _state.etaRows = [];
         notify();
       }

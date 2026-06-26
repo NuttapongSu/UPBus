@@ -72,7 +72,7 @@ export default function RoutesScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ color: '#fff', fontSize: 9, fontWeight: '600' }}>{row.lineName}</Text>
-                <Text style={{ color: '#888', fontSize: 8 }}>📍 {tracking.boardingStop?.name}</Text>
+                <Text style={{ color: '#888', fontSize: 8 }}>📍 {tracking.boardingStops?.[row.lineColor]?.name ?? '—'}</Text>
               </View>
               <Text style={{ color: row.color, fontSize: 16, fontWeight: '800' }}>
                 {row.eta != null ? `~${row.eta}` : '—'}

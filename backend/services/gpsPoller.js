@@ -150,7 +150,9 @@ async function fetchAndStore() {
         ...b,
         color: colorMap.get(b.imei_id) || 'Purple',
       }));
-      pushNotify.dispatch(busesWithColor);
+      pushNotify.dispatchNotifications(busesWithColor).catch(e =>
+        console.error('[pushNotify] dispatch error:', e.message)
+      );
     }).catch(err => console.error('❌ Push color fetch:', err.message));
   } catch (err) {
     console.error('❌ GPS Fetch Error:', err.message || err.code || String(err));

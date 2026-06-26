@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "UP Smart Transit",
+    "slug": "upbus-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "upbus",
+    "userInterfaceStyle": "dark",
+    "icon": "./assets/images/icon.png",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0f1a"
+    },
+    "ios": {
+      "bundleIdentifier": "th.ac.up.bustransit",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ใช้ตำแหน่งเพื่อหาป้ายรถใกล้คุณ"
+      }
+    },
+    "android": {
+      "package": "th.ac.up.bustransit",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0f0f1a"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#7c3aed"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "ใช้ตำแหน่งเพื่อหาป้ายรถใกล้คุณ"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

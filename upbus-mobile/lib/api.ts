@@ -42,6 +42,11 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
 }
 
 export const getBuses = () => apiFetch<BusData[]>('/api/buses');
+export const getKml = (line: string): Promise<string> =>
+  fetch(`${BASE}/api/kml/${line}`).then(r => {
+    if (!r.ok) throw new Error(`KML ${line} → ${r.status}`);
+    return r.text();
+  });
 export const getStops = () => apiFetch<BusStop[]>('/api/stops');
 export const getSustainability = () => apiFetch<SustainabilityData>('/api/sustainability');
 

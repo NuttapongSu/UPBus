@@ -56,12 +56,16 @@ function buildMessage(lineColor, lineName, stopName) {
  */
 async function dispatchNotifications(buses) {
   try {
+    // Prune cooldownMap entries older than COOLDOWN_MS
+    const now = Date.now();
+    for (const [key, ts] of cooldownMap.entries()) {
+      if (now - ts > COOLDOWN_MS) cooldownMap.delete(key);
+    }
+
     const [rows] = await db.query(
       `SELECT token, destination_stop_id, boarding_stops FROM push_tokens`
     );
     if (!rows.length) return;
-
-    const now = Date.now();
     const messages = [];
 
     for (const row of rows) {

@@ -31,20 +31,26 @@ export default function ComplaintsScreen() {
     if (!res.canceled) setPhoto(res.assets[0].uri);
   }
 
+  const LINE_BUS_NUMBER: Record<string, string> = { Green: '1', Red: '2', Blue: '3' };
+
   async function handleSubmit() {
     if (!detail.trim()) { Alert.alert('กรุณาระบุรายละเอียด'); return; }
     const form = new FormData();
     form.append('topic', type);
-    form.append('bus_number', line);
+    form.append('bus_number', LINE_BUS_NUMBER[line] ?? '1');
     form.append('detail', detail);
     if (photo) form.append('image', { uri: photo, name: 'photo.jpg', type: 'image/jpeg' } as any);
-    await postComplaint(form);
-    const item: HistoryItem = { type, line, detail, date: new Date().toISOString(), status: 'pending' };
-    const updated = [item, ...history];
-    setHistory(updated);
-    await AsyncStorage.setItem('complaints', JSON.stringify(updated));
-    setDetail(''); setPhoto(null);
-    Alert.alert('ส่งเรียบร้อย', 'ขอบคุณที่แจ้งปัญหา');
+    try {
+      await postComplaint(form);
+      const item: HistoryItem = { type, line, detail, date: new Date().toISOString(), status: 'pending' };
+      const updated = [item, ...history];
+      setHistory(updated);
+      await AsyncStorage.setItem('complaints', JSON.stringify(updated));
+      setDetail(''); setPhoto(null);
+      Alert.alert('ส่งเรียบร้อย', 'ขอบคุณที่แจ้งปัญหา');
+    } catch (e) {
+      Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถส่งเรื่องร้องเรียนได้ กรุณาลองใหม่');
+    }
   }
 
   return (

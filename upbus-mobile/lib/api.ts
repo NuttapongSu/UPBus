@@ -51,7 +51,8 @@ export const getStops = () => apiFetch<BusStop[]>('/api/stops');
 export const getSustainability = () => apiFetch<SustainabilityData>('/api/sustainability');
 
 export async function postComplaint(form: FormData): Promise<void> {
-  await fetch(`${BASE}/api/complaints`, { method: 'POST', body: form });
+  const res = await fetch(`${BASE}/api/complaints`, { method: 'POST', body: form });
+  if (!res.ok) throw new Error(`Complaint submit failed: ${res.status}`);
 }
 
 export async function registerPushToken(

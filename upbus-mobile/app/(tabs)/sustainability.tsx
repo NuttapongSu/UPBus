@@ -44,7 +44,7 @@ export default function SustainabilityScreen() {
           {weekly.map(w => (
             <View key={w.day} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
               <View style={[styles.bar, { height: Math.max((w.co2 / maxCo2) * MAX_BAR_H, 3), backgroundColor: LINE_COLOR }]} />
-              <Text style={styles.barDay}>{w.day.slice(0, 2)}</Text>
+              <Text style={styles.barDay}>{w.day.slice(5)}</Text>
             </View>
           ))}
         </View>

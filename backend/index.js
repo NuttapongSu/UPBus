@@ -16,7 +16,6 @@ const driverRouter        = require('./routes/driver');
 const pagesRouter         = require('./routes/pages');
 const reservationsRouter  = require('./routes/reservations');
 const lineRouter          = require('./routes/line');
-const pushRouter          = require('./routes/push');
 
 const app = express();
 
@@ -52,7 +51,6 @@ app.use('/api/admin',          adminRouter);
 app.use('/api/driver',         driverRouter);
 app.use('/api/reservations',   reservationsRouter);
 app.use('/api/line',           lineRouter);
-app.use('/api/push',          pushRouter);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));

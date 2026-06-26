@@ -18,6 +18,7 @@ const reservationsRouter  = require('./routes/reservations');
 const lineRouter          = require('./routes/line');
 const stopsRouter         = require('./routes/stops');
 const pushRouter          = require('./routes/push');
+const kmlRouter           = require('./routes/kml');
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use('/api/reservations',   reservationsRouter);
 app.use('/api/line',           lineRouter);
 app.use('/api/stops',          stopsRouter);
 app.use('/api/push',           pushRouter);
+app.use('/api/kml',            kmlRouter);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));

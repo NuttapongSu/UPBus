@@ -10,9 +10,11 @@ export function haversine(lat1: number, lng1: number, lat2: number, lng2: number
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-/** Returns the stop(s) matching the destination id (carries line info for the destination) */
-export function findPassingLines(stops: BusStop[], destinationId: string): BusStop[] {
-  return stops.filter(s => s.id === destinationId);
+/** Returns unique line colors that serve the destination */
+export function findPassingLines(stops: BusStop[], destinationId: string): string[] {
+  const dest = stops.find(s => s.id === destinationId);
+  if (!dest) return [];
+  return [...new Set(dest.lines)];
 }
 
 /** Nearest stop to the user that is on the given line */

@@ -10,7 +10,7 @@ const mockStops: BusStop[] = [
 
 test('findPassingLines returns lines that serve the destination', () => {
   const result = findPassingLines(mockStops, 'dest');
-  expect(result.map(s => s.lines).flat()).toEqual(expect.arrayContaining(['Green', 'Red']));
+  expect(result).toEqual(expect.arrayContaining(['Green', 'Red']));
 });
 
 test('findPassingLines returns empty for unknown destination', () => {

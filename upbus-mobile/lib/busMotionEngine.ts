@@ -180,7 +180,8 @@ export function onGpsUpdate(
   gpsBearing:    number,         // degrees 0–360 from GPS device
   gpsSpeedKph:   number,
 ): BusMotionState {
-  const speedMs = gpsSpeedKph / 3.6;
+  // below 5 km/h = GPS noise / bus stationary — don't advance
+  const speedMs = gpsSpeedKph >= 5 ? gpsSpeedKph / 3.6 : 0;
 
   if (route.length < 2) {
     return {

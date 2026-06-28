@@ -129,7 +129,7 @@ export default function MapScreen() {
   }, []);
 
   // Poll buses every 5s
-  const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, { refreshInterval: 5000 });
+  const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, { refreshInterval: 10000 });
 
   // Build route map from parsed polylines (memoised — changes only at startup)
   const routeMap = useMemo<RouteMap>(() => {

@@ -173,13 +173,14 @@ function bearingOfSegment(route: RoutePoint[], idx: number, direction: 1 | -1): 
 
 /** Call when a new GPS packet arrives (every 10 s). */
 export function onGpsUpdate(
-  prev:          BusMotionState | null,
-  route:         RoutePoint[],   // ordered route polyline
-  stops:         RoutePoint[],   // ordered stops in circular route order
-  gpsLat:        number,
-  gpsLng:        number,
-  gpsBearing:    number,         // degrees 0–360 from GPS device
-  gpsSpeedKph:   number,
+  prev:             BusMotionState | null,
+  route:            RoutePoint[],   // ordered route polyline
+  stops:            RoutePoint[],   // ordered stops in circular route order
+  gpsLat:           number,
+  gpsLng:           number,
+  gpsBearing:       number,         // degrees 0–360 from GPS device
+  gpsSpeedKph:      number,
+  gpsTimestampMs:   number,         // Date.now()-equivalent when vendor GPS was captured
 ): BusMotionState {
   // below 5 km/h = GPS noise / bus stationary — don't advance
   const speedMs = gpsSpeedKph >= 5 ? gpsSpeedKph / 3.6 : 0;
@@ -239,9 +240,20 @@ export function onGpsUpdate(
     }
   }
 
-  // ── Multiplier: catch up or slow down ──────────────────────────────────────
-  const animIdx = prev?.routeIdx ?? gpsSnapped.idx;
-  const animT   = prev?.routeT   ?? gpsSnapped.t;
+  // ── Pre-advance: sync both platforms to same "now" position ──────────────────
+  // gpsTimestampMs = when vendor captured this GPS packet.
+  // Advance from the raw GPS snap by (age × speed) so web and mobile always
+  // start dead-reckoning from the same reference point, regardless of when
+  // each platform polled the API.
+  const ageMs      = Math.max(0, Math.min(Date.now() - gpsTimestampMs, 15_000));
+  const preAdvanceM = speedMs * (ageMs / 1000);
+  const gpsNow = preAdvanceM > 0
+    ? advance(route, gpsSnapped.idx, gpsSnapped.t, preAdvanceM, direction)
+    : gpsSnapped;
+
+  // ── Multiplier: catch up or slow down ────────────────────────────────────────
+  const animIdx = prev?.routeIdx ?? gpsNow.idx;
+  const animT   = prev?.routeT   ?? gpsNow.t;
 
   // When stationary, reset multiplier to 1 so the bus doesn't surge when it starts moving.
   // GPS drift while parked would otherwise push multiplier to 2× before any real movement.
@@ -249,7 +261,7 @@ export function onGpsUpdate(
   if (speedMs === 0) {
     multiplier = 1.0;
   } else {
-    const rawAhead = directedAheadM(route, animIdx, animT, gpsSnapped.idx, gpsSnapped.t, direction);
+    const rawAhead = directedAheadM(route, animIdx, animT, gpsNow.idx, gpsNow.t, direction);
     multiplier = prev?.multiplier ?? 1.0;
     const THRESH = 15; // metres — within 15 m is "on target"
     if (rawAhead > THRESH) {
@@ -268,8 +280,8 @@ export function onGpsUpdate(
     directionLock,
     speedMs,
     multiplier,
-    lat: prev?.lat ?? gpsSnapped.lat,
-    lng: prev?.lng ?? gpsSnapped.lng,
+    lat: prev?.lat ?? gpsNow.lat,
+    lng: prev?.lng ?? gpsNow.lng,
     bearing: prev?.bearing ?? gpsBearing,
   };
 }

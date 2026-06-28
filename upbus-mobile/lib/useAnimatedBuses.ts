@@ -44,11 +44,15 @@ export function useAnimatedBuses(
       const stops = stopsRef.current.get(bus.color)  ?? [];
       const prev  = map.get(bus.imei_id) ?? null;
 
+      const gpsTs = bus.date
+        ? new Date(bus.date.replace(' ', 'T') + '+07:00').getTime()
+        : Date.now();
       const motion = onGpsUpdate(
         prev, route, stops,
         bus.latitude, bus.longitude,
         bus.bearing ?? 0,
         bus.speed   ?? 0,
+        gpsTs,
       );
 
       map.set(bus.imei_id, { ...motion, color: bus.color, driver: bus.driver });

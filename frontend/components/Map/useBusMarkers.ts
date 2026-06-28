@@ -106,6 +106,7 @@ export function useBusMarkers(
         prev?.motion ?? null, route, stops,
         bus.latitude, bus.longitude!,
         bus.bearing ?? 0, bus.speed ?? 0,
+        parseBusDateMs(bus.date ?? ''),
       );
 
       const accLabel = bus.acc === 1 ? '🟢 ทำงาน' : '🔴 กำลังชาร์จ';

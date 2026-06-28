@@ -210,11 +210,18 @@ export default function MapScreen() {
     return true;
   });
 
-  // Auto-close sheet when selected bus leaves displayedBuses (API gone or filter changed)
+  // Auto-close sheet only after 2 consecutive missed polls (≥10s), not on transient API dropout
+  const missCountRef = useRef(0);
   useEffect(() => {
-    if (!selectedBusId) return;
+    if (!selectedBusId) { missCountRef.current = 0; return; }
     if (!displayedBuses.find(b => b.imei_id === selectedBusId)) {
-      setSelectedBusId(null);
+      missCountRef.current += 1;
+      if (missCountRef.current >= 2) {
+        missCountRef.current = 0;
+        setSelectedBusId(null);
+      }
+    } else {
+      missCountRef.current = 0;
     }
   }, [displayedBuses, selectedBusId]);
 

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Image, View, Text } from 'react-native';
 import { Marker } from 'react-native-maps';
 
@@ -21,13 +22,22 @@ interface Props {
 export default function BusMarker({ busId, lat, lng, color, bearing = 0, isSelected = false, onPress }: Props) {
   const imageSource = BUS_IMAGES[color] ?? BUS_IMAGES['Purple'];
   const busNum = String(parseInt(busId.replace('TC', ''), 10));
-  const flipX = bearing >= 0 && bearing <= 180 ? -1 : 1;
+  // bearing 0–180 = going left on campus loop → flip image horizontally (matches web logic)
+  const flipX = bearing <= 180 ? -1 : 1;
+
+  // Start tracking view changes to ensure Android renders image before snapshotting.
+  // Flip to false after first frame, then follow isSelected.
+  const [tracksViews, setTracksViews] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setTracksViews(isSelected), 500);
+    return () => clearTimeout(id);
+  }, [isSelected]);
 
   return (
     <Marker
       coordinate={{ latitude: lat, longitude: lng }}
       onPress={onPress}
-      tracksViewChanges={isSelected}
+      tracksViewChanges={tracksViews}
       identifier={busId}
     >
       <View style={{

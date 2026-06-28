@@ -6,14 +6,15 @@ const R_EARTH = 6_371_000;
 export interface RoutePoint { lat: number; lng: number; }
 
 export interface BusMotionState {
-  routeIdx:   number;    // segment index on route (0 … route.length-2)
-  routeT:     number;    // 0–1 within segment
-  direction:  1 | -1;   // +1 = forward along array, -1 = backward
-  speedMs:    number;    // GPS speed in m/s
-  multiplier: number;    // 0.0–2.0 catch-up / slow-down factor
-  lat:        number;    // current animated position
-  lng:        number;
-  bearing:    number;    // 0–360°, used by renderer for flip logic
+  routeIdx:      number;    // segment index on route (0 … route.length-2)
+  routeT:        number;    // 0–1 within segment
+  direction:     1 | -1;   // +1 = forward along array, -1 = backward
+  directionLock: number;   // 0–5: consecutive polls confirming this direction; must drain before flip
+  speedMs:       number;    // GPS speed in m/s
+  multiplier:    number;    // 0.0–2.0 catch-up / slow-down factor
+  lat:           number;    // current animated position
+  lng:           number;
+  bearing:       number;    // 0–360°, used by renderer for flip logic
 }
 
 // ─── Internal geometry ───────────────────────────────────────────────────────
@@ -187,6 +188,7 @@ export function onGpsUpdate(
     return {
       routeIdx: 0, routeT: 0,
       direction: prev?.direction ?? 1,
+      directionLock: prev?.directionLock ?? 0,
       speedMs, multiplier: prev?.multiplier ?? 1,
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
     };
@@ -194,9 +196,21 @@ export function onGpsUpdate(
 
   const gpsSnapped = snapToRoute(route, gpsLat, gpsLng);
 
-  // ── Direction detection from next 2 stops ──────────────────────────────────
-  let direction: 1 | -1 = prev?.direction ?? 1;
-  if (gpsSpeedKph >= 1.8 && stops.length >= 3) {
+  // ── Direction detection with hysteresis ────────────────────────────────────
+  // directionLock counts consecutive polls that confirmed the current direction.
+  // A flip is only allowed once the lock drains to 0 — requires MAX_DIR_LOCK
+  // consecutive polls all agreeing on the opposite direction (≈ 50 s at 10 s poll).
+  const MAX_DIR_LOCK = 5;
+  const prevDir  = prev?.direction     ?? 1;
+  const prevLock = prev?.directionLock ?? 0;
+
+  let direction:     1 | -1 = prevDir;
+  let directionLock: number  = prevLock;
+
+  if (speedMs === 0 || gpsSpeedKph < 1.8 || stops.length < 3) {
+    // Bus stationary or not enough data — keep current direction, maintain lock.
+    directionLock = Math.min(MAX_DIR_LOCK, prevLock + 1);
+  } else {
     const n = stops.length;
     let nearestIdx = 0, nearestD = Infinity;
     for (let i = 0; i < n; i++) {
@@ -208,7 +222,21 @@ export function onGpsUpdate(
     const gps = { lat: gpsLat, lng: gpsLng };
     const sf = angleDiff(gpsBearing, bearingTo(gps, f1)) + angleDiff(gpsBearing, bearingTo(gps, f2));
     const sb = angleDiff(gpsBearing, bearingTo(gps, b1)) + angleDiff(gpsBearing, bearingTo(gps, b2));
-    direction = sf <= sb ? 1 : -1;
+    const detectedDir: 1 | -1 = sf <= sb ? 1 : -1;
+
+    if (detectedDir === prevDir) {
+      // Consistent — build lock (more evidence = harder to flip later).
+      direction     = prevDir;
+      directionLock = Math.min(MAX_DIR_LOCK, prevLock + 1);
+    } else if (prevLock > 0) {
+      // Opposite detected but lock still holds — resist the flip, drain one count.
+      direction     = prevDir;
+      directionLock = prevLock - 1;
+    } else {
+      // Lock fully drained: accept the flip.
+      direction     = detectedDir;
+      directionLock = 1;
+    }
   }
 
   // ── Multiplier: catch up or slow down ──────────────────────────────────────
@@ -237,6 +265,7 @@ export function onGpsUpdate(
     routeIdx:  animIdx,
     routeT:    animT,
     direction,
+    directionLock,
     speedMs,
     multiplier,
     lat: prev?.lat ?? gpsSnapped.lat,

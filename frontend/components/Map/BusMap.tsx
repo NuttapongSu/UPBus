@@ -40,7 +40,8 @@ const USER_ICON_HTML = `
 export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
   const mapDivRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
-  const allRouteCoordsRef = useRef<{ lat: number; lng: number }[]>([]);
+  const routeCoordsByColorRef = useRef<Record<string, { lat: number; lng: number }[]>>({});
+  const stopsByColorRef = useRef<Record<string, { lat: number; lng: number }[]>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const routeLayersRef = useRef<Map<string, any>>(new Map());
   const userMarkerRef = useRef<Marker | null>(null);
@@ -59,6 +60,14 @@ export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
       const map = Leaflet.map(mapDivRef.current!, { center: UP_CENTER, zoom: 14 });
       mapRef.current = map;
 
+      // DEV: coord display — hover to see lat/lng
+      const coordDiv = document.createElement('div');
+      coordDiv.style.cssText = 'position:absolute;bottom:32px;left:8px;z-index:9999;background:rgba(0,0,0,0.7);color:#fff;padding:4px 8px;border-radius:4px;font-size:12px;font-family:monospace;pointer-events:none';
+      mapDivRef.current!.appendChild(coordDiv);
+      map.on('mousemove', (e: { latlng: { lat: number; lng: number } }) => {
+        coordDiv.textContent = `lat: ${e.latlng.lat.toFixed(6)}  lng: ${e.latlng.lng.toFixed(6)}`;
+      });
+
       Leaflet.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         { attribution: 'Tiles © Esri &mdash; Source: Esri, Maxar, Earthstar Geographics' }
@@ -70,28 +79,75 @@ export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
         { file: '/kml/up_bus_transit_blue.kml',   color: '#3498db', key: 'Blue' },
       ];
 
-      kmlFiles.forEach(({ file, color, key }) => {
-        fetch(file)
-          .then(r => r.text())
-          .then(kmlText => {
-            const coords = parseKmlCoords(kmlText);
-            allRouteCoordsRef.current = [...allRouteCoordsRef.current, ...coords];
-            const polyline = Leaflet.polyline(coords.map(c => [c.lat, c.lng]), { color, weight: 8, opacity: 0.8 }).addTo(map);
-            routeLayersRef.current.set(key, polyline);
+      const stopMarkersList: { marker: Marker; isReturn: boolean }[] = [];
 
-            // เพิ่มหมุดป้ายจอดรถจาก Point placemarks
-            parseKmlStops(kmlText).forEach(stop => {
-              const stopIcon = Leaflet.icon({
-                iconUrl: '/images/bus-stop-1.png',
-                iconSize: [48, 48],
-                iconAnchor: [24, 48],
-                popupAnchor: [0, -50],
-              });
-              Leaflet.marker([stop.lat, stop.lng], { icon: stopIcon })
-                .addTo(map)
-                .bindPopup(`<b>🚏 ${stop.name}</b>`);
-            });
+      const makeStopIcon = (sz: number) => Leaflet.icon({
+        iconUrl: '/images/bus-stop-1.png',
+        iconSize: [sz, sz],
+        iconAnchor: [sz / 2, sz / 2],
+        popupAnchor: [0, -sz / 2 - 4],
+      });
+
+      const getStopSize = (zoom: number) => zoom >= 18 ? 48 : zoom >= 16 ? 36 : 28;
+
+      // Load all KMLs in parallel: add routes immediately, deduplicate stops after all resolve
+      const routePromises = kmlFiles.map(({ file, color, key }) =>
+        fetch(file).then(r => r.text()).then(kmlText => {
+          const coords = parseKmlCoords(kmlText);
+          routeCoordsByColorRef.current[key] = coords;
+          stopsByColorRef.current[key] = parseKmlStopsOrdered(kmlText);
+          const polyline = Leaflet.polyline(coords.map(c => [c.lat, c.lng]), { color, weight: 5, opacity: 0.9 }).addTo(map);
+          routeLayersRef.current.set(key, polyline);
+          // Sort stops by arc length along the first LineString (ขาไป direction)
+          const lines = parseKmlLines(kmlText);
+          const refLine = lines[0] ?? [];
+          return parseKmlStops(kmlText)
+            .map(s => ({ ...s, _order: refLine.length > 0 ? stopArcLen(s.lat, s.lng, refLine) : 0 }))
+            .sort((a, b) => a._order - b._order)
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            .map(({ _order, ...s }) => s);
+        })
+      );
+
+      Promise.all(routePromises).then(stopArrays => {
+        const allStops = stopArrays.flat();
+
+        // Deduplicate: skip stops within 25 m of an already-kept stop (cross-route same shelter)
+        const kept: typeof allStops = [];
+        allStops.forEach(stop => {
+          const c = Math.cos(stop.lat * Math.PI / 180);
+          const isDup = kept.some(k => {
+            const dlat = (k.lat - stop.lat) * 111000;
+            const dlng = (k.lng - stop.lng) * c * 111000;
+            return dlat * dlat + dlng * dlng < 625; // 25 m²
           });
+          if (!isDup) kept.push(stop);
+        });
+
+        const currentZoom = map.getZoom();
+        kept.forEach(stop => {
+          const isReturn = stop.name.includes('ขากลับ');
+          const sz = getStopSize(currentZoom);
+          const marker = Leaflet.marker([stop.lat, stop.lng], { icon: makeStopIcon(sz) })
+            .addTo(map)
+            .bindPopup(`<b>🚏 ${stop.name}</b>`);
+          if (isReturn && currentZoom < 17) {
+            const el = marker.getElement();
+            if (el) el.style.display = 'none';
+          }
+          stopMarkersList.push({ marker, isReturn });
+        });
+      });
+
+      map.on('zoomend', () => {
+        const z = map.getZoom();
+        const sz = getStopSize(z);
+        const icon = makeStopIcon(sz);
+        stopMarkersList.forEach(({ marker, isReturn }) => {
+          marker.setIcon(icon);
+          const el = marker.getElement();
+          if (el) el.style.display = (isReturn && z < 18) ? 'none' : '';
+        });
       });
     });
 
@@ -173,13 +229,13 @@ export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
     }
   }, [selectedBus, buses]);
 
-  useBusMarkers(mapRef, buses, allRouteCoordsRef.current);
+  useBusMarkers(mapRef, buses, routeCoordsByColorRef.current, stopsByColorRef.current);
 
-  return <div ref={mapDivRef} style={{ width: '100%', height: '100%' }} />;
+  return <div ref={mapDivRef} style={{ position: 'absolute', inset: 0 }} />;
 }
 
 function parseKmlStops(kml: string): { lat: number; lng: number; name: string }[] {
-  const placemarks = kml.match(/<Placemark>[\s\S]*?<\/Placemark>/g) || [];
+  const placemarks = kml.match(/<Placemark[^>]*>[\s\S]*?<\/Placemark>/g) || [];
   const stops: { lat: number; lng: number; name: string }[] = [];
   placemarks.forEach(pm => {
     if (!/<Point>/.test(pm)) return;
@@ -190,6 +246,51 @@ function parseKmlStops(kml: string): { lat: number; lng: number; name: string }[
     if (!isNaN(lat) && !isNaN(lng)) stops.push({ lat, lng, name: nameMatch[1].trim() });
   });
   return stops;
+}
+
+// Returns stops in KML Placemark order — used by direction-detection engine.
+// IMPORTANT: do NOT sort these; the engine depends on circular route order.
+function parseKmlStopsOrdered(kml: string): { lat: number; lng: number }[] {
+  const placemarks = kml.match(/<Placemark[^>]*>[\s\S]*?<\/Placemark>/g) || [];
+  const stops: { lat: number; lng: number }[] = [];
+  placemarks.forEach(pm => {
+    if (!/<Point>/.test(pm)) return;
+    const nameMatch = pm.match(/<name>([\s\S]*?)<\/name>/);
+    if (nameMatch && nameMatch[1].includes('ชาร์จ')) return;
+    const coordMatch = pm.match(/<coordinates>([\s\S]*?)<\/coordinates>/);
+    if (!coordMatch) return;
+    const [lng, lat] = coordMatch[1].trim().split(',').map(Number);
+    if (!isNaN(lat) && !isNaN(lng)) stops.push({ lat, lng });
+  });
+  return stops;
+}
+
+function parseKmlLines(kml: string): { lat: number; lng: number }[][] {
+  return (kml.match(/<LineString>[\s\S]*?<\/LineString>/g) || []).map(ls => {
+    const m = ls.match(/<coordinates>([\s\S]*?)<\/coordinates>/);
+    if (!m) return [];
+    return m[1].trim().split(/\s+/).map(pair => {
+      const [lng, lat] = pair.split(',').map(Number);
+      return { lat, lng };
+    }).filter(p => !isNaN(p.lat));
+  }).filter(l => l.length > 0);
+}
+
+function stopArcLen(lat: number, lng: number, route: { lat: number; lng: number }[]): number {
+  const cos = Math.cos(lat * Math.PI / 180);
+  let minDist = Infinity, bestLen = 0, cumLen = 0;
+  for (let i = 0; i < route.length - 1; i++) {
+    const a = route[i], b = route[i + 1];
+    const ax = (lng - a.lng) * cos * 111000, ay = (lat - a.lat) * 111000;
+    const bx = (b.lng - a.lng) * cos * 111000, by = (b.lat - a.lat) * 111000;
+    const len2 = bx * bx + by * by;
+    const segLen = Math.sqrt(len2);
+    const t = len2 > 0 ? Math.max(0, Math.min(1, (ax * bx + ay * by) / len2)) : 0;
+    const dist = Math.sqrt((ax - t * bx) ** 2 + (ay - t * by) ** 2);
+    if (dist < minDist) { minDist = dist; bestLen = cumLen + t * segLen; }
+    cumLen += segLen;
+  }
+  return bestLen;
 }
 
 function parseKmlCoords(kml: string): { lat: number; lng: number }[] {

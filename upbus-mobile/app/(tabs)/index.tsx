@@ -1,9 +1,15 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import MapView, { Polyline } from 'react-native-maps';
-import { useRef, useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import MapView, { Polyline, Marker } from 'react-native-maps';
+import { useRef, useState, useEffect, useMemo } from 'react';
+import * as Location from 'expo-location';
 import useSWR from 'swr';
 import { getBuses, getKml, BusData } from '../../lib/api';
+import { useAnimatedBuses, RouteMap } from '../../lib/useAnimatedBuses';
 import BusMarker from '../../components/BusMarker';
+import BusDetailSheet from '../../components/BusDetailSheet';
+
+const BUS_STOP_IMAGE = require('../../assets/images/bus-stop-1.png');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,7 +20,16 @@ interface LatLng {
 
 interface RoutePolyline {
   color: string;
+  lineKey: string;
   coords: LatLng[];
+}
+
+interface StopMarker {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  lineKey: string;
 }
 
 // ─── KML parser ───────────────────────────────────────────────────────────────
@@ -43,6 +58,27 @@ function parseKmlCoordinates(kmlText: string): LatLng[][] {
   return results;
 }
 
+const EXCLUDED_STOP_KEYWORDS = ['ชาร์จ'];
+
+function parseKmlStops(kmlText: string, lineKey: string): StopMarker[] {
+  const stops: StopMarker[] = [];
+  const placemarkRe = /<Placemark[\s\S]*?<\/Placemark>/g;
+  let pm: RegExpExecArray | null;
+  while ((pm = placemarkRe.exec(kmlText)) !== null) {
+    if (!/<Point>/.test(pm[0])) continue;
+    const nameMatch = pm[0].match(/<name>([\s\S]*?)<\/name>/);
+    const coordMatch = pm[0].match(/<coordinates>([\s\S]*?)<\/coordinates>/);
+    if (!coordMatch) continue;
+    const name = nameMatch ? nameMatch[1].trim() : '';
+    if (EXCLUDED_STOP_KEYWORDS.some(kw => name.includes(kw))) continue;
+    const parts = coordMatch[1].trim().split(',').map(Number);
+    const lng = parts[0], lat = parts[1];
+    if (isNaN(lat) || isNaN(lng)) continue;
+    stops.push({ id: `${lineKey}-${lng}-${lat}`, name, lat, lng, lineKey });
+  }
+  return stops;
+}
+
 // ─── Line config ──────────────────────────────────────────────────────────────
 
 const LINE_CONFIG = [
@@ -52,61 +88,139 @@ const LINE_CONFIG = [
   { key: 'Red',   label: 'หอพัก',  color: '#e74c3c', kmlLine: 'red'   },
 ] as const;
 
-const KML_COLOR: Record<string, string> = {
-  green: '#2ecc71',
-  red:   '#e74c3c',
-  blue:  '#3498db',
-};
+const KML_SOURCES: { file: string; lineKey: string; color: string }[] = [
+  { file: 'green',    lineKey: 'Green', color: '#2ecc71' },
+  { file: 'red',      lineKey: 'Red',   color: '#e74c3c' },
+  { file: 'blue',     lineKey: 'Blue',  color: '#3498db' },
+];
 
 const UP_CAMPUS_REGION = {
   latitude: 19.0298,
   longitude: 99.9037,
-  latitudeDelta: 0.03,
-  longitudeDelta: 0.03,
+  latitudeDelta: 0.012,
+  longitudeDelta: 0.012,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
+  const insets = useSafeAreaInsets();
   const [lineFilter, setLineFilter] = useState<string | null>(null);
   const [polylines, setPolylines] = useState<RoutePolyline[]>([]);
+  const [stops, setStops] = useState<StopMarker[]>([]);
+  const [locationGranted, setLocationGranted] = useState(false);
+  const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
 
-  // Poll buses every 10s
-  const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, { refreshInterval: 10000 });
-
-  // Fetch all 3 KML files once at startup
+  // Request location permission and center map on user at startup
   useEffect(() => {
-    const lines = ['green', 'red', 'blue'] as const;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      setLocationGranted(true);
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      mapRef.current?.animateToRegion({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        latitudeDelta: 0.012,
+        longitudeDelta: 0.012,
+      }, 800);
+    })();
+  }, []);
+
+  // Poll buses every 5s
+  const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, { refreshInterval: 5000 });
+
+  // Build route map from parsed polylines (memoised — changes only at startup)
+  const routeMap = useMemo<RouteMap>(() => {
+    const m = new Map<string, { lat: number; lng: number }[]>();
+    for (const color of ['Green', 'Red', 'Blue']) {
+      const segs = polylines.filter(p => p.lineKey === color);
+      if (segs.length > 0) {
+        m.set(color, segs.flatMap(s => s.coords.map(c => ({ lat: c.latitude, lng: c.longitude }))));
+      }
+    }
+    return m;
+  }, [polylines]);
+
+  // Group stops by route color for direction detection
+  const stopsByRoute = useMemo(() => {
+    const m = new Map<string, { lat: number; lng: number }[]>();
+    for (const stop of stops) {
+      if (!stop.lineKey) continue;
+      if (!m.has(stop.lineKey)) m.set(stop.lineKey, []);
+      m.get(stop.lineKey)!.push({ lat: stop.lat, lng: stop.lng });
+    }
+    return m;
+  }, [stops]);
+
+  const animatedBuses = useAnimatedBuses(buses, routeMap, stopsByRoute);
+  const animatedBusesRef = useRef(animatedBuses);
+  useEffect(() => { animatedBusesRef.current = animatedBuses; }, [animatedBuses]);
+
+  // Follow selected bus — read position via ref to avoid re-creating interval every frame
+  useEffect(() => {
+    if (!selectedBusId) return;
+    const id = setInterval(() => {
+      const anim = animatedBusesRef.current.get(selectedBusId);
+      if (!anim) return;
+      mapRef.current?.animateCamera(
+        { center: { latitude: anim.lat, longitude: anim.lng } },
+        { duration: 150 },
+      );
+    }, 200);
+    return () => clearInterval(id);
+  }, [selectedBusId]);
+
+  // Fetch all KML files once at startup — parse both polylines and stops
+  useEffect(() => {
     Promise.all(
-      lines.map(line =>
-        getKml(line)
+      KML_SOURCES.map(src =>
+        getKml(src.file)
           .then(kmlText => {
             const segments = parseKmlCoordinates(kmlText);
-            return segments.map(coords => ({ color: KML_COLOR[line], coords }));
+            const kmlStops = parseKmlStops(kmlText, src.lineKey);
+            console.log(`[KML] ${src.file}: ${segments.length} segments, ${kmlStops.length} stops`);
+            return {
+              polylines: segments.map((coords): RoutePolyline => ({ color: src.color, lineKey: src.lineKey, coords })),
+              stops: kmlStops,
+            };
           })
-          .catch(() => [] as RoutePolyline[])
+          .catch(e => {
+            console.warn(`[KML] ${src.file} FAILED:`, e.message);
+            return { polylines: [] as RoutePolyline[], stops: [] as StopMarker[] };
+          })
       )
     ).then(results => {
-      setPolylines(results.flat());
+      setPolylines(results.flatMap(r => r.polylines));
+      setStops(results.flatMap(r => r.stops));
     });
   }, []);
 
-  // Filter buses: if a line is selected, only show buses on that line
+  // Filter stops: if a line is selected, only show stops on that line
+  const displayedStops = stops.filter(s =>
+    lineFilter ? s.lineKey === lineFilter : true
+  );
+
+  // Filter buses: animated position exists + line filter
   const displayedBuses = buses.filter(b => {
-    if (!b.latitude || !b.longitude) return false;
-    if (lineFilter) return b.color === lineFilter;
+    const anim = animatedBuses.get(b.imei_id);
+    if (!anim) return false;
+    if (lineFilter && b.color !== lineFilter) return false;
     return true;
   });
 
-  // Filter polylines: if a line is selected, only show that line's routes
-  const LINE_COLOR_KEY: Record<string, string> = {
-    Green: '#2ecc71',
-    Blue:  '#3498db',
-    Red:   '#e74c3c',
-  };
+  // Auto-close sheet when selected bus leaves displayedBuses (API gone or filter changed)
+  useEffect(() => {
+    if (!selectedBusId) return;
+    if (!displayedBuses.find(b => b.imei_id === selectedBusId)) {
+      setSelectedBusId(null);
+    }
+  }, [displayedBuses, selectedBusId]);
+
+  // ทุกสาย → แสดงทุกเส้น (สีตามสาย), กรองตามสาย → แสดงเส้นนั้นอย่างเดียว
   const displayedPolylines = lineFilter
-    ? polylines.filter(p => p.color === LINE_COLOR_KEY[lineFilter])
+    ? polylines.filter(p => p.lineKey === lineFilter)
     : polylines;
 
   const handleChipPress = (key: string | null) => {
@@ -120,7 +234,7 @@ export default function MapScreen() {
         style={styles.map}
         mapType="satellite"
         initialRegion={UP_CAMPUS_REGION}
-        showsUserLocation
+        showsUserLocation={locationGranted}
         showsMyLocationButton={false}
       >
         {/* Route polylines from KML */}
@@ -133,20 +247,45 @@ export default function MapScreen() {
           />
         ))}
 
-        {/* Bus markers */}
-        {displayedBuses.map(bus => (
-          <BusMarker
-            key={bus.imei_id}
-            busId={bus.imei_id}
-            lat={bus.latitude as number}
-            lng={bus.longitude as number}
-            color={bus.color}
-          />
+        {/* Bus stop markers */}
+        {displayedStops.map(stop => (
+          <Marker
+            key={stop.id}
+            coordinate={{ latitude: stop.lat, longitude: stop.lng }}
+            title={stop.name}
+            tracksViewChanges={false}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            <Image source={BUS_STOP_IMAGE} style={{ width: 36, height: 36 }} resizeMode="contain" />
+          </Marker>
         ))}
+
+        {/* Bus markers — animated position */}
+        {displayedBuses.map(bus => {
+          const anim = animatedBuses.get(bus.imei_id)!;
+          return (
+            <BusMarker
+              key={bus.imei_id}
+              busId={bus.imei_id}
+              lat={anim.lat}
+              lng={anim.lng}
+              color={bus.color}
+              bearing={anim.bearing}
+              isSelected={bus.imei_id === selectedBusId}
+              onPress={() => setSelectedBusId(bus.imei_id)}
+            />
+          );
+        })}
       </MapView>
 
+      {/* Bus detail bottom sheet */}
+      <BusDetailSheet
+        bus={buses.find(b => b.imei_id === selectedBusId) ?? null}
+        onClose={() => setSelectedBusId(null)}
+      />
+
       {/* Line filter chips */}
-      <View style={styles.chips}>
+      <View style={[styles.chips, { top: insets.top + 8 }]}>
         {LINE_CONFIG.map(l => {
           const isActive = lineFilter === l.key;
           return (
@@ -179,7 +318,6 @@ const styles = StyleSheet.create({
   },
   chips: {
     position: 'absolute',
-    top: 56,
     left: 8,
     flexDirection: 'row',
     gap: 6,

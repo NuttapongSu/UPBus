@@ -181,9 +181,10 @@ export function onGpsUpdate(
   gpsBearing:       number,         // degrees 0–360 from GPS device
   gpsSpeedKph:      number,
   gpsTimestampMs:   number,         // Date.now()-equivalent when vendor GPS was captured
+  acc:              0 | 1 = 0,     // ignition: 1 = engine on, 0 = engine off / charging
 ): BusMotionState {
-  // below 5 km/h = GPS noise / bus stationary — don't advance
-  const speedMs = gpsSpeedKph >= 5 ? gpsSpeedKph / 3.6 : 0;
+  // acc=0 (engine off) → hard stop regardless of GPS speed noise
+  const speedMs = (acc === 1 && gpsSpeedKph >= 5) ? gpsSpeedKph / 3.6 : 0;
 
   if (route.length < 2) {
     return {
@@ -273,16 +274,18 @@ export function onGpsUpdate(
     }
   }
 
+  // acc=0 (engine off) → use raw GPS coords (not snapped) so bus shows at actual parking/charging spot
+  const usePrevPos = acc === 1 && prev != null;
   return {
-    routeIdx:  animIdx,
-    routeT:    animT,
+    routeIdx:  usePrevPos ? animIdx       : gpsSnapped.idx,
+    routeT:    usePrevPos ? animT         : gpsSnapped.t,
     direction,
     directionLock,
     speedMs,
     multiplier,
-    lat: prev?.lat ?? gpsNow.lat,
-    lng: prev?.lng ?? gpsNow.lng,
-    bearing: prev?.bearing ?? gpsBearing,
+    lat:     usePrevPos ? prev!.lat       : gpsLat,
+    lng:     usePrevPos ? prev!.lng       : gpsLng,
+    bearing: usePrevPos ? prev!.bearing   : gpsBearing,
   };
 }
 

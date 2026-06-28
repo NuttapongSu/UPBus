@@ -53,6 +53,7 @@ export function useAnimatedBuses(
         bus.bearing ?? 0,
         bus.speed   ?? 0,
         gpsTs,
+        bus.acc ?? 0,
       );
 
       map.set(bus.imei_id, { ...motion, color: bus.color, driver: bus.driver });

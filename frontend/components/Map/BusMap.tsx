@@ -60,14 +60,6 @@ export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
       const map = Leaflet.map(mapDivRef.current!, { center: UP_CENTER, zoom: 14 });
       mapRef.current = map;
 
-      // DEV: coord display — hover to see lat/lng
-      const coordDiv = document.createElement('div');
-      coordDiv.style.cssText = 'position:absolute;bottom:32px;left:8px;z-index:9999;background:rgba(0,0,0,0.7);color:#fff;padding:4px 8px;border-radius:4px;font-size:12px;font-family:monospace;pointer-events:none';
-      mapDivRef.current!.appendChild(coordDiv);
-      map.on('mousemove', (e: { latlng: { lat: number; lng: number } }) => {
-        coordDiv.textContent = `lat: ${e.latlng.lat.toFixed(6)}  lng: ${e.latlng.lng.toFixed(6)}`;
-      });
-
       Leaflet.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
         { attribution: 'Tiles © Esri &mdash; Source: Esri, Maxar, Earthstar Geographics' }

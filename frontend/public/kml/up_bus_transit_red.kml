@@ -394,10 +394,10 @@
 				<name>จุดจอดรถประตูสอง</name>
 				<styleUrl>#__managed_style_04E280C21C402EA86E2B</styleUrl>
 				<Point>
-					<coordinates>99.8837,19.03796,0</coordinates>
+					<coordinates>99.883652,19.038062,0</coordinates>
 				</Point>
 			</Placemark>
-			<Placemark id="02CC9E5165402E588D1B">
+				<Placemark id="02CC9E5165402E588D1B">
 				<name>สถานีหน้าอาคารสงวนเสริมศรี(ขาไป)</name>
 				<LookAt>
 					<longitude>99.88640177660656</longitude>
@@ -411,24 +411,24 @@
 				</LookAt>
 				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
 				<Point>
-					<coordinates>99.8863160460846,19.03422787265817,497.5799179430397</coordinates>
+					<coordinates>99.886346,19.034292,0</coordinates>
 				</Point>
 			</Placemark>
-			<Placemark id="5D0BE29D34000003">
+				<Placemark id="5D0BE29D34000003">
 				<name>สถานีหน้าเวียงพะเยา(ขาไป)</name>
 				<styleUrl>#__managed_style_04E280C21C402EA86E2B</styleUrl>
 				<Point>
-					<coordinates>99.8908747,19.0331648,0</coordinates>
+					<coordinates>99.890860,19.033257,0</coordinates>
 				</Point>
 			</Placemark>
-			<Placemark id="5D0BE29D34000002">
+				<Placemark id="5D0BE29D34000002">
 				<name>สถานีหน้าอาคาร ๙๙ ปี(ขาไป)</name>
 				<styleUrl>#__managed_style_04E280C21C402EA86E2B</styleUrl>
 				<Point>
-					<coordinates>99.8934952,19.0320031,0</coordinates>
+					<coordinates>99.893448,19.032077,0</coordinates>
 				</Point>
 			</Placemark>
-			<Placemark id="0BF2D54187402E426BA1">
+				<Placemark id="0BF2D54187402E426BA1">
 				<name>สถานีหน้าคณะศิลปศาสตร์</name>
 				<LookAt>
 					<longitude>99.89552798136542</longitude>
@@ -442,10 +442,10 @@
 				</LookAt>
 				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
 				<Point>
-					<coordinates>99.89577486446954,19.02961415576878,488.7863522745387</coordinates>
+					<coordinates>99.895732,19.029681,0</coordinates>
 				</Point>
 			</Placemark>
-			<Placemark id="0F2ABE3119402E432C54">
+				<Placemark id="0F2ABE3119402E432C54">
 				<name>สถานีหน้าคณะวิทยาศาสตร์</name>
 				<LookAt>
 					<longitude>99.89774682367599</longitude>
@@ -459,10 +459,10 @@
 				</LookAt>
 				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
 				<Point>
-					<coordinates>99.89763188572527,19.03064180111028,499.4408044737885</coordinates>
+					<coordinates>99.897597,19.030695,0</coordinates>
 				</Point>
 			</Placemark>
-			<Placemark id="0171024559402E459D1F">
+				<Placemark id="0171024559402E459D1F">
 				<name>สถานีหน้าหอประชุมพญางำเมือง</name>
 				<LookAt>
 					<longitude>99.8976817855573</longitude>
@@ -476,85 +476,10 @@
 				</LookAt>
 				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
 				<Point>
-					<coordinates>99.89771432901691,19.029995860899,499.8032626251335</coordinates>
+					<coordinates>99.897748,19.029944,0</coordinates>
 				</Point>
 			</Placemark>
-			<Placemark id="06E2663135402E54C83E">
-				<name>สถานีโรงเรียนสาธิตมหาวิทยาลัยพะเยา</name>
-				<LookAt>
-					<longitude>99.88368602846764</longitude>
-					<latitude>19.03506648501906</latitude>
-					<altitude>516.1864143468084</altitude>
-					<heading>0</heading>
-					<tilt>0</tilt>
-					<gx:fovy>35</gx:fovy>
-					<range>238.4053664545718</range>
-					<altitudeMode>absolute</altitudeMode>
-				</LookAt>
-				<styleUrl>#__managed_style_2C6FA32BBD402EA86E2C</styleUrl>
-				<Point>
-					<coordinates>99.88415110783785,19.035317140434,514.1973380283002</coordinates>
-				</Point>
-			</Placemark>
-			<Placemark id="5D0BE29D34000004">
-				<name>สถานีหน้าโรงเรียนสาธิตมหาวิทยาลัยพะเยา</name>
-				<styleUrl>#__managed_style_04E280C21C402EA86E2B</styleUrl>
-				<Point>
-					<coordinates>99.8842468,19.0344118,0</coordinates>
-				</Point>
-			</Placemark>
-			<Placemark id="0AD93FDD5F402E595900">
-				<name>สถานีหน้าอาคารสงวนเสริมศรี(ขากลับ)</name>
-				<LookAt>
-					<longitude>99.88640177660656</longitude>
-					<latitude>19.03415421868581</latitude>
-					<altitude>496.5071420762269</altitude>
-					<heading>0</heading>
-					<tilt>0</tilt>
-					<gx:fovy>35</gx:fovy>
-					<range>258.0846316773751</range>
-					<altitudeMode>absolute</altitudeMode>
-				</LookAt>
-				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
-				<Point>
-					<coordinates>99.88622870331207,19.0340626303379,498.1745192995843</coordinates>
-				</Point>
-			</Placemark>
-			<Placemark id="0238F6304C402E5BF001">
-				<name>สถานีหน้าเวียงพะเยา(ขากลับ)</name>
-				<LookAt>
-					<longitude>99.89085219804917</longitude>
-					<latitude>19.03315138602208</latitude>
-					<altitude>482.4272458722069</altitude>
-					<heading>0</heading>
-					<tilt>0</tilt>
-					<gx:fovy>35</gx:fovy>
-					<range>272.1645365588484</range>
-					<altitudeMode>absolute</altitudeMode>
-				</LookAt>
-				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
-				<Point>
-					<coordinates>99.89089175528702,19.03301679547779,482.1235080019114</coordinates>
-				</Point>
-			</Placemark>
-			<Placemark id="0297895430402E5D5F71">
-				<name>สถานีหน้าอาคาร ๙๙ ปี(ขากลับ)</name>
-				<LookAt>
-					<longitude>99.89367817027345</longitude>
-					<latitude>19.03198666176191</latitude>
-					<altitude>484.9833947992344</altitude>
-					<heading>0</heading>
-					<tilt>0</tilt>
-					<gx:fovy>35</gx:fovy>
-					<range>269.6084181910555</range>
-					<altitudeMode>absolute</altitudeMode>
-				</LookAt>
-				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
-				<Point>
-					<coordinates>99.89337849153321,19.03184193253481,487.3404772598108</coordinates>
-				</Point>
-			</Placemark>
-			<Placemark id="06A29A2A74402E463244">
+				<Placemark id="06A29A2A74402E463244">
 				<name>สถานีหน้าตึกอธิการบดี</name>
 				<LookAt>
 					<longitude>99.89611699538119</longitude>
@@ -568,17 +493,92 @@
 				</LookAt>
 				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
 				<Point>
-					<coordinates>99.89607658781621,19.02903294604012,489.9763021808629</coordinates>
+					<coordinates>99.896108,19.028986,0</coordinates>
 				</Point>
 			</Placemark>
-			<Placemark id="5D0BE29D34000005">
+				<Placemark id="5D0BE29D34000005">
 				<name>จุดจอดรถบัสPKY</name>
 				<styleUrl>#__managed_style_16C6CF48AF402EA86E2E</styleUrl>
 				<Point>
-					<coordinates>99.89512014456365,19.02539606318856,0</coordinates>
+					<coordinates>99.895234,19.025409,0</coordinates>
 				</Point>
 			</Placemark>
-		</Folder>
+				<Placemark id="0297895430402E5D5F71">
+				<name>สถานีหน้าอาคาร ๙๙ ปี(ขากลับ)</name>
+				<LookAt>
+					<longitude>99.89367817027345</longitude>
+					<latitude>19.03198666176191</latitude>
+					<altitude>484.9833947992344</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>269.6084181910555</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.893220,19.031849,0</coordinates>
+				</Point>
+			</Placemark>
+				<Placemark id="0238F6304C402E5BF001">
+				<name>สถานีหน้าเวียงพะเยา(ขากลับ)</name>
+				<LookAt>
+					<longitude>99.89085219804917</longitude>
+					<latitude>19.03315138602208</latitude>
+					<altitude>482.4272458722069</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>272.1645365588484</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.890895,19.032971,0</coordinates>
+				</Point>
+			</Placemark>
+				<Placemark id="0AD93FDD5F402E595900">
+				<name>สถานีหน้าอาคารสงวนเสริมศรี(ขากลับ)</name>
+				<LookAt>
+					<longitude>99.88640177660656</longitude>
+					<latitude>19.03415421868581</latitude>
+					<altitude>496.5071420762269</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>258.0846316773751</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.886207,19.034012,0</coordinates>
+				</Point>
+			</Placemark>
+				<Placemark id="5D0BE29D34000004">
+				<name>สถานีหน้าโรงเรียนสาธิตมหาวิทยาลัยพะเยา</name>
+				<styleUrl>#__managed_style_04E280C21C402EA86E2B</styleUrl>
+				<Point>
+					<coordinates>99.884246,19.034365,0</coordinates>
+				</Point>
+			</Placemark>
+				<Placemark id="06E2663135402E54C83E">
+				<name>สถานีโรงเรียนสาธิตมหาวิทยาลัยพะเยา</name>
+				<LookAt>
+					<longitude>99.88368602846764</longitude>
+					<latitude>19.03506648501906</latitude>
+					<altitude>516.1864143468084</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>238.4053664545718</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_2C6FA32BBD402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.884051,19.035348,0</coordinates>
+				</Point>
+			</Placemark>
+			</Folder>
 	</Folder>
 </Document>
 </kml>

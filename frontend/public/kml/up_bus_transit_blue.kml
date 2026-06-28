@@ -239,11 +239,39 @@
 					<coordinates>99.89530321535115,19.02258994476954,0</coordinates>
 				</Point>
 			</Placemark>
-			<Placemark id="5D0FD8D7E0000003">
-				<name>สถานีหน้าคณะเทคโนโลยีสารสนเทศและการสื่อสาร</name>
+			<Placemark id="5D0FD8D7E0000005">
+				<name>สถานีหน้าศูนย์การเรียนรู้เศรษฐกิจพอเพียง</name>
 				<styleUrl>#__managed_style_0325BE94B8403235A593</styleUrl>
 				<Point>
-					<coordinates>99.89982899158804,19.02846854942618,0</coordinates>
+					<coordinates>99.89934755606482,19.02713329155001,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="BLUE_HALL">
+				<name>สถานีหน้าหอประชุมพญางำเมือง</name>
+				<styleUrl>#__managed_style_0325BE94B8403235A593</styleUrl>
+				<Point>
+					<coordinates>99.897711,19.030000,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="BLUE_RECTOR">
+				<name>สถานีหน้าอาคารสำนักงานอธิการบดี</name>
+				<styleUrl>#__managed_style_0325BE94B8403235A593</styleUrl>
+				<Point>
+					<coordinates>99.896067,19.029034,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="BLUE_ARTS">
+				<name>สถานีหน้าคณะศิลปศาสตร์</name>
+				<styleUrl>#__managed_style_0325BE94B8403235A593</styleUrl>
+				<Point>
+					<coordinates>99.895767,19.029649,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="BLUE_SCI">
+				<name>สถานีหน้าคณะวิทยาศาสตร์</name>
+				<styleUrl>#__managed_style_0325BE94B8403235A593</styleUrl>
+				<Point>
+					<coordinates>99.897597,19.030695,0</coordinates>
 				</Point>
 			</Placemark>
 			<Placemark id="5D0FD8D7E0000004">
@@ -253,28 +281,11 @@
 					<coordinates>99.90122487072315,19.03052210543519,0</coordinates>
 				</Point>
 			</Placemark>
-			<Placemark id="5D0FD8D7E0000005">
-				<name>สถานีหน้าศูนย์การเรียนรู้เศรษฐกิจพอเพียง</name>
+			<Placemark id="5D0FD8D7E0000003">
+				<name>สถานีหน้าคณะเทคโนโลยีสารสนเทศและการสื่อสาร</name>
 				<styleUrl>#__managed_style_0325BE94B8403235A593</styleUrl>
 				<Point>
-					<coordinates>99.89934755606482,19.02713329155001,0</coordinates>
-				</Point>
-			</Placemark>
-			<Placemark id="01500303FC4032332261">
-				<name>สถานีหน้าคณะวิศวกรรมศาสตร์(ขาไป)</name>
-				<LookAt>
-					<longitude>99.90128059343807</longitude>
-					<latitude>19.03050241490234</latitude>
-					<altitude>495.0692885564591</altitude>
-					<heading>355.1946821480171</heading>
-					<tilt>0</tilt>
-					<gx:fovy>35</gx:fovy>
-					<range>314.278141885152</range>
-					<altitudeMode>absolute</altitudeMode>
-				</LookAt>
-				<styleUrl>#__managed_style_0234996270403235A594</styleUrl>
-				<Point>
-					<coordinates>99.90120302155064,19.03080133829537,498.7823650358052</coordinates>
+					<coordinates>99.89982899158804,19.02846854942618,0</coordinates>
 				</Point>
 			</Placemark>
 		</Folder>

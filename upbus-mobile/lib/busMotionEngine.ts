@@ -214,16 +214,23 @@ export function onGpsUpdate(
   // ── Multiplier: catch up or slow down ──────────────────────────────────────
   const animIdx = prev?.routeIdx ?? gpsSnapped.idx;
   const animT   = prev?.routeT   ?? gpsSnapped.t;
-  const rawAhead = directedAheadM(route, animIdx, animT, gpsSnapped.idx, gpsSnapped.t, direction);
 
-  let multiplier = prev?.multiplier ?? 1.0;
-  const THRESH = 15; // metres — within 15 m is "on target"
-  if (rawAhead > THRESH) {
-    multiplier = Math.min(2.0, multiplier + 0.15);
-  } else if (rawAhead < -THRESH) {
-    multiplier = Math.max(0.0, multiplier - 0.20);
+  // When stationary, reset multiplier to 1 so the bus doesn't surge when it starts moving.
+  // GPS drift while parked would otherwise push multiplier to 2× before any real movement.
+  let multiplier: number;
+  if (speedMs === 0) {
+    multiplier = 1.0;
   } else {
-    multiplier += (1.0 - multiplier) * 0.3;
+    const rawAhead = directedAheadM(route, animIdx, animT, gpsSnapped.idx, gpsSnapped.t, direction);
+    multiplier = prev?.multiplier ?? 1.0;
+    const THRESH = 15; // metres — within 15 m is "on target"
+    if (rawAhead > THRESH) {
+      multiplier = Math.min(2.0, multiplier + 0.15);
+    } else if (rawAhead < -THRESH) {
+      multiplier = Math.max(0.0, multiplier - 0.20);
+    } else {
+      multiplier += (1.0 - multiplier) * 0.3;
+    }
   }
 
   return {

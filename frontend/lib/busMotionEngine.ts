@@ -55,6 +55,35 @@ function snapToRoute(
   return { idx: bestIdx, t: bestT, lat: bestLat, lng: bestLng };
 }
 
+// Same as snapToRoute, but only searches within `windowM` metres (walked along
+// the path, not as-the-crow-flies) of `nearIdx`. Some routes are out-and-back
+// spurs where the return leg runs a few metres parallel to the outbound leg —
+// a global nearest-point search can snap onto the wrong leg there and make the
+// bus appear to jump/reverse at the fork. Restricting the search to a window
+// around the last known position keeps the snap physically continuous.
+function snapToRouteNear(
+  route: RoutePoint[], lat: number, lng: number, nearIdx: number, windowM: number,
+): { idx: number; t: number; lat: number; lng: number } {
+  const n = route.length;
+  let lo = Math.max(0, Math.min(nearIdx, n - 2)), hi = lo;
+  let distLo = 0, distHi = 0;
+  while (lo > 0 && distLo < windowM) {
+    distLo += haversine(route[lo].lat, route[lo].lng, route[lo - 1].lat, route[lo - 1].lng);
+    lo--;
+  }
+  while (hi < n - 2 && distHi < windowM) {
+    distHi += haversine(route[hi].lat, route[hi].lng, route[hi + 1].lat, route[hi + 1].lng);
+    hi++;
+  }
+  let bestIdx = lo, bestT = 0, bestLat = lat, bestLng = lng, bestD = Infinity;
+  for (let i = lo; i <= hi; i++) {
+    const p = projectOnSeg(route[i], route[i + 1], lat, lng);
+    const d = haversine(lat, lng, p.lat, p.lng);
+    if (d < bestD) { bestD = d; bestIdx = i; bestT = p.t; bestLat = p.lat; bestLng = p.lng; }
+  }
+  return { idx: bestIdx, t: bestT, lat: bestLat, lng: bestLng };
+}
+
 /**
  * For a bus not locked to one line (Purple), find which route polyline is
  * physically closest to (lat, lng). Returns null if routesByColor is empty
@@ -219,7 +248,17 @@ export function onGpsUpdate(
     };
   }
 
-  const gpsSnapped = snapToRoute(route, gpsLat, gpsLng);
+  // Locality-biased snap: prefer the point near where the bus was last seen,
+  // falling back to a global search only when that's a much worse fit (route
+  // change, GPS glitch, or first-ever fix). See snapToRouteNear for why.
+  const SNAP_WINDOW_M = 300;
+  let gpsSnapped = snapToRoute(route, gpsLat, gpsLng);
+  if (prev) {
+    const windowed  = snapToRouteNear(route, gpsLat, gpsLng, prev.routeIdx, SNAP_WINDOW_M);
+    const windowedD = haversine(gpsLat, gpsLng, windowed.lat, windowed.lng);
+    const globalD   = haversine(gpsLat, gpsLng, gpsSnapped.lat, gpsSnapped.lng);
+    if (windowedD <= globalD + 30) gpsSnapped = windowed;
+  }
 
   // ── Direction detection with hysteresis ────────────────────────────────────
   // directionLock counts consecutive polls that confirmed the current direction.

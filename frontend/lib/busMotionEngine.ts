@@ -1,5 +1,7 @@
 // frontend/lib/busMotionEngine.ts
 
+import type { IntersectionPoint } from './intersections';
+
 const DEG2RAD = Math.PI / 180;
 const R_EARTH = 6_371_000;
 
@@ -16,6 +18,7 @@ export interface BusMotionState {
   lat:            number;    // current animated position
   lng:            number;
   bearing:        number;    // 0–360°, used by renderer for flip logic
+  activeColor?:   string;    // Purple buses only: which line's route this bus is currently snapped to
 }
 
 // ─── Internal geometry ───────────────────────────────────────────────────────
@@ -50,6 +53,26 @@ function snapToRoute(
     if (d < bestD) { bestD = d; bestIdx = i; bestT = p.t; bestLat = p.lat; bestLng = p.lng; }
   }
   return { idx: bestIdx, t: bestT, lat: bestLat, lng: bestLng };
+}
+
+/**
+ * For a bus not locked to one line (Purple), find which route polyline is
+ * physically closest to (lat, lng). Returns null if routesByColor is empty
+ * or every route has fewer than 2 points.
+ */
+export function pickNearestRoute(
+  lat: number, lng: number,
+  routesByColor: Map<string, RoutePoint[]>,
+): string | null {
+  let bestColor: string | null = null;
+  let bestDist = Infinity;
+  for (const [color, route] of routesByColor) {
+    if (route.length < 2) continue;
+    const snapped = snapToRoute(route, lat, lng);
+    const dist = haversine(lat, lng, snapped.lat, snapped.lng);
+    if (dist < bestDist) { bestDist = dist; bestColor = color; }
+  }
+  return bestColor;
 }
 
 function bearingTo(a: RoutePoint, b: RoutePoint): number {
@@ -299,11 +322,19 @@ export function advanceFrame(
   state: BusMotionState,
   route: RoutePoint[],
   dtMs:  number,
+  intersections?: IntersectionPoint[],
 ): BusMotionState {
   if (route.length < 2) return state;
 
   // Lerp multiplier toward target each frame — this is what makes motion smooth
   const multiplier = state.multiplier + (state.targetMultiplier - state.multiplier) * 0.04;
+
+  // Purple buses only: freeze in place while inside a line-junction zone until
+  // the next GPS poll (onGpsUpdate) re-evaluates which route to follow.
+  const haltedAtIntersection = !!intersections && intersections.some(
+    p => haversine(state.lat, state.lng, p.lat, p.lng) <= p.radiusM
+  );
+  if (haltedAtIntersection) return { ...state, multiplier };
 
   const effectiveDist = state.speedMs * multiplier * (dtMs / 1000);
   if (effectiveDist <= 0) return { ...state, multiplier };

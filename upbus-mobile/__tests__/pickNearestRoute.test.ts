@@ -85,11 +85,14 @@ test('animIdx/animT use the freshly snapped position, not a placeholder routeIdx
 
   // Second call: confirms. If animIdx incorrectly used the placeholder
   // routeIdx:0 instead of the real snapped position near index 3, the
-  // multiplier math would compute a huge bogus "rawAhead" distance and
-  // targetMultiplier would max out at 2.0 trying to "catch up" from the
-  // wrong end of the route. With the fix, the bus is recognized as already
-  // at the right place, so targetMultiplier should be close to 1.0 (on target).
+  // multiplier math computes a bogus "rawAhead" distance from the wrong
+  // end of the route — on this route/GPS geometry that lands at ~0.36
+  // (slow down), not the naive expectation of "speeds up toward 2.0".
+  // Either direction away from 1.0 is the bug; only a tight band around
+  // 1.0 (genuinely "on target") proves animIdx/animT used the real
+  // snapped position instead of the placeholder. A loose bound like
+  // `toBeLessThan(1.5)` would NOT catch this — 0.36 also satisfies it.
   const secondCall = onGpsUpdate(firstCall, longRoute, [], 19.0036, 99.0, 0, 20, Date.now(), 1);
   expect(secondCall.confirmed).toBe(true);
-  expect(secondCall.targetMultiplier).toBeLessThan(1.5);
+  expect(Math.abs(secondCall.targetMultiplier - 1.0)).toBeLessThan(0.1);
 });

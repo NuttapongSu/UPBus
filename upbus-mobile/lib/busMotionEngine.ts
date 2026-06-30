@@ -336,8 +336,11 @@ export function onGpsUpdate(
     : gpsSnapped;
 
   // ── Multiplier: catch up or slow down ────────────────────────────────────────
-  const animIdx = prev?.routeIdx ?? gpsNow.idx;
-  const animT   = prev?.routeT   ?? gpsNow.t;
+  // Use gpsNow position as base for animation unless prev is confirmed and exists.
+  // An unconfirmed prev means we're transitioning from cold-start hold to routed
+  // motion — use the newly snapped position, not the placeholder.
+  const animIdx = prev && prev.confirmed ? prev.routeIdx : gpsNow.idx;
+  const animT   = prev && prev.confirmed ? prev.routeT   : gpsNow.t;
 
   const POLL_S = 10;
   const THRESH = 15;

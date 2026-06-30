@@ -64,3 +64,26 @@ test('the second onGpsUpdate call snaps onto the route and confirms, instead of 
   expect(secondCall.routeIdx).toBe(0);
   expect(secondCall.routeT).toBeCloseTo(0.6, 1);
 });
+
+test('animIdx/animT use the freshly snapped position, not a placeholder routeIdx, on first confirmation', () => {
+  const longRoute: RoutePoint[] = [
+    { lat: 19.0,   lng: 99.0 },
+    { lat: 19.001, lng: 99.0 },
+    { lat: 19.002, lng: 99.0 },
+    { lat: 19.003, lng: 99.0 },
+    { lat: 19.004, lng: 99.0 },
+  ];
+  // First call: cold start, far down the route (near the end, not index 0).
+  const firstCall = onGpsUpdate(null, longRoute, [], 19.0035, 99.0, 0, 20, Date.now());
+  expect(firstCall.confirmed).toBe(false);
+
+  // Second call: confirms. If animIdx incorrectly used the placeholder
+  // routeIdx:0 instead of the real snapped position near index 3, the
+  // multiplier math would compute a huge bogus "rawAhead" distance and
+  // targetMultiplier would max out at 2.0 trying to "catch up" from the
+  // wrong end of the route. With the fix, the bus is recognized as already
+  // at the right place, so targetMultiplier should be close to 1.0 (on target).
+  const secondCall = onGpsUpdate(firstCall, longRoute, [], 19.0036, 99.0, 0, 20, Date.now());
+  expect(secondCall.confirmed).toBe(true);
+  expect(secondCall.targetMultiplier).toBeLessThan(1.5);
+});

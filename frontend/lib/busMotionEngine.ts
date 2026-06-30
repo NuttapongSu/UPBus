@@ -373,9 +373,9 @@ export function onGpsUpdate(
     speedMs,
     multiplier:       prev?.multiplier       ?? targetMultiplier,
     targetMultiplier,
-    lat: prev && prev.confirmed ? prev.lat : gpsNow.lat,
-    lng: prev && prev.confirmed ? prev.lng : gpsNow.lng,
-    bearing: prev && prev.confirmed ? prev.bearing : gpsBearing,
+    lat: prev?.lat ?? gpsNow.lat,
+    lng: prev?.lng ?? gpsNow.lng,
+    bearing: prev?.bearing ?? gpsBearing,
     confirmed: true,
   };
 }

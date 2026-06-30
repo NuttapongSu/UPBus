@@ -19,6 +19,7 @@ export interface BusMotionState {
   lng:            number;
   bearing:        number;    // 0–360°, used by renderer for flip logic
   activeColor?:   string;    // Purple buses only: which line's route this bus is currently snapped to
+  confirmed:      boolean;   // false until a second poll confirms the first-ever GPS fix — see onGpsUpdate
 }
 
 // ─── Internal geometry ───────────────────────────────────────────────────────
@@ -245,15 +246,34 @@ export function onGpsUpdate(
       directionLock: prev?.directionLock ?? 0,
       speedMs, multiplier: prev?.multiplier ?? 1, targetMultiplier: 1,
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
+      confirmed: false,
+    };
+  }
+
+  // First-ever observation of this bus: hold at the raw GPS fix instead of
+  // committing to a route position. routeIdx/routeT below are placeholders —
+  // they're never read while confirmed is false (advanceFrame won't move the
+  // bus, and the windowed-snap guard below only fires once prev.confirmed).
+  if (prev === null) {
+    return {
+      routeIdx: 0, routeT: 0,
+      direction: 1,
+      directionLock: 0,
+      speedMs, multiplier: 1, targetMultiplier: 1,
+      lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
+      confirmed: false,
     };
   }
 
   // Locality-biased snap: prefer the point near where the bus was last seen,
   // falling back to a global search only when that's a much worse fit (route
-  // change, GPS glitch, or first-ever fix). See snapToRouteNear for why.
+  // change, GPS glitch, or first confirmation after a cold-start hold). See
+  // snapToRouteNear for why. Guarded on prev.confirmed, not just prev's
+  // existence — an unconfirmed placeholder's routeIdx is meaningless and must
+  // never be used as a window anchor.
   const SNAP_WINDOW_M = 300;
   let gpsSnapped = snapToRoute(route, gpsLat, gpsLng);
-  if (prev) {
+  if (prev.confirmed) {
     const windowed  = snapToRouteNear(route, gpsLat, gpsLng, prev.routeIdx, SNAP_WINDOW_M);
     const windowedD = haversine(gpsLat, gpsLng, windowed.lat, windowed.lng);
     const globalD   = haversine(gpsLat, gpsLng, gpsSnapped.lat, gpsSnapped.lng);
@@ -315,8 +335,11 @@ export function onGpsUpdate(
     : gpsSnapped;
 
   // ── Multiplier: catch up or slow down ────────────────────────────────────────
-  const animIdx = prev?.routeIdx ?? gpsNow.idx;
-  const animT   = prev?.routeT   ?? gpsNow.t;
+  // Use gpsNow position as base for animation unless prev is confirmed and exists.
+  // An unconfirmed prev means we're transitioning from cold-start hold to routed
+  // motion — use the newly snapped position, not the placeholder.
+  const animIdx = prev && prev.confirmed ? prev.routeIdx : gpsNow.idx;
+  const animT   = prev && prev.confirmed ? prev.routeT   : gpsNow.t;
 
   // Compute targetMultiplier proportional to how far ahead/behind GPS is.
   // multiplier itself lerps toward target at 0.04/frame in advanceFrame.
@@ -350,9 +373,10 @@ export function onGpsUpdate(
     speedMs,
     multiplier:       prev?.multiplier       ?? targetMultiplier,
     targetMultiplier,
-    lat: prev?.lat ?? gpsNow.lat,
-    lng: prev?.lng ?? gpsNow.lng,
-    bearing: prev?.bearing ?? gpsBearing,
+    lat: prev && prev.confirmed ? prev.lat : gpsNow.lat,
+    lng: prev && prev.confirmed ? prev.lng : gpsNow.lng,
+    bearing: prev && prev.confirmed ? prev.bearing : gpsBearing,
+    confirmed: true,
   };
 }
 
@@ -364,6 +388,10 @@ export function advanceFrame(
   intersections?: IntersectionPoint[],
 ): BusMotionState {
   if (route.length < 2) return state;
+
+  // First-ever fix hasn't been confirmed by a second poll yet — hold in
+  // place rather than dead-reckoning from a placeholder route position.
+  if (!state.confirmed) return state;
 
   // Lerp multiplier toward target each frame — this is what makes motion smooth
   const multiplier = state.multiplier + (state.targetMultiplier - state.multiplier) * 0.04;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Image, View, Text } from 'react-native';
 import { Marker } from 'react-native-maps';
 
@@ -8,6 +8,11 @@ const BUS_IMAGES: Record<string, any> = {
   Blue:   require('../assets/images/bus-blue-base.png'),
   Purple: require('../assets/images/bus-purple-base-2.png'),
 };
+
+export interface BusMarkerHandle {
+  moveTo(lat: number, lng: number): void;
+  setBearing(bearing: number): void;
+}
 
 interface Props {
   busId: string;
@@ -19,31 +24,60 @@ interface Props {
   onPress?: () => void;
 }
 
-export default function BusMarker({ busId, lat, lng, color, bearing = 0, isSelected = false, onPress }: Props) {
+const BusMarker = forwardRef<BusMarkerHandle, Props>(function BusMarker(
+  { busId, lat, lng, color, bearing = 0, isSelected = false, onPress },
+  ref,
+) {
   const imageSource = BUS_IMAGES[color] ?? BUS_IMAGES['Purple'];
   const busNum = String(parseInt(busId.replace('TC', ''), 10));
-  // bearing 0–180 = going left on campus loop → flip image horizontally (matches web logic)
-  const flipX = bearing <= 180 ? -1 : 1;
 
-  // Start tracking view changes to ensure Android renders image before snapshotting.
-  // Flip to false after first frame, then follow isSelected.
+  const markerRef = useRef<any>(null);
+  const [flip, setFlip] = useState<1 | -1>(bearing <= 180 ? -1 : 1);
+  const flipRef = useRef<1 | -1>(flip);
+
   const [tracksViews, setTracksViews] = useState(true);
+  const tracksTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const id = setTimeout(() => setTracksViews(isSelected), 500);
     return () => clearTimeout(id);
   }, [isSelected]);
 
+  useImperativeHandle(ref, () => ({
+    moveTo(newLat: number, newLng: number) {
+      markerRef.current?.animateMarkerToCoordinate(
+        { latitude: newLat, longitude: newLng },
+        0,
+      );
+    },
+    setBearing(newBearing: number) {
+      const newFlip: 1 | -1 = newBearing <= 180 ? -1 : 1;
+      if (newFlip !== flipRef.current) {
+        flipRef.current = newFlip;
+        setFlip(newFlip);
+        // Briefly re-enable tracksViewChanges so the snapshot updates
+        if (tracksTimerRef.current) clearTimeout(tracksTimerRef.current);
+        setTracksViews(true);
+        tracksTimerRef.current = setTimeout(() => {
+          setTracksViews(isSelected);
+          tracksTimerRef.current = null;
+        }, 300);
+      }
+    },
+  }));
+
   return (
     <Marker
+      ref={markerRef}
       coordinate={{ latitude: lat, longitude: lng }}
       onPress={onPress}
       tracksViewChanges={tracksViews}
       identifier={busId}
     >
       <View style={{
-        width: 56,
-        height: 56,
-        borderRadius: 28,
+        width: 67,
+        height: 67,
+        borderRadius: 34,
         borderWidth: isSelected ? 2.5 : 0,
         borderColor: '#fff',
         alignItems: 'center',
@@ -51,12 +85,12 @@ export default function BusMarker({ busId, lat, lng, color, bearing = 0, isSelec
       }}>
         <Image
           source={imageSource}
-          style={{ width: 52, height: 52, transform: [{ scaleX: flipX }] }}
+          style={{ width: 62, height: 62, transform: [{ scaleX: flip }] }}
           resizeMode="contain"
         />
         <Text style={{
           position: 'absolute',
-          top: 8,
+          top: 14,
           left: 0,
           right: 0,
           textAlign: 'center',
@@ -69,4 +103,6 @@ export default function BusMarker({ busId, lat, lng, color, bearing = 0, isSelec
       </View>
     </Marker>
   );
-}
+});
+
+export default BusMarker;

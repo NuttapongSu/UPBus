@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import type { BusData } from './api';
 import { onGpsUpdate, advanceFrame, BusMotionState, RoutePoint } from './busMotionEngine';
+import type { BusMarkerHandle } from '../components/BusMarker';
 
 const FRAME_MS = 16;      // ~60 fps
-const POLL_MS  = 10000;   // matches SWR refreshInterval in index.tsx
 
 export type RouteMap     = Map<string, RoutePoint[]>;
 export type StopsByRoute = Map<string, RoutePoint[]>;
@@ -19,14 +19,19 @@ export interface AnimBus {
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useAnimatedBuses(
-  buses:         BusData[],
-  routes:        RouteMap,
-  stopsByRoute:  StopsByRoute,
-): Map<string, AnimBus> {
-  const motionRef  = useRef<Map<string, BusMotionState & { color: string; driver: string }>>(new Map());
-  const routesRef  = useRef<RouteMap>(routes);
-  const stopsRef   = useRef<StopsByRoute>(stopsByRoute);
-  const [positions, setPositions] = useState<Map<string, AnimBus>>(new Map());
+  buses:        BusData[],
+  routes:       RouteMap,
+  stopsByRoute: StopsByRoute,
+  markerRefs:   React.RefObject<Map<string, BusMarkerHandle>>,
+): {
+  positionRef:  React.RefObject<Map<string, AnimBus>>;
+  activeBusIds: Set<string>;
+} {
+  const motionRef   = useRef<Map<string, BusMotionState & { color: string; driver: string }>>(new Map());
+  const routesRef   = useRef<RouteMap>(routes);
+  const stopsRef    = useRef<StopsByRoute>(stopsByRoute);
+  const positionRef = useRef<Map<string, AnimBus>>(new Map());
+  const [activeBusIds, setActiveBusIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { routesRef.current = routes; },       [routes]);
   useEffect(() => { stopsRef.current  = stopsByRoute; }, [stopsByRoute]);
@@ -34,11 +39,11 @@ export function useAnimatedBuses(
   // ── GPS update: call engine onGpsUpdate ────────────────────────────────────
   useEffect(() => {
     const map = motionRef.current;
-    const now = performance.now();
-    void now; // suppress unused warning
+    const activeIds = new Set<string>();
 
     for (const bus of buses) {
       if (bus.latitude == null || bus.longitude == null) continue;
+      activeIds.add(bus.imei_id);
 
       const route = routesRef.current.get(bus.color) ?? [];
       const stops = stopsRef.current.get(bus.color)  ?? [];
@@ -59,13 +64,17 @@ export function useAnimatedBuses(
       map.set(bus.imei_id, { ...motion, color: bus.color, driver: bus.driver });
     }
 
-    // Remove buses no longer in API response
     for (const id of map.keys()) {
-      if (!buses.find(b => b.imei_id === id)) map.delete(id);
+      if (!activeIds.has(id)) {
+        map.delete(id);
+        positionRef.current.delete(id);
+      }
     }
+
+    setActiveBusIds(new Set(activeIds));
   }, [buses]);
 
-  // ── 60 fps loop: advanceFrame ──────────────────────────────────────────────
+  // ── 60 fps loop: advanceFrame → imperative marker update (no React re-render) ──
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     let lastTs = performance.now();
@@ -75,31 +84,35 @@ export function useAnimatedBuses(
       const dtMs = Math.min(now - lastTs, 200);
       lastTs = now;
 
-      const next = new Map<string, AnimBus>();
-
       for (const [id, state] of motionRef.current) {
         const route   = routesRef.current.get(state.color) ?? [];
         const updated = advanceFrame(state, route, dtMs);
 
-        // Persist updated motion back (mutate in place to avoid Map recreation)
         motionRef.current.set(id, { ...updated, color: state.color, driver: state.driver });
 
-        next.set(id, {
+        // Keep positionRef current for follow-bus feature
+        positionRef.current.set(id, {
           lat:     updated.lat,
           lng:     updated.lng,
           color:   state.color,
           driver:  state.driver,
           bearing: updated.bearing,
         });
+
+        // Imperative update — bypasses React reconciler entirely (mirrors web's setLatLng)
+        const handle = markerRefs.current?.get(id);
+        if (handle) {
+          handle.moveTo(updated.lat, updated.lng);
+          handle.setBearing(updated.bearing);
+        }
       }
 
-      setPositions(new Map(next));
       timer = setTimeout(frame, FRAME_MS);
     };
 
     timer = setTimeout(frame, FRAME_MS);
     return () => clearTimeout(timer);
-  }, []);
+  }, [markerRefs]);
 
-  return positions;
+  return { positionRef, activeBusIds };
 }

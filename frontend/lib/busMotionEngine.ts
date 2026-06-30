@@ -66,12 +66,12 @@ export function pickNearestRoute(
 ): string | null {
   let bestColor: string | null = null;
   let bestDist = Infinity;
-  for (const [color, route] of routesByColor) {
-    if (route.length < 2) continue;
+  routesByColor.forEach((route, color) => {
+    if (route.length < 2) return;
     const snapped = snapToRoute(route, lat, lng);
     const dist = haversine(lat, lng, snapped.lat, snapped.lng);
     if (dist < bestDist) { bestDist = dist; bestColor = color; }
-  }
+  });
   return bestColor;
 }
 

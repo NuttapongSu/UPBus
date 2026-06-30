@@ -59,5 +59,8 @@ test('the second onGpsUpdate call snaps onto the route and confirms, instead of 
 
   const secondCall = onGpsUpdate(firstCall, routeA, [], 19.0006, 99.0003, 45, 20, Date.now());
   expect(secondCall.confirmed).toBe(true);
-  expect(secondCall.lng).toBeCloseTo(99.0, 5); // snapped onto routeA's vertical segment at lng=99.0
+  // routeA = [{lat:19.0,lng:99.0},{lat:19.001,lng:99.0}] — a single segment.
+  // Projecting (19.0006, 99.0003) onto it should land at routeIdx 0, t≈0.6.
+  expect(secondCall.routeIdx).toBe(0);
+  expect(secondCall.routeT).toBeCloseTo(0.6, 1);
 });

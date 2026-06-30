@@ -73,8 +73,14 @@ test('animIdx/animT use the freshly snapped position, not a placeholder routeIdx
     { lat: 19.003, lng: 99.0 },
     { lat: 19.004, lng: 99.0 },
   ];
+  // acc:1 (driving) on both calls — speedMs must be > 0 for this test to
+  // actually exercise directedAheadM/targetMultiplier, the code path
+  // animIdx/animT feeds into. Without acc:1, speedMs is always 0 and the
+  // targetMultiplier branch short-circuits before animIdx/animT are ever
+  // consumed, making the test pass regardless of whether the fix exists.
+
   // First call: cold start, far down the route (near the end, not index 0).
-  const firstCall = onGpsUpdate(null, longRoute, [], 19.0035, 99.0, 0, 20, Date.now());
+  const firstCall = onGpsUpdate(null, longRoute, [], 19.0035, 99.0, 0, 20, Date.now(), 1);
   expect(firstCall.confirmed).toBe(false);
 
   // Second call: confirms. If animIdx incorrectly used the placeholder
@@ -83,7 +89,7 @@ test('animIdx/animT use the freshly snapped position, not a placeholder routeIdx
   // targetMultiplier would max out at 2.0 trying to "catch up" from the
   // wrong end of the route. With the fix, the bus is recognized as already
   // at the right place, so targetMultiplier should be close to 1.0 (on target).
-  const secondCall = onGpsUpdate(firstCall, longRoute, [], 19.0036, 99.0, 0, 20, Date.now());
+  const secondCall = onGpsUpdate(firstCall, longRoute, [], 19.0036, 99.0, 0, 20, Date.now(), 1);
   expect(secondCall.confirmed).toBe(true);
   expect(secondCall.targetMultiplier).toBeLessThan(1.5);
 });

@@ -3,9 +3,10 @@ import type { Map as LeafletMap } from 'leaflet';
 import { BusData } from '@/lib/api';
 import { offsetLeft, LatLng } from '@/lib/interpolation';
 import {
-  onGpsUpdate, advanceFrame,
+  onGpsUpdate, advanceFrame, pickNearestRoute,
   BusMotionState, RoutePoint,
 } from '@/lib/busMotionEngine';
+import { ROUTE_INTERSECTIONS } from '@/lib/intersections';
 
 /* eslint-disable no-var, @typescript-eslint/no-unused-vars */
 declare var L: typeof import('leaflet');
@@ -95,19 +96,43 @@ export function useBusMarkers(
       if (!activeIds.has(id)) { state.marker.remove(); markersRef.current.delete(id); }
     });
 
+    const routesMapForPicking = new Map(Object.entries(routePathByColor)) as Map<string, RoutePoint[]>;
+
     buses.forEach(bus => {
       if (bus.latitude == null) return;
 
-      const prev  = markersRef.current.get(bus.imei_id);
-      const route = (routePathByColor[bus.color] ?? []) as RoutePoint[];
-      const stops = (stopsByColor[bus.color]     ?? []) as RoutePoint[];
+      const prev = markersRef.current.get(bus.imei_id);
 
-      const motion = onGpsUpdate(
-        prev?.motion ?? null, route, stops,
-        bus.latitude, bus.longitude!,
-        bus.bearing ?? 0, bus.speed ?? 0,
-        parseBusDateMs(bus.date ?? ''),
-      );
+      let route: RoutePoint[];
+      let stops: RoutePoint[];
+      let activeColor: string | undefined;
+
+      if (bus.color === 'Purple') {
+        // Not locked to one line — pick whichever route is physically closest
+        // this poll, falling back to last poll's choice if none is closer.
+        activeColor = pickNearestRoute(bus.latitude, bus.longitude!, routesMapForPicking)
+          ?? prev?.motion.activeColor;
+        route = activeColor ? ((routePathByColor[activeColor] ?? []) as RoutePoint[]) : [];
+        stops = activeColor ? ((stopsByColor[activeColor]     ?? []) as RoutePoint[]) : [];
+      } else {
+        route = (routePathByColor[bus.color] ?? []) as RoutePoint[];
+        stops = (stopsByColor[bus.color]     ?? []) as RoutePoint[];
+      }
+
+      // Switching which line a Purple bus follows changes the coordinate frame
+      // (routeIdx/routeT are meaningless on a different polyline) — force a
+      // fresh snap exactly like a brand-new bus would get.
+      const routeChanged = bus.color === 'Purple' && prev?.motion.activeColor !== activeColor;
+
+      const motion = {
+        ...onGpsUpdate(
+          routeChanged ? null : (prev?.motion ?? null), route, stops,
+          bus.latitude, bus.longitude!,
+          bus.bearing ?? 0, bus.speed ?? 0,
+          parseBusDateMs(bus.date ?? ''),
+        ),
+        activeColor,
+      };
 
       const accLabel = bus.acc === 1 ? '🟢 ทำงาน' : '🔴 กำลังชาร์จ';
       const popupHtml =
@@ -176,10 +201,12 @@ export function useBusMarkers(
       lastFrameRef.current = now;
 
       markersRef.current.forEach(state => {
-        const route = (routeRef.current[state.color] ?? []) as RoutePoint[];
-        if (route.length < 2) return; // Purple / no route → skip
+        const routeColor = state.motion.activeColor ?? state.color;
+        const route = (routeRef.current[routeColor] ?? []) as RoutePoint[];
+        if (route.length < 2) return; // No route resolved yet → skip
 
-        const next = advanceFrame(state.motion, route, dt);
+        const intersections = state.color === 'Purple' ? ROUTE_INTERSECTIONS : undefined;
+        const next = advanceFrame(state.motion, route, dt, intersections);
         state.motion = next;
 
         const displayed = offsetLeft(

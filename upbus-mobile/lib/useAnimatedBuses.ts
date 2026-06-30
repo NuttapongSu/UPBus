@@ -38,6 +38,11 @@ export function useAnimatedBuses(
   useEffect(() => { stopsRef.current  = stopsByRoute; }, [stopsByRoute]);
 
   // ── GPS update: call engine onGpsUpdate ────────────────────────────────────
+  // Reads the `routes`/`stopsByRoute` props directly here, not `routesRef`/
+  // `stopsRef` — this effect only re-runs when `buses` changes, but whenever
+  // it does run it must see the current route data, not a value captured at
+  // an earlier render. The refs exist only for the 60fps loop below, which
+  // intentionally avoids re-subscribing on every route change for perf.
   useEffect(() => {
     const map = motionRef.current;
     const activeIds = new Set<string>();
@@ -55,18 +60,21 @@ export function useAnimatedBuses(
       if (bus.color === 'Purple') {
         // Not locked to one line — pick whichever route is physically closest
         // this poll, falling back to last poll's choice if none is closer.
-        activeColor = pickNearestRoute(bus.latitude, bus.longitude, routesRef.current)
+        activeColor = pickNearestRoute(bus.latitude, bus.longitude, routes)
           ?? prev?.activeColor;
-        route = activeColor ? (routesRef.current.get(activeColor) ?? []) : [];
-        stops = activeColor ? (stopsRef.current.get(activeColor)  ?? []) : [];
+        route = activeColor ? (routes.get(activeColor) ?? []) : [];
+        stops = activeColor ? (stopsByRoute.get(activeColor)  ?? []) : [];
       } else {
-        route = routesRef.current.get(bus.color) ?? [];
-        stops = stopsRef.current.get(bus.color)  ?? [];
+        route = routes.get(bus.color) ?? [];
+        stops = stopsByRoute.get(bus.color)  ?? [];
       }
 
       // Switching which line a Purple bus follows changes the coordinate frame
       // (routeIdx/routeT are meaningless on a different polyline) — force a
-      // fresh snap exactly like a brand-new bus would get.
+      // fresh snap exactly like a brand-new bus would get. The route-not-yet-
+      // loaded race that previously needed a separate routeIsReady flag here
+      // is now covered by BusMotionState.confirmed, set false in onGpsUpdate's
+      // route.length<2 branch and checked by every downstream guard.
       const routeChanged = bus.color === 'Purple' && prev?.activeColor !== activeColor;
 
       const gpsTs = bus.date

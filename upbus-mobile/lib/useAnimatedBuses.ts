@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { BusData } from './api';
-import { onGpsUpdate, advanceFrame, BusMotionState, RoutePoint } from './busMotionEngine';
+import { onGpsUpdate, advanceFrame, pickNearestRoute, BusMotionState, RoutePoint } from './busMotionEngine';
+import { ROUTE_INTERSECTIONS } from './intersections';
 import type { BusMarkerHandle } from '../components/BusMarker';
 
 const FRAME_MS = 16;      // ~60 fps
@@ -45,15 +46,35 @@ export function useAnimatedBuses(
       if (bus.latitude == null || bus.longitude == null) continue;
       activeIds.add(bus.imei_id);
 
-      const route = routesRef.current.get(bus.color) ?? [];
-      const stops = stopsRef.current.get(bus.color)  ?? [];
-      const prev  = map.get(bus.imei_id) ?? null;
+      const prev = map.get(bus.imei_id) ?? null;
+
+      let route: RoutePoint[];
+      let stops: RoutePoint[];
+      let activeColor: string | undefined;
+
+      if (bus.color === 'Purple') {
+        // Not locked to one line — pick whichever route is physically closest
+        // this poll, falling back to last poll's choice if none is closer.
+        activeColor = pickNearestRoute(bus.latitude, bus.longitude, routesRef.current)
+          ?? prev?.activeColor;
+        route = activeColor ? (routesRef.current.get(activeColor) ?? []) : [];
+        stops = activeColor ? (stopsRef.current.get(activeColor)  ?? []) : [];
+      } else {
+        route = routesRef.current.get(bus.color) ?? [];
+        stops = stopsRef.current.get(bus.color)  ?? [];
+      }
+
+      // Switching which line a Purple bus follows changes the coordinate frame
+      // (routeIdx/routeT are meaningless on a different polyline) — force a
+      // fresh snap exactly like a brand-new bus would get.
+      const routeChanged = bus.color === 'Purple' && prev?.activeColor !== activeColor;
 
       const gpsTs = bus.date
         ? new Date(bus.date.replace(' ', 'T') + '+07:00').getTime()
         : Date.now();
       const motion = onGpsUpdate(
-        prev, route, stops,
+        routeChanged ? null : prev,
+        route, stops,
         bus.latitude, bus.longitude,
         bus.bearing ?? 0,
         bus.speed   ?? 0,
@@ -61,7 +82,7 @@ export function useAnimatedBuses(
         bus.acc ?? 0,
       );
 
-      map.set(bus.imei_id, { ...motion, color: bus.color, driver: bus.driver });
+      map.set(bus.imei_id, { ...motion, activeColor, color: bus.color, driver: bus.driver });
     }
 
     for (const id of map.keys()) {
@@ -85,8 +106,10 @@ export function useAnimatedBuses(
       lastTs = now;
 
       for (const [id, state] of motionRef.current) {
-        const route   = routesRef.current.get(state.color) ?? [];
-        const updated = advanceFrame(state, route, dtMs);
+        const routeColor = state.activeColor ?? state.color;
+        const route = routesRef.current.get(routeColor) ?? [];
+        const intersections = state.color === 'Purple' ? ROUTE_INTERSECTIONS : undefined;
+        const updated = advanceFrame(state, route, dtMs, intersections);
 
         motionRef.current.set(id, { ...updated, color: state.color, driver: state.driver });
 

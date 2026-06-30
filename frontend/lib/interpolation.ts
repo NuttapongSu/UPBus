@@ -20,6 +20,19 @@ export function elapsed(startTime: number, intervalMs: number): number {
 }
 
 /**
+ * Offset a position N metres to the LEFT of the given bearing.
+ * bearing: 0=North, 90=East, clockwise. Left perpendicular: east=-cos(b), north=sin(b)
+ */
+export function offsetLeft(pos: LatLng, bearingDeg: number, meters: number): LatLng {
+  const b = bearingDeg * Math.PI / 180;
+  const cosLat = Math.cos(pos.lat * Math.PI / 180);
+  return {
+    lat: pos.lat + (Math.sin(b) * meters) / 111320,
+    lng: pos.lng + (-Math.cos(b) * meters) / (111320 * cosLat),
+  };
+}
+
+/**
  * หาจุดบน polyline ที่ใกล้กับ point มากที่สุด (route snap)
  * path: array ของ [lat, lng] จาก KML
  */
@@ -36,13 +49,17 @@ export function snapToPath(point: LatLng, path: LatLng[]): LatLng {
 }
 
 function closestOnSegment(p: LatLng, a: LatLng, b: LatLng): LatLng {
-  const dx = b.lat - a.lat, dy = b.lng - a.lng;
-  const lenSq = dx * dx + dy * dy;
+  const midLat = (a.lat + b.lat) / 2;
+  const cosLat = Math.cos(midLat * Math.PI / 180);
+  const dlat = b.lat - a.lat;
+  const dlng = (b.lng - a.lng) * cosLat;
+  const lenSq = dlat * dlat + dlng * dlng;
   if (lenSq === 0) return a;
-  const t = Math.max(0, Math.min(1, ((p.lat - a.lat) * dx + (p.lng - a.lng) * dy) / lenSq));
-  return { lat: a.lat + t * dx, lng: a.lng + t * dy };
+  const t = Math.max(0, Math.min(1, ((p.lat - a.lat) * dlat + (p.lng - a.lng) * cosLat * dlng) / lenSq));
+  return { lat: a.lat + t * (b.lat - a.lat), lng: a.lng + t * (b.lng - a.lng) };
 }
 
 function dist(a: LatLng, b: LatLng): number {
-  return Math.sqrt((a.lat - b.lat) ** 2 + (a.lng - b.lng) ** 2);
+  const cosLat = Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180);
+  return Math.sqrt((a.lat - b.lat) ** 2 + ((a.lng - b.lng) * cosLat) ** 2);
 }

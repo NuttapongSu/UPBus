@@ -6,15 +6,16 @@ const R_EARTH = 6_371_000;
 export interface RoutePoint { lat: number; lng: number; }
 
 export interface BusMotionState {
-  routeIdx:      number;    // segment index on route (0 … route.length-2)
-  routeT:        number;    // 0–1 within segment
-  direction:     1 | -1;   // +1 = forward along array, -1 = backward
-  directionLock: number;   // 0–5: consecutive polls confirming this direction; must drain before flip
-  speedMs:       number;    // GPS speed in m/s
-  multiplier:    number;    // 0.0–2.0 catch-up / slow-down factor
-  lat:           number;    // current animated position
-  lng:           number;
-  bearing:       number;    // 0–360°, used by renderer for flip logic
+  routeIdx:       number;    // segment index on route (0 … route.length-2)
+  routeT:         number;    // 0–1 within segment
+  direction:      1 | -1;   // +1 = forward along array, -1 = backward
+  directionLock:  number;   // 0–5: consecutive polls confirming this direction; must drain before flip
+  speedMs:        number;    // GPS speed in m/s
+  multiplier:     number;    // current lerped multiplier (applied every frame)
+  targetMultiplier: number;  // target set on GPS poll; multiplier lerps toward this
+  lat:            number;    // current animated position
+  lng:            number;
+  bearing:        number;    // 0–360°, used by renderer for flip logic
 }
 
 // ─── Internal geometry ───────────────────────────────────────────────────────
@@ -190,7 +191,7 @@ export function onGpsUpdate(
       routeIdx: 0, routeT: 0,
       direction: prev?.direction ?? 1,
       directionLock: prev?.directionLock ?? 0,
-      speedMs, multiplier: prev?.multiplier ?? 1,
+      speedMs, multiplier: prev?.multiplier ?? 1, targetMultiplier: 1,
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
     };
   }
@@ -255,21 +256,27 @@ export function onGpsUpdate(
   const animIdx = prev?.routeIdx ?? gpsNow.idx;
   const animT   = prev?.routeT   ?? gpsNow.t;
 
-  // When stationary, reset multiplier to 1 so the bus doesn't surge when it starts moving.
-  // GPS drift while parked would otherwise push multiplier to 2× before any real movement.
-  let multiplier: number;
+  // Compute targetMultiplier proportional to how far ahead/behind GPS is.
+  // multiplier itself lerps toward target at 0.04/frame in advanceFrame.
+  const POLL_S = 10; // expected seconds between GPS polls
+  const THRESH = 15; // metres dead-band — within this = "on target"
+  let targetMultiplier: number;
+
   if (speedMs === 0) {
-    multiplier = 1.0;
+    // Stationary — reset so bus doesn't surge when it starts moving again
+    targetMultiplier = 1.0;
   } else {
     const rawAhead = directedAheadM(route, animIdx, animT, gpsNow.idx, gpsNow.t, direction);
-    multiplier = prev?.multiplier ?? 1.0;
-    const THRESH = 15; // metres — within 15 m is "on target"
     if (rawAhead > THRESH) {
-      multiplier = Math.min(2.0, multiplier + 0.15);
+      // GPS is ahead → speed up proportionally to catch up within one poll interval
+      const catchUp = rawAhead / (speedMs * POLL_S);
+      targetMultiplier = Math.min(2.0, 1.0 + catchUp * 0.8);
     } else if (rawAhead < -THRESH) {
-      multiplier = Math.max(0.0, multiplier - 0.20);
+      // GPS is behind → slow down (never stop unless speed=0)
+      const behindFrac = Math.abs(rawAhead) / (speedMs * POLL_S);
+      targetMultiplier = Math.max(0.25, 1.0 - behindFrac * 0.8);
     } else {
-      multiplier += (1.0 - multiplier) * 0.3;
+      targetMultiplier = 1.0;
     }
   }
 
@@ -279,7 +286,8 @@ export function onGpsUpdate(
     direction,
     directionLock,
     speedMs,
-    multiplier,
+    multiplier:       prev?.multiplier       ?? targetMultiplier,
+    targetMultiplier,
     lat: prev?.lat ?? gpsNow.lat,
     lng: prev?.lng ?? gpsNow.lng,
     bearing: prev?.bearing ?? gpsBearing,
@@ -293,10 +301,14 @@ export function advanceFrame(
   dtMs:  number,
 ): BusMotionState {
   if (route.length < 2) return state;
-  const effectiveDist = state.speedMs * state.multiplier * (dtMs / 1000);
-  if (effectiveDist <= 0) return state;
+
+  // Lerp multiplier toward target each frame — this is what makes motion smooth
+  const multiplier = state.multiplier + (state.targetMultiplier - state.multiplier) * 0.04;
+
+  const effectiveDist = state.speedMs * multiplier * (dtMs / 1000);
+  if (effectiveDist <= 0) return { ...state, multiplier };
 
   const next = advance(route, state.routeIdx, state.routeT, effectiveDist, state.direction);
   const bearing = bearingOfSegment(route, next.idx, state.direction);
-  return { ...state, routeIdx: next.idx, routeT: next.t, lat: next.lat, lng: next.lng, bearing };
+  return { ...state, multiplier, routeIdx: next.idx, routeT: next.t, lat: next.lat, lng: next.lng, bearing };
 }

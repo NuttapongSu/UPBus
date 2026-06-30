@@ -20,10 +20,10 @@ const BUS_IMG: Record<string, string> = {
 };
 
 interface MarkerState {
-  motion:  BusMotionState;
-  color:   string;
+  motion: BusMotionState;
+  color:  string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  marker:  any;
+  marker: any;
 }
 
 function parseBusDateMs(dateStr: string): number {
@@ -53,7 +53,7 @@ export function useBusMarkers(
   const serverOffsetRef  = useRef(0);
   const listenerReadyRef = useRef(false);
 
-  // Keep routeRef current so the animate loop can read fresh route data
+  // Keep routeRef current so the animation loop reads fresh route data
   useEffect(() => { routeRef.current = routePathByColor; }, [routePathByColor]);
 
   // ── Popup clock ────────────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ export function useBusMarkers(
     }
   }, [buses]);
 
-  // ── GPS update: onGpsUpdate per bus ───────────────────────────────────────
+  // ── GPS update (every 10 s poll) ──────────────────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!mapRef.current || !window.L) return;
@@ -98,9 +98,9 @@ export function useBusMarkers(
     buses.forEach(bus => {
       if (bus.latitude == null) return;
 
-      const route  = (routePathByColor[bus.color] ?? []) as RoutePoint[];
-      const stops  = (stopsByColor[bus.color]     ?? []) as RoutePoint[];
-      const prev   = markersRef.current.get(bus.imei_id);
+      const prev  = markersRef.current.get(bus.imei_id);
+      const route = (routePathByColor[bus.color] ?? []) as RoutePoint[];
+      const stops = (stopsByColor[bus.color]     ?? []) as RoutePoint[];
 
       const motion = onGpsUpdate(
         prev?.motion ?? null, route, stops,
@@ -131,18 +131,30 @@ export function useBusMarkers(
         ? `<div style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(230,126,34,0.92);color:#fff;font-size:10px;font-family:sans-serif;font-weight:bold;padding:2px 6px;border-radius:6px;pointer-events:none;max-width:140px;overflow:hidden;text-overflow:ellipsis;">🟠 ${shortDept(bus.department!)}</div>`
         : '';
 
+      const displayed = offsetLeft(
+        { lat: motion.lat, lng: motion.lng } as LatLng,
+        motion.bearing, 3.5,
+      );
+      const goingLeft = motion.bearing >= 0 && motion.bearing <= 180;
+
       if (prev) {
         prev.motion = motion;
         prev.color  = bus.color;
         prev.marker.setPopupContent(popupHtml);
+        // Purple / no route: animation loop won't advance → set position here
+        if (route.length < 2) {
+          prev.marker.setLatLng([displayed.lat, displayed.lng]);
+        }
         const imgEl = prev.marker.getElement()?.querySelector('img') as HTMLImageElement | null;
-        if (imgEl && imgEl.src !== window.location.origin + imgSrc) imgEl.src = imgSrc;
+        if (imgEl) {
+          if (imgEl.src !== window.location.origin + imgSrc) imgEl.src = imgSrc;
+          imgEl.style.transform = goingLeft ? 'scaleX(-1)' : '';
+        }
         const chargeEl = prev.marker.getElement()?.querySelector('.charge-badge') as HTMLElement | null;
         if (chargeEl) chargeEl.style.display = isCharging ? '' : 'none';
       } else {
-        const displayed = offsetLeft({ lat: motion.lat, lng: motion.lng }, motion.bearing, 3.5);
         const icon = Leaflet.divIcon({
-          html: `<div style="width:84px;height:84px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));position:relative;">${deptLabel}<img src="${imgSrc}" style="width:100%;height:100%;object-fit:contain;" /><span style="position:absolute;top:10px;left:50%;transform:translateX(-50%);color:white;font-weight:bold;font-size:15px;font-family:sans-serif;text-shadow:0 1px 3px rgba(0,0,0,0.6);pointer-events:none;">${bus.imei_id.slice(-2)}</span>${chargeBadge}</div>`,
+          html: `<div style="width:84px;height:84px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4));position:relative;">${deptLabel}<img src="${imgSrc}" style="width:100%;height:100%;object-fit:contain;transform:${goingLeft ? 'scaleX(-1)' : ''};" /><span style="position:absolute;top:10px;left:50%;transform:translateX(-50%);color:white;font-weight:bold;font-size:15px;font-family:sans-serif;text-shadow:0 1px 3px rgba(0,0,0,0.6);pointer-events:none;">${bus.imei_id.slice(-2)}</span>${chargeBadge}</div>`,
           iconSize: [84, 84], iconAnchor: [42, 42], className: '',
         });
         const marker = Leaflet.marker([displayed.lat, displayed.lng], { icon })
@@ -153,32 +165,37 @@ export function useBusMarkers(
     });
   }, [buses]);
 
-  // ── 60 fps animation loop ──────────────────────────────────────────────────
+  // ── 60 fps animation loop ─────────────────────────────────────────────────
+  // Starts on mount. mapRef.current may be null for first few frames — just skip those.
   useEffect(() => {
-    function animate(ts: number) {
-      const dtMs = lastFrameRef.current > 0 ? Math.min(ts - lastFrameRef.current, 200) : 16;
-      lastFrameRef.current = ts;
+    function animate(now: number) {
+      animRef.current = requestAnimationFrame(animate);
+      if (!mapRef.current) return;
+
+      const dt = lastFrameRef.current ? Math.min(now - lastFrameRef.current, 200) : 16;
+      lastFrameRef.current = now;
 
       markersRef.current.forEach(state => {
         const route = (routeRef.current[state.color] ?? []) as RoutePoint[];
-        state.motion = advanceFrame(state.motion, route, dtMs);
+        if (route.length < 2) return; // Purple / no route → skip
 
-        // Apply 3.5 m lane offset at render time (not stored in engine state)
+        const next = advanceFrame(state.motion, route, dt);
+        state.motion = next;
+
         const displayed = offsetLeft(
-          { lat: state.motion.lat, lng: state.motion.lng },
-          state.motion.bearing, 3.5,
+          { lat: next.lat, lng: next.lng } as LatLng,
+          next.bearing, 3.5,
         );
         state.marker.setLatLng([displayed.lat, displayed.lng]);
 
-        // Flip image: bearing 0–180 = going left → scaleX(-1)
-        const goingLeft = state.motion.bearing >= 0 && state.motion.bearing <= 180;
+        const goingLeft = next.bearing >= 0 && next.bearing <= 180;
         const imgEl = state.marker.getElement()?.querySelector('img') as HTMLImageElement | null;
         if (imgEl) imgEl.style.transform = goingLeft ? 'scaleX(-1)' : '';
       });
-
-      animRef.current = requestAnimationFrame(animate);
     }
+
     animRef.current = requestAnimationFrame(animate);
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+    return () => { if (animRef.current) { cancelAnimationFrame(animRef.current); animRef.current = null; } };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 }

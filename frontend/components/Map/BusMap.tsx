@@ -87,7 +87,16 @@ export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
         fetch(file).then(r => r.text()).then(kmlText => {
           const coords = parseKmlCoords(kmlText);
           routeCoordsByColorRef.current[key] = coords;
-          stopsByColorRef.current[key] = parseKmlStopsOrdered(kmlText);
+          // Sort by arc length along the full route (both legs concatenated) so
+          // stops[idx±1] neighbors used by direction detection are physically
+          // adjacent — raw KML Placemark order does not reliably match road order
+          // (e.g. ศิลปศาสตร์/พยาบาล are swapped right after PKY in the Green KML,
+          // which caused buses to reverse direction shortly after leaving PKY).
+          stopsByColorRef.current[key] = parseKmlStopsOrdered(kmlText)
+            .map(s => ({ ...s, _order: stopArcLen(s.lat, s.lng, coords) }))
+            .sort((a, b) => a._order - b._order)
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            .map(({ _order, ...s }) => s);
           const polyline = Leaflet.polyline(coords.map(c => [c.lat, c.lng]), { color, weight: 5, opacity: 0.9 }).addTo(map);
           routeLayersRef.current.set(key, polyline);
           // Sort stops by arc length along the first LineString (ขาไป direction)

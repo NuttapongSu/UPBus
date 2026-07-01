@@ -390,6 +390,7 @@ export function advanceFrame(
   state: BusMotionState,
   route: RoutePoint[],
   dtMs:  number,
+  stops: RoutePoint[],
   intersections?: IntersectionPoint[],
 ): BusMotionState {
   const msElapsedSinceGps = state.msElapsedSinceGps + dtMs;
@@ -401,6 +402,16 @@ export function advanceFrame(
 
   // Lerp multiplier toward target each frame — this is what makes motion smooth
   const multiplier = state.multiplier + (state.targetMultiplier - state.multiplier) * 0.04;
+
+  // Stop Window: freeze marker when near a bus stop at low speed (<5 km/h).
+  const STOP_RADIUS_M = 50;
+  const STOP_SPEED_MS = 1.39; // 5 km/h in m/s
+  if (state.speedMs < STOP_SPEED_MS && stops.length > 0) {
+    const nearStop = stops.some(
+      s => haversine(state.lat, state.lng, s.lat, s.lng) < STOP_RADIUS_M
+    );
+    if (nearStop) return { ...state, multiplier, msElapsedSinceGps };
+  }
 
   // Purple buses only: freeze in place while inside a line-junction zone until
   // the next GPS poll (onGpsUpdate) re-evaluates which route to follow.

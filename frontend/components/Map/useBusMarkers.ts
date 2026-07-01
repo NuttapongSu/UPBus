@@ -51,11 +51,13 @@ export function useBusMarkers(
   const animRef          = useRef<number | null>(null);
   const lastFrameRef     = useRef<number>(0);
   const routeRef         = useRef(routePathByColor);
+  const stopsRef         = useRef(stopsByColor);
   const serverOffsetRef  = useRef(0);
   const listenerReadyRef = useRef(false);
 
-  // Keep routeRef current so the animation loop reads fresh route data
+  // Keep routeRef and stopsRef current so the animation loop reads fresh data
   useEffect(() => { routeRef.current = routePathByColor; }, [routePathByColor]);
+  useEffect(() => { stopsRef.current = stopsByColor; }, [stopsByColor]);
 
   // ── Popup clock ────────────────────────────────────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -205,8 +207,9 @@ export function useBusMarkers(
         const route = (routeRef.current[routeColor] ?? []) as RoutePoint[];
         if (route.length < 2) return; // No route resolved yet → skip
 
+        const stops = (stopsRef.current[routeColor] ?? []) as RoutePoint[];
         const intersections = state.color === 'Purple' ? ROUTE_INTERSECTIONS : undefined;
-        const next = advanceFrame(state.motion, route, dt, intersections);
+        const next = advanceFrame(state.motion, route, dt, stops, intersections);
         state.motion = next;
 
         const displayed = offsetLeft(

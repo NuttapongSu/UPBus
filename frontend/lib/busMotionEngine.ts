@@ -4,6 +4,7 @@ import type { IntersectionPoint } from './intersections';
 
 const DEG2RAD = Math.PI / 180;
 const R_EARTH = 6_371_000;
+const DECAY_K = 0.15;
 
 export interface RoutePoint { lat: number; lng: number; }
 
@@ -391,17 +392,15 @@ export function advanceFrame(
   dtMs:  number,
   intersections?: IntersectionPoint[],
 ): BusMotionState {
-  if (route.length < 2) return state;
+  const msElapsedSinceGps = state.msElapsedSinceGps + dtMs;
+  if (route.length < 2) return { ...state, msElapsedSinceGps };
 
   // First-ever fix hasn't been confirmed by a second poll yet — hold in
   // place rather than dead-reckoning from a placeholder route position.
-  if (!state.confirmed) return state;
+  if (!state.confirmed) return { ...state, msElapsedSinceGps };
 
   // Lerp multiplier toward target each frame — this is what makes motion smooth
   const multiplier = state.multiplier + (state.targetMultiplier - state.multiplier) * 0.04;
-
-  // Accumulate elapsed time since last GPS poll (used for DR decay below)
-  const msElapsedSinceGps = state.msElapsedSinceGps + dtMs;
 
   // Purple buses only: freeze in place while inside a line-junction zone until
   // the next GPS poll (onGpsUpdate) re-evaluates which route to follow.
@@ -413,7 +412,6 @@ export function advanceFrame(
   // Conservative DR decay: the longer we go without a fresh GPS poll, the
   // more we trust the bus has slowed or stopped. e^(-0.15 * t) reaches ~22%
   // of nominal speed at 10 s (one poll interval) if no update arrives.
-  const DECAY_K = 0.15;
   const elapsedSec = msElapsedSinceGps / 1000;
   const decayedSpeed = state.speedMs * Math.exp(-DECAY_K * elapsedSec);
 

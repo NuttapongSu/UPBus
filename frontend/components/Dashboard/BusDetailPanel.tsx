@@ -1,6 +1,6 @@
 'use client';
 import useSWR from 'swr';
-import { getBusDetail, BusDetail } from '@/lib/api';
+import { getBusDetail, getBusHourly, BusDetail, HourlyData } from '@/lib/api';
 
 interface Props {
   busId: string;
@@ -26,6 +26,54 @@ function MiniBar({ km, max, color }: { km: number; max: number; color: string })
           className="w-full rounded-sm transition-all duration-500"
           style={{ height: `${pct}%`, background: color, marginTop: `${100 - pct}%` }}
         />
+      </div>
+    </div>
+  );
+}
+
+const HOUR_SLOTS = Array.from({ length: 17 }, (_, i) => i + 6); // 6..22
+
+function HourlyChart({ busId, color }: { busId: string; color: string }) {
+  const { data } = useSWR<HourlyData>(
+    busId ? `/api/buses/${busId}/hourly` : null,
+    () => getBusHourly(busId),
+    { refreshInterval: 60_000 }
+  );
+
+  const kmByHour = new Map<number, number>();
+  data?.hourly.forEach(h => kmByHour.set(h.hour, h.km));
+  const maxKm = Math.max(...HOUR_SLOTS.map(h => kmByHour.get(h) ?? 0), 1);
+
+  return (
+    <div className="bg-[#1a1a2e] rounded-xl p-3 border border-[#2a2a4a] mb-3">
+      <p className="text-[10px] text-gray-500 mb-3">ระยะทางรายชั่วโมง (กม.)</p>
+      <div className="flex gap-0.5 items-end overflow-x-auto pb-1">
+        {HOUR_SLOTS.map(h => {
+          const km = kmByHour.get(h) ?? 0;
+          const pct = maxKm > 0 ? Math.min(100, (km / maxKm) * 100) : 0;
+          const isNow = new Date().getHours() === h;
+          return (
+            <div key={h} className="flex flex-col items-center gap-0.5 min-w-[13px] flex-1">
+              <span className="text-[7px] text-gray-500 leading-none">
+                {km > 0 ? km.toFixed(1) : ''}
+              </span>
+              <div className="w-full bg-[#0d0d1a] rounded-sm" style={{ height: 40 }}>
+                <div
+                  className="w-full rounded-sm"
+                  style={{
+                    height: `${pct}%`,
+                    background: isNow ? color : `${color}88`,
+                    marginTop: `${100 - pct}%`,
+                    transition: 'height 0.3s ease',
+                  }}
+                />
+              </div>
+              <span className={`text-[7px] leading-none ${isNow ? 'text-white font-bold' : 'text-gray-600'}`}>
+                {h}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -145,6 +193,9 @@ export default function BusDetailPanel({ busId, onBack }: Props) {
               </p>
             </div>
           </div>
+
+          {/* Hourly distance chart — เหนือ 7-day */}
+          <HourlyChart busId={data.bus_id} color={line.color} />
 
           {/* 7-day history chart */}
           <div className="bg-[#1a1a2e] rounded-xl p-3 border border-[#2a2a4a]">

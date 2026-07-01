@@ -62,6 +62,12 @@ export interface BusDetail {
   history: { date: string; km: number }[];
 }
 
+export interface HourlyData {
+  hourly: { hour: number; km: number }[];
+}
+export const getBusHourly = (busId: string) =>
+  apiFetch<HourlyData>(`/api/buses/${busId}/hourly`);
+
 export interface SustainabilityData {
   today: {
     co2_saved_kg: number;

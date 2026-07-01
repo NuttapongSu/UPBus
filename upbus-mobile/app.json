@@ -13,8 +13,12 @@
     },
     "ios": {
       "bundleIdentifier": "th.ac.up.bustransit",
+      "buildNumber": "3",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "ใช้ตำแหน่งเพื่อหาป้ายรถใกล้คุณ"
+        "NSLocationWhenInUseUsageDescription": "ใช้ตำแหน่งเพื่อหาป้ายรถใกล้คุณ",
+        "NSCameraUsageDescription": "แอปขอใช้กล้องเพื่อถ่ายภาพประกอบการแจ้งปัญหา เช่น สภาพรถหรือพฤติกรรมคนขับ ในหน้าแจ้งเรื่องร้องเรียน",
+        "NSPhotoLibraryUsageDescription": "แอปขอเข้าถึงคลังภาพเพื่อแนบรูปภาพประกอบการแจ้งปัญหาในหน้าแจ้งเรื่องร้องเรียน",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -42,6 +46,13 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "ใช้ตำแหน่งเพื่อหาป้ายรถใกล้คุณ"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "แอปขอใช้กล้องเพื่อถ่ายภาพประกอบการแจ้งปัญหา เช่น สภาพรถหรือพฤติกรรมคนขับ ในหน้าแจ้งเรื่องร้องเรียน",
+          "photosPermission": "แอปขอเข้าถึงคลังภาพเพื่อแนบรูปภาพประกอบการแจ้งปัญหาในหน้าแจ้งเรื่องร้องเรียน"
         }
       ],
       "expo-secure-store"

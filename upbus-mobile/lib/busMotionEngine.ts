@@ -4,6 +4,9 @@ import type { IntersectionPoint } from './intersections';
 
 const DEG2RAD = Math.PI / 180;
 const R_EARTH = 6_371_000;
+const DECAY_K = 0.15;
+const STOP_RADIUS_M = 50;
+const STOP_SPEED_MS = 1.39; // 5 km/h in m/s
 
 export interface RoutePoint { lat: number; lng: number; }
 
@@ -20,6 +23,10 @@ export interface BusMotionState {
   bearing:         number;    // 0–360°, used by renderer for flip logic
   activeColor?:    string;    // Purple buses only: which line's route this bus is currently snapped to
   confirmed:       boolean;   // false until a second poll confirms the first-ever GPS fix — see onGpsUpdate
+  msElapsedSinceGps: number; // ms since the last GPS poll arrived (used for DR decay)
+  blendFromLat?:  number;   // predicted position just before GPS update arrived
+  blendFromLng?:  number;
+  blendStartMs?:  number;   // wall-clock timestamp (Date.now()) when blend started
 }
 
 // ─── Internal geometry ───────────────────────────────────────────────────────
@@ -248,6 +255,7 @@ export function onGpsUpdate(
       speedMs, multiplier: prev?.multiplier ?? 1, targetMultiplier: 1,
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
       confirmed: false,
+      msElapsedSinceGps: 0,
     };
   }
 
@@ -263,6 +271,7 @@ export function onGpsUpdate(
       speedMs, multiplier: 1, targetMultiplier: 1,
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
       confirmed: false,
+      msElapsedSinceGps: 0,
     };
   }
 
@@ -363,6 +372,15 @@ export function onGpsUpdate(
 
   // acc=0 (engine off) → use raw GPS coords (not snapped) so bus shows at actual parking/charging spot
   const usePrevPos = acc === 1 && prev != null;
+
+  // If engine on and animation has moved >2m from new GPS snap → blend smoothly
+  const prevLat = prev?.lat;
+  const prevLng = prev?.lng;
+  const shouldBlend = usePrevPos
+    && prevLat !== undefined
+    && prevLng !== undefined
+    && haversine(prevLat, prevLng, gpsNow.lat, gpsNow.lng) > 2;
+
   return {
     routeIdx:  usePrevPos ? animIdx     : gpsSnapped.idx,
     routeT:    usePrevPos ? animT       : gpsSnapped.t,
@@ -371,10 +389,14 @@ export function onGpsUpdate(
     speedMs,
     multiplier:       prev?.multiplier ?? targetMultiplier,
     targetMultiplier,
-    lat:     usePrevPos ? prev!.lat     : gpsLat,
-    lng:     usePrevPos ? prev!.lng     : gpsLng,
+    lat:     shouldBlend ? gpsNow.lat : (usePrevPos ? prev!.lat : gpsLat),
+    lng:     shouldBlend ? gpsNow.lng : (usePrevPos ? prev!.lng : gpsLng),
     bearing: usePrevPos ? prev!.bearing : gpsBearing,
     confirmed: true,
+    msElapsedSinceGps: 0,
+    blendFromLat: shouldBlend ? prevLat : undefined,
+    blendFromLng: shouldBlend ? prevLng : undefined,
+    blendStartMs: shouldBlend ? Date.now() : undefined,
   };
 }
 
@@ -383,27 +405,42 @@ export function advanceFrame(
   state: BusMotionState,
   route: RoutePoint[],
   dtMs:  number,
+  stops: RoutePoint[],
   intersections?: IntersectionPoint[],
 ): BusMotionState {
-  if (route.length < 2) return state;
+  const msElapsedSinceGps = state.msElapsedSinceGps + dtMs;
+  if (route.length < 2) return { ...state, msElapsedSinceGps };
 
   // First-ever fix hasn't been confirmed by a second poll yet — hold in
   // place rather than dead-reckoning from a placeholder route position.
-  if (!state.confirmed) return state;
+  if (!state.confirmed) return { ...state, msElapsedSinceGps };
 
   const multiplier = state.multiplier + (state.targetMultiplier - state.multiplier) * 0.04;
+
+  // Stop Window: freeze marker when near a bus stop at low speed (<5 km/h).
+  if (state.speedMs < STOP_SPEED_MS && stops.length > 0) {
+    const nearStop = stops.some(
+      s => haversine(state.lat, state.lng, s.lat, s.lng) < STOP_RADIUS_M
+    );
+    if (nearStop) return { ...state, multiplier, msElapsedSinceGps };
+  }
 
   // Purple buses only: freeze in place while inside a line-junction zone until
   // the next GPS poll (onGpsUpdate) re-evaluates which route to follow.
   const haltedAtIntersection = !!intersections && intersections.some(
     p => haversine(state.lat, state.lng, p.lat, p.lng) <= p.radiusM
   );
-  if (haltedAtIntersection) return { ...state, multiplier };
+  if (haltedAtIntersection) return { ...state, multiplier, msElapsedSinceGps };
 
-  const effectiveDist = state.speedMs * multiplier * (dtMs / 1000);
-  if (effectiveDist <= 0) return { ...state, multiplier };
+  // Conservative DR decay: the longer we go without a fresh GPS poll, the
+  // more we trust the bus has slowed or stopped.
+  const elapsedSec = msElapsedSinceGps / 1000;
+  const decayedSpeed = state.speedMs * Math.exp(-DECAY_K * elapsedSec);
+
+  const effectiveDist = decayedSpeed * multiplier * (dtMs / 1000);
+  if (effectiveDist <= 0) return { ...state, multiplier, msElapsedSinceGps };
 
   const next = advance(route, state.routeIdx, state.routeT, effectiveDist, state.direction);
   const bearing = bearingOfSegment(route, next.idx, state.direction);
-  return { ...state, multiplier, routeIdx: next.idx, routeT: next.t, lat: next.lat, lng: next.lng, bearing };
+  return { ...state, multiplier, msElapsedSinceGps, routeIdx: next.idx, routeT: next.t, lat: next.lat, lng: next.lng, bearing };
 }

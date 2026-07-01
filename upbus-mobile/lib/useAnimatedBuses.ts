@@ -5,6 +5,7 @@ import { ROUTE_INTERSECTIONS } from './intersections';
 import type { BusMarkerHandle } from '../components/BusMarker';
 
 const FRAME_MS = 16;      // ~60 fps
+const BLEND_MS = 500;
 
 export type RouteMap     = Map<string, RoutePoint[]>;
 export type StopsByRoute = Map<string, RoutePoint[]>;
@@ -116,15 +117,28 @@ export function useAnimatedBuses(
       for (const [id, state] of motionRef.current) {
         const routeColor = state.activeColor ?? state.color;
         const route = routesRef.current.get(routeColor) ?? [];
+        const stops = stopsRef.current.get(routeColor) ?? [];
         const intersections = state.color === 'Purple' ? ROUTE_INTERSECTIONS : undefined;
-        const updated = advanceFrame(state, route, dtMs, intersections);
+        const updated = advanceFrame(state, route, dtMs, stops, intersections);
 
-        motionRef.current.set(id, { ...updated, color: state.color, driver: state.driver });
+        // Compute blend-corrected display position
+        let displayLat = updated.lat, displayLng = updated.lng;
+        let motionToStore = updated;
+        if (updated.blendFromLat !== undefined && updated.blendStartMs !== undefined) {
+          const t = Math.min(1, (Date.now() - updated.blendStartMs) / BLEND_MS);
+          displayLat = updated.blendFromLat + (updated.lat - updated.blendFromLat) * t;
+          displayLng = updated.blendFromLng! + (updated.lng - updated.blendFromLng!) * t;
+          if (t >= 1) {
+            motionToStore = { ...updated, blendFromLat: undefined, blendFromLng: undefined, blendStartMs: undefined };
+          }
+        }
+
+        motionRef.current.set(id, { ...motionToStore, color: state.color, driver: state.driver });
 
         // Keep positionRef current for follow-bus feature
         positionRef.current.set(id, {
-          lat:     updated.lat,
-          lng:     updated.lng,
+          lat:     displayLat,
+          lng:     displayLng,
           color:   state.color,
           driver:  state.driver,
           bearing: updated.bearing,
@@ -133,7 +147,7 @@ export function useAnimatedBuses(
         // Imperative update — bypasses React reconciler entirely (mirrors web's setLatLng)
         const handle = markerRefs.current?.get(id);
         if (handle) {
-          handle.moveTo(updated.lat, updated.lng);
+          handle.moveTo(displayLat, displayLng);
           handle.setBearing(updated.bearing);
         }
       }

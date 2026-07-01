@@ -20,6 +20,7 @@ export interface BusMotionState {
   bearing:        number;    // 0–360°, used by renderer for flip logic
   activeColor?:   string;    // Purple buses only: which line's route this bus is currently snapped to
   confirmed:      boolean;   // false until a second poll confirms the first-ever GPS fix — see onGpsUpdate
+  msElapsedSinceGps: number; // ms since the last GPS poll arrived (used for DR decay)
 }
 
 // ─── Internal geometry ───────────────────────────────────────────────────────
@@ -247,6 +248,7 @@ export function onGpsUpdate(
       speedMs, multiplier: prev?.multiplier ?? 1, targetMultiplier: 1,
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
       confirmed: false,
+      msElapsedSinceGps: 0,
     };
   }
 
@@ -262,6 +264,7 @@ export function onGpsUpdate(
       speedMs, multiplier: 1, targetMultiplier: 1,
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
       confirmed: false,
+      msElapsedSinceGps: 0,
     };
   }
 
@@ -377,6 +380,7 @@ export function onGpsUpdate(
     lng: prev?.lng ?? gpsNow.lng,
     bearing: prev?.bearing ?? gpsBearing,
     confirmed: true,
+    msElapsedSinceGps: 0,
   };
 }
 
@@ -396,17 +400,27 @@ export function advanceFrame(
   // Lerp multiplier toward target each frame — this is what makes motion smooth
   const multiplier = state.multiplier + (state.targetMultiplier - state.multiplier) * 0.04;
 
+  // Accumulate elapsed time since last GPS poll (used for DR decay below)
+  const msElapsedSinceGps = state.msElapsedSinceGps + dtMs;
+
   // Purple buses only: freeze in place while inside a line-junction zone until
   // the next GPS poll (onGpsUpdate) re-evaluates which route to follow.
   const haltedAtIntersection = !!intersections && intersections.some(
     p => haversine(state.lat, state.lng, p.lat, p.lng) <= p.radiusM
   );
-  if (haltedAtIntersection) return { ...state, multiplier };
+  if (haltedAtIntersection) return { ...state, multiplier, msElapsedSinceGps };
 
-  const effectiveDist = state.speedMs * multiplier * (dtMs / 1000);
-  if (effectiveDist <= 0) return { ...state, multiplier };
+  // Conservative DR decay: the longer we go without a fresh GPS poll, the
+  // more we trust the bus has slowed or stopped. e^(-0.15 * t) reaches ~22%
+  // of nominal speed at 10 s (one poll interval) if no update arrives.
+  const DECAY_K = 0.15;
+  const elapsedSec = msElapsedSinceGps / 1000;
+  const decayedSpeed = state.speedMs * Math.exp(-DECAY_K * elapsedSec);
+
+  const effectiveDist = decayedSpeed * multiplier * (dtMs / 1000);
+  if (effectiveDist <= 0) return { ...state, multiplier, msElapsedSinceGps };
 
   const next = advance(route, state.routeIdx, state.routeT, effectiveDist, state.direction);
   const bearing = bearingOfSegment(route, next.idx, state.direction);
-  return { ...state, multiplier, routeIdx: next.idx, routeT: next.t, lat: next.lat, lng: next.lng, bearing };
+  return { ...state, multiplier, msElapsedSinceGps, routeIdx: next.idx, routeT: next.t, lat: next.lat, lng: next.lng, bearing };
 }

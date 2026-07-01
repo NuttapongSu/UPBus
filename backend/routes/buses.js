@@ -44,6 +44,36 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/buses/:id/hourly — km per hour today (06:00-22:00)
+router.get('/:id/hourly', async (req, res) => {
+  const busId = req.params.id.toUpperCase();
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         HOUR(recorded_at) AS hour,
+         GREATEST(0, (MAX(odo) - MIN(odo)) / 1000) AS km
+       FROM gps_snapshots
+       WHERE bus_id = ?
+         AND DATE(recorded_at) = CURDATE()
+         AND odo > 0
+       GROUP BY HOUR(recorded_at)
+       ORDER BY hour ASC`,
+      [busId]
+    );
+
+    const MAX_KM_PER_HOUR = 150;
+    const hourly = rows.map(r => ({
+      hour: r.hour,
+      km: Math.min(parseFloat(r.km) || 0, MAX_KM_PER_HOUR),
+    }));
+
+    res.json({ hourly });
+  } catch (err) {
+    console.error('Bus hourly error:', err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // GET /api/buses/:id — detail for one bus (real-time + daily stats)
 router.get('/:id', async (req, res) => {
   const busId = req.params.id.toUpperCase();

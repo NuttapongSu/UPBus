@@ -22,6 +22,9 @@ export interface BusMotionState {
   activeColor?:   string;    // Purple buses only: which line's route this bus is currently snapped to
   confirmed:      boolean;   // false until a second poll confirms the first-ever GPS fix — see onGpsUpdate
   msElapsedSinceGps: number; // ms since the last GPS poll arrived (used for DR decay)
+  blendFromLat?:  number;   // predicted position just before GPS update arrived
+  blendFromLng?:  number;
+  blendStartMs?:  number;   // wall-clock timestamp (Date.now()) when blend started
 }
 
 // ─── Internal geometry ───────────────────────────────────────────────────────
@@ -369,6 +372,14 @@ export function onGpsUpdate(
     }
   }
 
+  // If prev was confirmed and has moved more than 2m from new GPS snap → blend
+  const prevLat = prev?.lat;
+  const prevLng = prev?.lng;
+  const shouldBlend = prev?.confirmed === true
+    && prevLat !== undefined
+    && prevLng !== undefined
+    && haversine(prevLat, prevLng, gpsNow.lat, gpsNow.lng) > 2;
+
   return {
     routeIdx:  animIdx,
     routeT:    animT,
@@ -382,6 +393,9 @@ export function onGpsUpdate(
     bearing: prev?.bearing ?? gpsBearing,
     confirmed: true,
     msElapsedSinceGps: 0,
+    blendFromLat: shouldBlend ? prevLat : undefined,
+    blendFromLng: shouldBlend ? prevLng : undefined,
+    blendStartMs: shouldBlend ? Date.now() : undefined,
   };
 }
 

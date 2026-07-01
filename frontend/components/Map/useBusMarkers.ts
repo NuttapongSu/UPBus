@@ -212,8 +212,27 @@ export function useBusMarkers(
         const next = advanceFrame(state.motion, route, dt, stops, intersections);
         state.motion = next;
 
+        // Blend: lerp from predicted position → actual route position over 500ms after GPS update
+        const BLEND_MS = 500;
+        let displayLat = next.lat;
+        let displayLng = next.lng;
+        if (next.blendFromLat !== undefined && next.blendStartMs !== undefined) {
+          const t = Math.min(1, (Date.now() - next.blendStartMs) / BLEND_MS);
+          displayLat = next.blendFromLat + (next.lat - next.blendFromLat) * t;
+          displayLng = next.blendFromLng! + (next.lng - next.blendFromLng!) * t;
+          // When blend completes → clear blend fields to avoid redundant computation
+          if (t >= 1) {
+            state.motion = {
+              ...next,
+              blendFromLat: undefined,
+              blendFromLng: undefined,
+              blendStartMs: undefined,
+            };
+          }
+        }
+
         const displayed = offsetLeft(
-          { lat: next.lat, lng: next.lng } as LatLng,
+          { lat: displayLat, lng: displayLng } as LatLng,
           next.bearing, 3.5,
         );
         state.marker.setLatLng([displayed.lat, displayed.lng]);

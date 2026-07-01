@@ -5,6 +5,8 @@ import type { IntersectionPoint } from './intersections';
 const DEG2RAD = Math.PI / 180;
 const R_EARTH = 6_371_000;
 const DECAY_K = 0.15;
+const STOP_RADIUS_M = 50;
+const STOP_SPEED_MS = 1.39; // 5 km/h in m/s
 
 export interface RoutePoint { lat: number; lng: number; }
 
@@ -388,8 +390,8 @@ export function onGpsUpdate(
     speedMs,
     multiplier:       prev?.multiplier       ?? targetMultiplier,
     targetMultiplier,
-    lat: prev?.lat ?? gpsNow.lat,
-    lng: prev?.lng ?? gpsNow.lng,
+    lat: shouldBlend ? gpsNow.lat : (prev?.lat ?? gpsNow.lat),
+    lng: shouldBlend ? gpsNow.lng : (prev?.lng ?? gpsNow.lng),
     bearing: prev?.bearing ?? gpsBearing,
     confirmed: true,
     msElapsedSinceGps: 0,
@@ -418,8 +420,6 @@ export function advanceFrame(
   const multiplier = state.multiplier + (state.targetMultiplier - state.multiplier) * 0.04;
 
   // Stop Window: freeze marker when near a bus stop at low speed (<5 km/h).
-  const STOP_RADIUS_M = 50;
-  const STOP_SPEED_MS = 1.39; // 5 km/h in m/s
   if (state.speedMs < STOP_SPEED_MS && stops.length > 0) {
     const nearStop = stops.some(
       s => haversine(state.lat, state.lng, s.lat, s.lng) < STOP_RADIUS_M

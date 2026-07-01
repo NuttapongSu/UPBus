@@ -12,6 +12,8 @@ import { ROUTE_INTERSECTIONS } from '@/lib/intersections';
 declare var L: typeof import('leaflet');
 /* eslint-enable no-var, @typescript-eslint/no-unused-vars */
 
+const BLEND_MS = 500;
+
 const BUS_IMG: Record<string, string> = {
   Red:    '/images/bus-red-base.png',
   Green:  '/images/bus-green-base.png',
@@ -213,7 +215,6 @@ export function useBusMarkers(
         state.motion = next;
 
         // Blend: lerp from predicted position → actual route position over 500ms after GPS update
-        const BLEND_MS = 500;
         let displayLat = next.lat;
         let displayLng = next.lng;
         if (next.blendFromLat !== undefined && next.blendStartMs !== undefined) {

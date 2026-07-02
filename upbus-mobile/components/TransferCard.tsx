@@ -55,6 +55,7 @@ export default function TransferCard({
         <View style={{ flex: 1 }}>
           <Text style={styles.stepLabel}>{LINE_NAMES[firstLine] ?? firstLine}</Text>
           <Text style={styles.stepSub}>📍 ขึ้นที่ {boardingStopName} ({Math.round(boardingDistM)} ม.)</Text>
+          <Text style={styles.stepSub}>🚏 ลงที่ {transferStopName}</Text>
         </View>
         {firstBusId && <Text style={[styles.busId, { color: c1 }]}>{firstBusId}</Text>}
       </View>
@@ -63,7 +64,7 @@ export default function TransferCard({
         <Text style={styles.stepNum}>②</Text>
         <View style={{ flex: 1 }}>
           <Text style={styles.stepLabel}>{LINE_NAMES[secondLine] ?? secondLine}</Text>
-          <Text style={styles.stepSub}>🔄 เปลี่ยนที่ {transferStopName}</Text>
+          <Text style={styles.stepSub}>🔄 ต่อรถที่ {transferStopName}</Text>
         </View>
       </View>
     </View>

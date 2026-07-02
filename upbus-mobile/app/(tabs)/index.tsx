@@ -326,7 +326,7 @@ export default function MapScreen() {
         </View>
         <View style={[styles.headerCell, styles.headerCellRight]}>
           <Text style={styles.headerLabel}>รถวิ่ง</Text>
-          <Text style={styles.headerValue}>{buses.length} คัน</Text>
+          <Text style={styles.headerValue}>{activeBusIds.size} คัน</Text>
         </View>
       </View>
 
@@ -388,26 +388,28 @@ export default function MapScreen() {
       />
 
       {/* Line filter chips — bottom */}
-      <View style={[styles.chips, { bottom: insets.bottom + 12 }]}>
-        {LINE_CONFIG.map(l => {
-          const isActive = lineFilter === l.key;
-          return (
-            <TouchableOpacity
-              key={String(l.key)}
-              style={[
-                styles.chip,
-                { borderColor: l.color },
-                isActive && { backgroundColor: l.color },
-              ]}
-              onPress={() => handleChipPress(l.key)}
-            >
-              <Text style={[styles.chipText, { color: isActive ? '#0f0f1a' : l.color }]}>
-                {l.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {!selectedBusId && (
+        <View style={[styles.chips, { bottom: insets.bottom + 12 }]}>
+          {LINE_CONFIG.map(l => {
+            const isActive = lineFilter === l.key;
+            return (
+              <TouchableOpacity
+                key={String(l.key)}
+                style={[
+                  styles.chip,
+                  { borderColor: l.color },
+                  isActive && { backgroundColor: l.color },
+                ]}
+                onPress={() => handleChipPress(l.key)}
+              >
+                <Text style={[styles.chipText, { color: isActive ? '#0f0f1a' : l.color }]}>
+                  {l.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
     </View>
   );
 }

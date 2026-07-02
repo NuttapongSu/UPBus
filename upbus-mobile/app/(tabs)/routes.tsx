@@ -3,8 +3,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import * as Location from 'expo-location';
-import { getBuses, getStops, BusStop, BusData } from '../../lib/api';
+import { getBuses, BusStop, BusData } from '../../lib/api';
 import { findPassingLines, findBoardingStop, findApproachingBus, calcEtaMinutes, haversine } from '../../lib/stops';
+import { useKmlStops } from '../../lib/useKmlStops';
 import RouteResultCard from '../../components/RouteResultCard';
 import { useTrackingStore } from '../../lib/notifications';
 
@@ -15,7 +16,7 @@ export default function RoutesScreen() {
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const tracking = useTrackingStore();
 
-  const { data: stops = [] } = useSWR<BusStop[]>('/api/stops', getStops);
+  const stops = useKmlStops();
   const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, { refreshInterval: 10000 });
 
   // Get user location once

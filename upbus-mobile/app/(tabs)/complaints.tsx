@@ -12,6 +12,13 @@ const TYPES = [
 ];
 const LINES = ['Green', 'Red', 'Blue'];
 
+const SUBCATS: Record<string, string[]> = {
+  'driver-service': ['พูดจาไม่สุภาพ', 'ขับรถเร็วเกินไป', 'ไม่หยุดรับผู้โดยสาร', 'ไม่รอผู้โดยสาร', 'อื่น ๆ'],
+  'bus-condition':  ['รถสกปรก', 'แอร์ไม่เย็น', 'ที่นั่งชำรุด', 'เสียงดังผิดปกติ', 'อื่น ๆ'],
+  'system-wrong':  ['แสดงตำแหน่งผิด', 'แอปค้าง/หยุดทำงาน', 'ข้อมูลไม่อัปเดต', 'แจ้งเตือนไม่ทำงาน', 'อื่น ๆ'],
+  'other':         ['ความปลอดภัย', 'เวลาให้บริการ', 'จุดจอดรถ', 'อื่น ๆ'],
+};
+
 interface HistoryItem { type: string; line: string; detail: string; date: string; status: 'pending' | 'resolved'; }
 
 export default function ComplaintsScreen() {
@@ -21,6 +28,7 @@ export default function ComplaintsScreen() {
   const [detail, setDetail] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [selectedSubcats, setSelectedSubcats] = useState<string[]>([]);
 
   useEffect(() => {
     AsyncStorage.getItem('complaints').then(v => { if (v) setHistory(JSON.parse(v)); });
@@ -34,11 +42,15 @@ export default function ComplaintsScreen() {
   const LINE_BUS_NUMBER: Record<string, string> = { Green: '1', Red: '2', Blue: '3' };
 
   async function handleSubmit() {
-    if (!detail.trim()) { Alert.alert('กรุณาระบุรายละเอียด'); return; }
+    if (!detail.trim() && selectedSubcats.length === 0) {
+      Alert.alert('กรุณาระบุรายละเอียดหรือเลือกประเภทปัญหา');
+      return;
+    }
     const form = new FormData();
     form.append('topic', type);
     form.append('bus_number', LINE_BUS_NUMBER[line] ?? '1');
-    form.append('detail', detail);
+    const prefix = selectedSubcats.length > 0 ? selectedSubcats.join(', ') + (detail.trim() ? ' — ' : '') : '';
+    form.append('detail', prefix + detail);
     if (photo) form.append('image', { uri: photo, name: 'photo.jpg', type: 'image/jpeg' } as any);
     try {
       await postComplaint(form);
@@ -46,11 +58,17 @@ export default function ComplaintsScreen() {
       const updated = [item, ...history];
       setHistory(updated);
       await AsyncStorage.setItem('complaints', JSON.stringify(updated));
-      setDetail(''); setPhoto(null);
+      setDetail(''); setPhoto(null); setSelectedSubcats([]);
       Alert.alert('ส่งเรียบร้อย', 'ขอบคุณที่แจ้งปัญหา');
     } catch (e) {
       Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถส่งเรื่องร้องเรียนได้ กรุณาลองใหม่');
     }
+  }
+
+  function toggleSubcat(label: string) {
+    setSelectedSubcats(prev =>
+      prev.includes(label) ? prev.filter(x => x !== label) : [...prev, label]
+    );
   }
 
   return (
@@ -71,11 +89,34 @@ export default function ComplaintsScreen() {
           <View style={styles.typeGrid}>
             {TYPES.map(t => (
               <TouchableOpacity key={t.key} style={[styles.typeCard, type === t.key && styles.typeCardSel]}
-                onPress={() => setType(t.key)}>
+                onPress={() => { setType(t.key); setSelectedSubcats([]); }}>
                 <Text style={{ fontSize: 20 }}>{t.icon}</Text>
                 <Text style={[styles.typeLabel, type === t.key && { color: '#a78bfa' }]}>{t.label}</Text>
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Sub-category expansion */}
+          <View style={styles.subcatPanel}>
+            <Text style={styles.subcatHeader}>
+              {TYPES.find(t => t.key === type)?.icon}{' '}
+              {TYPES.find(t => t.key === type)?.label} — เลือกรายละเอียด
+            </Text>
+            {SUBCATS[type].map(label => {
+              const checked = selectedSubcats.includes(label);
+              return (
+                <TouchableOpacity
+                  key={label}
+                  style={styles.subcatRow}
+                  onPress={() => toggleSubcat(label)}
+                >
+                  <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                    {checked && <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✓</Text>}
+                  </View>
+                  <Text style={[styles.subcatLabel, checked && { color: '#fff' }]}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           <Text style={styles.label}>รถสาย</Text>
@@ -91,7 +132,7 @@ export default function ComplaintsScreen() {
           <Text style={styles.label}>รายละเอียด</Text>
           <TextInput
             style={styles.textarea}
-            placeholder="พิมพ์รายละเอียด..."
+            placeholder="พิมพ์รายละเอียดเพิ่มเติม..."
             placeholderTextColor="#555"
             multiline
             numberOfLines={3}
@@ -156,4 +197,41 @@ const styles = StyleSheet.create({
   statusBadge: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
   resolved: { backgroundColor: '#2ecc7122', borderColor: '#2ecc7144' },
   pending: { backgroundColor: '#f59e0b22', borderColor: '#f59e0b44' },
+  subcatPanel: {
+    backgroundColor: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: '#2a2a4a',
+    borderRadius: 10,
+    padding: 10,
+    gap: 6,
+  },
+  subcatHeader: {
+    color: '#a78bfa',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  subcatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  checkbox: {
+    width: 18,
+    height: 18,
+    borderWidth: 1.5,
+    borderColor: '#3a3a5e',
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#7c3aed',
+    borderColor: '#7c3aed',
+  },
+  subcatLabel: {
+    color: '#888',
+    fontSize: 12,
+  },
 });

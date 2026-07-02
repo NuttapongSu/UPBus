@@ -1,4 +1,5 @@
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import useSWR from 'swr';
 import { getSustainability, SustainabilityData } from '../../lib/api';
 
@@ -6,13 +7,14 @@ const LINE_COLOR = '#7c3aed';
 const MAX_BAR_H = 60;
 
 export default function SustainabilityScreen() {
+  const insets = useSafeAreaInsets();
   const { data } = useSWR<SustainabilityData>('/api/sustainability', getSustainability, { refreshInterval: 60000 });
   const t = data?.today;
   const weekly = data?.weekly ?? [];
   const maxCo2 = Math.max(...weekly.map(w => w.co2), 1);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#0f0f1a' }} contentContainerStyle={{ padding: 14, gap: 12 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#0f0f1a' }} contentContainerStyle={{ padding: 14, paddingTop: insets.top + 14, gap: 12 }}>
       <View style={styles.banner}>
         <View>
           <Text style={styles.bannerLabel}>วันนี้ประหยัด CO₂</Text>

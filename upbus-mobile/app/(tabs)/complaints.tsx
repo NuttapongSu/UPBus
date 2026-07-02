@@ -1,4 +1,5 @@
 import { ScrollView, View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { useState, useEffect } from 'react';
@@ -22,6 +23,7 @@ const SUBCATS: Record<string, string[]> = {
 interface HistoryItem { type: string; line: string; detail: string; date: string; status: 'pending' | 'resolved'; }
 
 export default function ComplaintsScreen() {
+  const insets = useSafeAreaInsets();
   const [view, setView] = useState<'form' | 'history'>('form');
   const [type, setType] = useState('driver-service');
   const [line, setLine] = useState('Green');
@@ -72,7 +74,7 @@ export default function ComplaintsScreen() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#0f0f1a' }}>
+    <View style={{ flex: 1, backgroundColor: '#0f0f1a', paddingTop: insets.top }}>
       <View style={styles.toggle}>
         {(['form', 'history'] as const).map(v => (
           <TouchableOpacity key={v} style={[styles.toggleBtn, view === v && styles.toggleActive]} onPress={() => setView(v)}>

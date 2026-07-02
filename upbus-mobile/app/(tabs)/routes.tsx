@@ -1,4 +1,5 @@
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import * as Location from 'expo-location';
@@ -8,6 +9,7 @@ import RouteResultCard from '../../components/RouteResultCard';
 import { useTrackingStore } from '../../lib/notifications';
 
 export default function RoutesScreen() {
+  const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [destination, setDestination] = useState<BusStop | null>(null);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -86,7 +88,7 @@ export default function RoutesScreen() {
   }
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={{ padding: 14, gap: 10 }}>
         <Text style={styles.sectionTitle}>🎯 ฉันต้องการไปที่...</Text>
         <TextInput
@@ -159,7 +161,7 @@ export default function RoutesScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#0f0f1a' },
+  screen: { flex: 1, backgroundColor: '#0f0f1a', paddingTop: 0 },
   sectionTitle: {
     color: '#a78bfa',
     fontSize: 10,

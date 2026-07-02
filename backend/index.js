@@ -6,6 +6,7 @@ const path = require('path');
 
 const gpsPoller    = require('./services/gpsPoller');
 const co2Aggregator = require('./services/co2Aggregator');
+const dailyReset   = require('./services/dailyReset');
 
 const authRouter          = require('./routes/auth');
 const busesRouter         = require('./routes/buses');
@@ -67,6 +68,7 @@ app.listen(PORT, async () => {
   console.log(`🚀 UP Smart Transit API on port ${PORT}`);
   gpsPoller.start();
   co2Aggregator.start();
+  dailyReset.start();
 });
 
 module.exports = app;

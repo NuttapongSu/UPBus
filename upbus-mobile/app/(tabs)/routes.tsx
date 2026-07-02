@@ -6,6 +6,7 @@ import * as Location from 'expo-location';
 import { getBuses, BusStop, BusData } from '../../lib/api';
 import { findPassingLines, findBoardingStop, findApproachingBus, calcEtaMinutes, haversine, findTransferRoutes } from '../../lib/stops';
 import { useKmlStops } from '../../lib/useKmlStops';
+import { useRouteMap } from '../../lib/useRouteMap';
 import RouteResultCard from '../../components/RouteResultCard';
 import TransferCard from '../../components/TransferCard';
 import { useTrackingStore } from '../../lib/notifications';
@@ -18,6 +19,7 @@ export default function RoutesScreen() {
   const tracking = useTrackingStore();
 
   const stops = useKmlStops();
+  const routeMap = useRouteMap();
   const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, { refreshInterval: 10000 });
 
   // Get user location once
@@ -51,8 +53,8 @@ export default function RoutesScreen() {
 
   const transferRoutes = useMemo(() => {
     if (!destination || !userPos) return [];
-    return findTransferRoutes(stops, buses, destination.id, userPos.lat, userPos.lng);
-  }, [destination, userPos, stops, buses]);
+    return findTransferRoutes(stops, buses, destination.id, userPos.lat, userPos.lng, routeMap.size > 0 ? routeMap : undefined);
+  }, [destination, userPos, stops, buses, routeMap]);
 
   async function handleTrack() {
     if (!destination) return;

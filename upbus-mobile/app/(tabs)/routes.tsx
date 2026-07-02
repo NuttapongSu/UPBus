@@ -4,9 +4,10 @@ import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import * as Location from 'expo-location';
 import { getBuses, BusStop, BusData } from '../../lib/api';
-import { findPassingLines, findBoardingStop, findApproachingBus, calcEtaMinutes, haversine } from '../../lib/stops';
+import { findPassingLines, findBoardingStop, findApproachingBus, calcEtaMinutes, haversine, findTransferRoutes } from '../../lib/stops';
 import { useKmlStops } from '../../lib/useKmlStops';
 import RouteResultCard from '../../components/RouteResultCard';
+import TransferCard from '../../components/TransferCard';
 import { useTrackingStore } from '../../lib/notifications';
 
 export default function RoutesScreen() {
@@ -47,6 +48,11 @@ export default function RoutesScreen() {
       return { lineColor: lc, passes, boarding, tooFar, approachingBus, eta, dist };
     });
   }, [destination, userPos, stops, buses, passingLines]);
+
+  const transferRoutes = useMemo(() => {
+    if (!destination || !userPos) return [];
+    return findTransferRoutes(stops, buses, destination.id, userPos.lat, userPos.lng);
+  }, [destination, userPos, stops, buses]);
 
   async function handleTrack() {
     if (!destination) return;
@@ -157,6 +163,23 @@ export default function RoutesScreen() {
                   busId={r.approachingBus?.imei_id ?? null}
                 />
               ))}
+              {transferRoutes.length > 0 && (
+                <>
+                  <Text style={[styles.sectionTitle, { marginTop: 4 }]}>🔄 ต่อรถ</Text>
+                  {transferRoutes.map((t, i) => (
+                    <TransferCard
+                      key={i}
+                      firstLine={t.firstLine}
+                      boardingStopName={t.boardingStop.name}
+                      boardingDistM={t.boardingDistM}
+                      transferStopName={t.transferStop.name}
+                      secondLine={t.secondLine}
+                      etaToBoarding={t.etaToBoarding}
+                      firstBusId={t.firstBusId}
+                    />
+                  ))}
+                </>
+              )}
             </View>
             <TouchableOpacity style={styles.trackBtn} onPress={handleTrack}>
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>

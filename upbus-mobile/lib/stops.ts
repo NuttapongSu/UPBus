@@ -49,6 +49,73 @@ export function findApproachingBus(
   });
 }
 
+export interface TransferRoute {
+  firstLine: string;
+  boardingStop: BusStop;
+  boardingDistM: number;
+  transferStop: BusStop;
+  secondLine: string;
+  etaToBoarding: number | null;
+  firstBusId: string | null;
+}
+
+/**
+ * Find transfer routes for lines the user can't directly board.
+ * Looks for stops served by both an accessible line (within 500m) and
+ * a destination-serving line — these are transfer points.
+ */
+export function findTransferRoutes(
+  stops: BusStop[],
+  buses: BusData[],
+  destinationId: string,
+  userLat: number,
+  userLng: number,
+): TransferRoute[] {
+  const dest = stops.find(s => s.id === destinationId);
+  if (!dest) return [];
+
+  const transfers: TransferRoute[] = [];
+
+  for (const secondLine of dest.lines) {
+    // Skip if user can already directly board this line
+    if (findBoardingStop(stops, secondLine, userLat, userLng)) continue;
+
+    for (const firstLine of ['Green', 'Red', 'Blue']) {
+      if (firstLine === secondLine) continue;
+      const boardingStop = findBoardingStop(stops, firstLine, userLat, userLng);
+      if (!boardingStop) continue;
+
+      // Transfer stops must be served by BOTH firstLine and secondLine
+      const transferStops = stops.filter(
+        s => s.lines.includes(firstLine) && s.lines.includes(secondLine)
+      );
+      if (!transferStops.length) continue;
+
+      // Pick transfer stop closest to destination (minimises second leg)
+      const transferStop = transferStops.reduce((best, s) =>
+        haversine(s.lat, s.lng, dest.lat, dest.lng) <
+        haversine(best.lat, best.lng, dest.lat, dest.lng) ? s : best
+      );
+
+      const approachingBus = findApproachingBus(buses, firstLine, boardingStop);
+      const eta = approachingBus ? calcEtaMinutes(approachingBus, boardingStop) : null;
+      const boardingDistM = haversine(userLat, userLng, boardingStop.lat, boardingStop.lng);
+
+      transfers.push({
+        firstLine,
+        boardingStop,
+        boardingDistM,
+        transferStop,
+        secondLine,
+        etaToBoarding: eta,
+        firstBusId: approachingBus?.imei_id ?? null,
+      });
+    }
+  }
+
+  return transfers;
+}
+
 /** Rough ETA in minutes: distance / max(speed, 20 km/h) */
 export function calcEtaMinutes(bus: BusData, boardingStop: BusStop): number | null {
   if (bus.latitude === null || bus.longitude === null) return null;

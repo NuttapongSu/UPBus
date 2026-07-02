@@ -92,8 +92,13 @@ export default function RoutesScreen() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      {destination && (
+        <TouchableOpacity style={styles.backBtn} onPress={() => setDestination(null)}>
+          <Text style={styles.backBtnText}>← กลับ</Text>
+        </TouchableOpacity>
+      )}
       <ScrollView contentContainerStyle={{ padding: 14, gap: 10 }}>
-        <Text style={styles.sectionTitle}>🎯 ฉันต้องการไปที่...</Text>
+        {!destination && <Text style={styles.sectionTitle}>🎯 ฉันต้องการไปที่...</Text>}
         <TextInput
           style={styles.searchBox}
           placeholder="ค้นหาป้ายปลายทาง..."
@@ -167,6 +172,19 @@ export default function RoutesScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#0f0f1a', paddingTop: 0 },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e1e3a',
+  },
+  backBtnText: {
+    color: '#a78bfa',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   sectionTitle: {
     color: '#a78bfa',
     fontSize: 10,

@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import * as Location from 'expo-location';
 import { getBuses, getStops, BusStop, BusData } from '../../lib/api';
-import { findPassingLines, findBoardingStop, calcEtaMinutes, haversine } from '../../lib/stops';
+import { findPassingLines, findBoardingStop, findApproachingBus, calcEtaMinutes, haversine } from '../../lib/stops';
 import RouteResultCard from '../../components/RouteResultCard';
 import { useTrackingStore } from '../../lib/notifications';
 
@@ -37,11 +37,13 @@ export default function RoutesScreen() {
     if (!destination || !userPos) return [];
     return ['Green', 'Red', 'Blue'].map(lc => {
       const passes = passingLines.includes(lc);
+      // findBoardingStop returns null if no stop within 500m
       const boarding = passes ? findBoardingStop(stops, lc, userPos.lat, userPos.lng) : null;
-      const matchingBus = buses.find(b => b.color === lc && b.latitude && b.longitude);
-      const eta = boarding && matchingBus ? calcEtaMinutes(matchingBus, boarding) : null;
+      const tooFar = passes && boarding === null;
+      const approachingBus = boarding ? findApproachingBus(buses, lc, boarding) : null;
+      const eta = boarding && approachingBus ? calcEtaMinutes(approachingBus, boarding) : null;
       const dist = boarding ? haversine(userPos.lat, userPos.lng, boarding.lat, boarding.lng) : 0;
-      return { lineColor: lc, passes, boarding, eta, dist };
+      return { lineColor: lc, passes, boarding, tooFar, approachingBus, eta, dist };
     });
   }, [destination, userPos, stops, buses, passingLines]);
 
@@ -145,6 +147,8 @@ export default function RoutesScreen() {
                   distanceM={r.dist}
                   etaMinutes={r.eta}
                   passes={r.passes}
+                  tooFar={r.tooFar}
+                  busId={r.approachingBus?.imei_id ?? null}
                 />
               ))}
             </View>

@@ -18,6 +18,8 @@ interface Props {
   distanceM: number;
   etaMinutes: number | null;
   passes: boolean;
+  tooFar?: boolean;
+  busId?: string | null;
 }
 
 export default function RouteResultCard({
@@ -26,25 +28,63 @@ export default function RouteResultCard({
   distanceM,
   etaMinutes,
   passes,
+  tooFar,
+  busId,
 }: Props) {
   const color = LINE_COLORS[lineColor] ?? '#888';
+
+  if (!passes) {
+    return (
+      <View style={[styles.card, { borderColor: '#2a2a4a', opacity: 0.4 }]}>
+        <View style={styles.header}>
+          <View style={[styles.badge, { backgroundColor: color }]}>
+            <Text style={styles.badgeText}>{lineColor}</Text>
+          </View>
+          <Text style={styles.lineName}>{LINE_NAMES[lineColor] ?? lineColor}</Text>
+          <Text style={styles.nope}>ไม่ผ่าน</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (tooFar) {
+    return (
+      <View style={[styles.card, { borderColor: color + '44', opacity: 0.6 }]}>
+        <View style={styles.header}>
+          <View style={[styles.badge, { backgroundColor: color }]}>
+            <Text style={styles.badgeText}>{lineColor}</Text>
+          </View>
+          <Text style={styles.lineName}>{LINE_NAMES[lineColor] ?? lineColor}</Text>
+          <Text style={styles.nope}>สถานีไกลเกิน 500 ม.</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={[styles.card, { borderColor: passes ? color + '88' : '#2a2a4a', opacity: passes ? 1 : 0.4 }]}>
+    <View style={[styles.card, { borderColor: color + '88' }]}>
       <View style={styles.header}>
         <View style={[styles.badge, { backgroundColor: color }]}>
           <Text style={styles.badgeText}>{lineColor}</Text>
         </View>
         <Text style={styles.lineName}>{LINE_NAMES[lineColor] ?? lineColor}</Text>
-        {etaMinutes != null && passes && (
-          <Text style={[styles.eta, { color }]}>~{etaMinutes} น.</Text>
-        )}
-        {!passes && <Text style={styles.nope}>ไม่ผ่าน</Text>}
+        {etaMinutes != null
+          ? <Text style={[styles.eta, { color }]}>~{etaMinutes} น.</Text>
+          : <Text style={styles.nope}>ไม่มีรถวิ่ง</Text>
+        }
       </View>
-      {passes && (
-        <View style={styles.boarding}>
-          <Text style={styles.boardingLabel}>📍 ไปรอที่</Text>
-          <Text style={styles.boardingName}>{boardingStopName}</Text>
-          <Text style={styles.boardingDist}>{Math.round(distanceM)} ม.</Text>
+
+      <View style={styles.boarding}>
+        <Text style={styles.boardingLabel}>📍 ไปรอที่</Text>
+        <Text style={styles.boardingName}>{boardingStopName}</Text>
+        <Text style={styles.boardingDist}>{Math.round(distanceM)} ม.</Text>
+      </View>
+
+      {busId && (
+        <View style={styles.busRow}>
+          <Text style={styles.busLabel}>🚌 รถ</Text>
+          <Text style={[styles.busId, { color }]}>{busId}</Text>
+          <Text style={styles.busLabel}>กำลังเข้าสถานี</Text>
         </View>
       )}
     </View>
@@ -58,12 +98,12 @@ const styles = StyleSheet.create({
     padding: 10,
     borderWidth: 1,
     marginBottom: 6,
+    gap: 6,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 6,
   },
   badge: {
     paddingHorizontal: 6,
@@ -110,5 +150,19 @@ const styles = StyleSheet.create({
   boardingDist: {
     fontSize: 9,
     color: '#888',
+  },
+  busRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 6,
+  },
+  busLabel: {
+    fontSize: 9,
+    color: '#888',
+  },
+  busId: {
+    fontSize: 11,
+    fontWeight: '800',
   },
 });

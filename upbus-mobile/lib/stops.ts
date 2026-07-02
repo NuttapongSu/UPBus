@@ -1,5 +1,7 @@
 import type { BusData, BusStop } from './api';
 
+export const BOARDING_MAX_DIST_M = 500;
+
 export function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -17,7 +19,7 @@ export function findPassingLines(stops: BusStop[], destinationId: string): strin
   return [...new Set(dest.lines)];
 }
 
-/** Nearest stop to the user that is on the given line */
+/** Nearest stop to the user on the given line, within BOARDING_MAX_DIST_M. Returns null if too far. */
 export function findBoardingStop(
   stops: BusStop[],
   lineColor: string,
@@ -26,14 +28,28 @@ export function findBoardingStop(
 ): BusStop | null {
   const lineStops = stops.filter(s => s.lines.includes(lineColor));
   if (!lineStops.length) return null;
-  return lineStops.reduce((nearest, stop) => {
-    const d = haversine(userLat, userLng, stop.lat, stop.lng);
-    const dNearest = haversine(userLat, userLng, nearest.lat, nearest.lng);
-    return d < dNearest ? stop : nearest;
+  const nearest = lineStops.reduce((n, s) =>
+    haversine(userLat, userLng, s.lat, s.lng) < haversine(userLat, userLng, n.lat, n.lng) ? s : n
+  );
+  return haversine(userLat, userLng, nearest.lat, nearest.lng) <= BOARDING_MAX_DIST_M ? nearest : null;
+}
+
+/** Bus on the given line that is closest to the boarding stop (approaching bus). */
+export function findApproachingBus(
+  buses: BusData[],
+  lineColor: string,
+  stop: BusStop
+): BusData | null {
+  const onLine = buses.filter(b => b.color === lineColor && b.latitude !== null && b.longitude !== null);
+  if (!onLine.length) return null;
+  return onLine.reduce((closest, bus) => {
+    const d = haversine(bus.latitude!, bus.longitude!, stop.lat, stop.lng);
+    const dc = haversine(closest.latitude!, closest.longitude!, stop.lat, stop.lng);
+    return d < dc ? bus : closest;
   });
 }
 
-/** Rough ETA in minutes: distance / max(speed, 5 km/h) */
+/** Rough ETA in minutes: distance / max(speed, 20 km/h) */
 export function calcEtaMinutes(bus: BusData, boardingStop: BusStop): number | null {
   if (bus.latitude === null || bus.longitude === null) return null;
   const distM = haversine(bus.latitude, bus.longitude, boardingStop.lat, boardingStop.lng);

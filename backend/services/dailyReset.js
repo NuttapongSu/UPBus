@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const db = require('../db');
-const { sendLineMessage } = require('./lineNotify');
+const { sendLineNotify: sendLineMessage } = require('./lineNotify');
 
 async function resetDrivers() {
   try {

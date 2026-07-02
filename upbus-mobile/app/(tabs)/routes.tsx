@@ -58,7 +58,7 @@ export default function RoutesScreen() {
 
   if (tracking.isTracking) {
     return (
-      <ScrollView style={styles.screen} contentContainerStyle={{ padding: 14, gap: 10 }}>
+      <ScrollView style={styles.screen} contentContainerStyle={{ padding: 14, paddingTop: insets.top + 14, gap: 10 }}>
         <View style={styles.trackingCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <View style={styles.pulseDot} />

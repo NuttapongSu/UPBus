@@ -91,10 +91,12 @@ export function findTransferRoutes(
       );
       if (!transferStops.length) continue;
 
-      // Pick transfer stop closest to destination (minimises second leg)
+      // Pick transfer stop closest to USER (board line 2 as early as possible,
+      // avoids cases where "closest to destination" picks a stop the line 2 bus
+      // has already looped past before reaching destination)
       const transferStop = transferStops.reduce((best, s) =>
-        haversine(s.lat, s.lng, dest.lat, dest.lng) <
-        haversine(best.lat, best.lng, dest.lat, dest.lng) ? s : best
+        haversine(s.lat, s.lng, userLat, userLng) <
+        haversine(best.lat, best.lng, userLat, userLng) ? s : best
       );
 
       const approachingBus = findApproachingBus(buses, firstLine, boardingStop);

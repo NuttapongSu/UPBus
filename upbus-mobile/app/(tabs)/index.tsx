@@ -149,6 +149,25 @@ export default function MapScreen() {
   const [locationGranted, setLocationGranted] = useState(false);
   const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
 
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  function formatThaiDate(d: Date): string {
+    const buddhistYear = d.getFullYear() + 543;
+    const month = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()];
+    return `${d.getDate()} ${month} ${String(buddhistYear).slice(2)}`;
+  }
+
+  function formatTime(d: Date): string {
+    return [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2, '0'))
+      .join(':');
+  }
+
   // Request location permission and center map on user at startup
   useEffect(() => {
     (async () => {
@@ -295,6 +314,22 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
+      {/* ─── Header bar ─────────────────────────────────── */}
+      <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
+        <View style={styles.headerCell}>
+          <Text style={styles.headerLabel}>วันที่</Text>
+          <Text style={styles.headerValue}>{formatThaiDate(now)}</Text>
+        </View>
+        <View style={[styles.headerCell, styles.headerCellCenter]}>
+          <Text style={styles.headerLabel}>เวลา</Text>
+          <Text style={styles.headerValue}>{formatTime(now)}</Text>
+        </View>
+        <View style={[styles.headerCell, styles.headerCellRight]}>
+          <Text style={styles.headerLabel}>รถวิ่ง</Text>
+          <Text style={styles.headerValue}>{buses.length} คัน</Text>
+        </View>
+      </View>
+
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -352,8 +387,8 @@ export default function MapScreen() {
         onClose={() => setSelectedBusId(null)}
       />
 
-      {/* Line filter chips */}
-      <View style={[styles.chips, { top: insets.top + 8 }]}>
+      {/* Line filter chips — bottom */}
+      <View style={[styles.chips, { bottom: insets.bottom + 12 }]}>
         {LINE_CONFIG.map(l => {
           const isActive = lineFilter === l.key;
           return (
@@ -386,9 +421,12 @@ const styles = StyleSheet.create({
   },
   chips: {
     position: 'absolute',
-    left: 8,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
-    gap: 6,
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
   },
   chip: {
     paddingHorizontal: 10,
@@ -400,5 +438,36 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 11,
     fontWeight: '700',
+  },
+  header: {
+    flexDirection: 'row',
+    backgroundColor: '#0a0a14',
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e1e3a',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  headerCell: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  headerCellCenter: {
+    alignItems: 'center',
+  },
+  headerCellRight: {
+    alignItems: 'flex-end',
+  },
+  headerLabel: {
+    color: '#a78bfa',
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  headerValue: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 1,
   },
 });

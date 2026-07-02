@@ -5,8 +5,8 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import * as Location from 'expo-location';
 import useSWR from 'swr';
 import { getBuses, getKml, BusData } from '../../lib/api';
-import { useAnimatedBuses, RouteMap } from '../../lib/useAnimatedBuses';
-import BusMarker from '../../components/BusMarker';
+import { useAnimatedBuses, RouteMap, JunctionMap, TerminalMap } from '../../lib/useAnimatedBuses';
+import BusMarker, { BusMarkerHandle } from '../../components/BusMarker';
 import BusDetailSheet from '../../components/BusDetailSheet';
 
 const BUS_STOP_IMAGE = require('../../assets/images/bus-stop-1.png');
@@ -56,6 +56,43 @@ function parseKmlCoordinates(kmlText: string): LatLng[][] {
     if (coords.length > 1) results.push(coords);
   }
   return results;
+}
+
+// ─── Stop arc-length sort ─────────────────────────────────────────────────────
+
+const DEG2RAD_IDX = Math.PI / 180;
+const R_EARTH_IDX = 6_371_000;
+
+function hav(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLat = (lat2 - lat1) * DEG2RAD_IDX;
+  const dLng = (lng2 - lng1) * DEG2RAD_IDX;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * DEG2RAD_IDX) * Math.cos(lat2 * DEG2RAD_IDX) * Math.sin(dLng / 2) ** 2;
+  return R_EARTH_IDX * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function stopArcLen(lat: number, lng: number, route: LatLng[]): number {
+  let bestSegIdx = 0, bestT = 0, bestD = Infinity;
+  for (let i = 0; i < route.length - 1; i++) {
+    const p1 = route[i], p2 = route[i + 1];
+    const dx = p2.longitude - p1.longitude, dy = p2.latitude - p1.latitude;
+    const len2 = dx * dx + dy * dy;
+    const t = len2 > 0
+      ? Math.max(0, Math.min(1, ((lng - p1.longitude) * dx + (lat - p1.latitude) * dy) / len2))
+      : 0;
+    const pLat = p1.latitude + t * dy, pLng = p1.longitude + t * dx;
+    const d = hav(lat, lng, pLat, pLng);
+    if (d < bestD) { bestD = d; bestSegIdx = i; bestT = t; }
+  }
+  let arc = 0;
+  for (let i = 0; i < bestSegIdx; i++) {
+    arc += hav(route[i].latitude, route[i].longitude, route[i + 1].latitude, route[i + 1].longitude);
+  }
+  arc += bestT * hav(
+    route[bestSegIdx].latitude, route[bestSegIdx].longitude,
+    route[bestSegIdx + 1].latitude, route[bestSegIdx + 1].longitude,
+  );
+  return arc;
 }
 
 const EXCLUDED_STOP_KEYWORDS = ['ชาร์จ'];
@@ -131,19 +168,35 @@ export default function MapScreen() {
   // Poll buses every 5s
   const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, { refreshInterval: 10000 });
 
-  // Build route map from parsed polylines (memoised — changes only at startup)
-  const routeMap = useMemo<RouteMap>(() => {
-    const m = new Map<string, { lat: number; lng: number }[]>();
+  // Build route map from parsed polylines (memoised — changes only at startup).
+  // junctionMap: two-segment routes (Green/Red) — last index of Seg1, used to
+  //   lock bus to current leg and prevent cross-leg snapping.
+  // terminalMap: single-segment circular routes (Blue) — 90% of route length,
+  //   prevents false wrap-back to idx=0 when bus approaches the terminal whose
+  //   geographic location is the same as the route start point.
+  const { routeMap, junctionMap, terminalMap } = useMemo<{
+    routeMap: RouteMap; junctionMap: JunctionMap; terminalMap: TerminalMap;
+  }>(() => {
+    const routeMap    = new Map<string, { lat: number; lng: number }[]>();
+    const junctionMap = new Map<string, number>();
+    const terminalMap = new Map<string, number>();
     for (const color of ['Green', 'Red', 'Blue']) {
       const segs = polylines.filter(p => p.lineKey === color);
-      if (segs.length > 0) {
-        m.set(color, segs.flatMap(s => s.coords.map(c => ({ lat: c.latitude, lng: c.longitude }))));
+      if (segs.length === 0) continue;
+      const combined = segs.flatMap(s => s.coords.map(c => ({ lat: c.latitude, lng: c.longitude })));
+      routeMap.set(color, combined);
+      if (segs.length >= 2) {
+        junctionMap.set(color, segs[0].coords.length - 1);
+      } else {
+        terminalMap.set(color, Math.floor(combined.length * 0.9));
       }
     }
-    return m;
+    return { routeMap, junctionMap, terminalMap };
   }, [polylines]);
 
-  // Group stops by route color for direction detection
+  // Group stops by route color, sorted by arc-length along the route polyline.
+  // KML document order is arbitrary — direction detection requires stops in
+  // traversal order so that stops[nearestIdx+1] reliably points "ahead".
   const stopsByRoute = useMemo(() => {
     const m = new Map<string, { lat: number; lng: number }[]>();
     for (const stop of stops) {
@@ -151,18 +204,25 @@ export default function MapScreen() {
       if (!m.has(stop.lineKey)) m.set(stop.lineKey, []);
       m.get(stop.lineKey)!.push({ lat: stop.lat, lng: stop.lng });
     }
+    for (const [lineKey, lineStops] of m) {
+      const routeCoords = polylines
+        .filter(p => p.lineKey === lineKey)
+        .flatMap(p => p.coords);
+      if (routeCoords.length > 1) {
+        lineStops.sort((a, b) => stopArcLen(a.lat, a.lng, routeCoords) - stopArcLen(b.lat, b.lng, routeCoords));
+      }
+    }
     return m;
-  }, [stops]);
+  }, [stops, polylines]);
 
-  const animatedBuses = useAnimatedBuses(buses, routeMap, stopsByRoute);
-  const animatedBusesRef = useRef(animatedBuses);
-  useEffect(() => { animatedBusesRef.current = animatedBuses; }, [animatedBuses]);
+  const markerRefs = useRef<Map<string, BusMarkerHandle>>(new Map());
+  const { positionRef: busPositions, activeBusIds } = useAnimatedBuses(buses, routeMap, stopsByRoute, markerRefs, junctionMap, terminalMap);
 
   // Follow selected bus — read position via ref to avoid re-creating interval every frame
   useEffect(() => {
     if (!selectedBusId) return;
     const id = setInterval(() => {
-      const anim = animatedBusesRef.current.get(selectedBusId);
+      const anim = busPositions.current?.get(selectedBusId);
       if (!anim) return;
       mapRef.current?.animateCamera(
         { center: { latitude: anim.lat, longitude: anim.lng } },
@@ -204,8 +264,7 @@ export default function MapScreen() {
 
   // Filter buses: animated position exists + line filter
   const displayedBuses = buses.filter(b => {
-    const anim = animatedBuses.get(b.imei_id);
-    if (!anim) return false;
+    if (!activeBusIds.has(b.imei_id)) return false;
     if (lineFilter && b.color !== lineFilter) return false;
     return true;
   });
@@ -269,10 +328,12 @@ export default function MapScreen() {
 
         {/* Bus markers — animated position */}
         {displayedBuses.map(bus => {
-          const anim = animatedBuses.get(bus.imei_id)!;
+          const anim = busPositions.current?.get(bus.imei_id);
+          if (!anim) return null;
           return (
             <BusMarker
               key={bus.imei_id}
+              ref={el => { if (el) markerRefs.current.set(bus.imei_id, el); else markerRefs.current.delete(bus.imei_id); }}
               busId={bus.imei_id}
               lat={anim.lat}
               lng={anim.lng}

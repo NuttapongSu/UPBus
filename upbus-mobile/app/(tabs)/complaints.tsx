@@ -78,7 +78,7 @@ export default function ComplaintsScreen() {
       <View style={styles.toggle}>
         {(['form', 'history'] as const).map(v => (
           <TouchableOpacity key={v} style={[styles.toggleBtn, view === v && styles.toggleActive]} onPress={() => setView(v)}>
-            <Text style={{ color: view === v ? '#a78bfa' : '#555', fontSize: 11, fontWeight: '600' }}>
+            <Text style={{ color: view === v ? '#a78bfa' : '#555', fontSize: 14, fontWeight: '600' }}>
               {v === 'form' ? 'แจ้งปัญหา' : 'ประวัติ'}
             </Text>
           </TouchableOpacity>
@@ -92,7 +92,7 @@ export default function ComplaintsScreen() {
             {TYPES.map(t => (
               <TouchableOpacity key={t.key} style={[styles.typeCard, type === t.key && styles.typeCardSel]}
                 onPress={() => { setType(t.key); setSelectedSubcats([]); }}>
-                <Text style={{ fontSize: 20 }}>{t.icon}</Text>
+                <Text style={{ fontSize: 26 }}>{t.icon}</Text>
                 <Text style={[styles.typeLabel, type === t.key && { color: '#a78bfa' }]}>{t.label}</Text>
               </TouchableOpacity>
             ))}
@@ -113,7 +113,7 @@ export default function ComplaintsScreen() {
                   onPress={() => toggleSubcat(label)}
                 >
                   <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-                    {checked && <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✓</Text>}
+                    {checked && <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>✓</Text>}
                   </View>
                   <Text style={[styles.subcatLabel, checked && { color: '#fff' }]}>{label}</Text>
                 </TouchableOpacity>
@@ -126,7 +126,7 @@ export default function ComplaintsScreen() {
             {LINES.map(l => (
               <TouchableOpacity key={l} style={[styles.lineBtn, line === l && styles.lineBtnSel]}
                 onPress={() => setLine(l)}>
-                <Text style={{ color: line === l ? '#fff' : '#888', fontSize: 11, fontWeight: '600' }}>{l}</Text>
+                <Text style={{ color: line === l ? '#fff' : '#888', fontSize: 14, fontWeight: '600' }}>{l}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -151,7 +151,7 @@ export default function ComplaintsScreen() {
           </View>
 
           <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>ส่งเรื่องร้องเรียน</Text>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 17 }}>ส่งเรื่องร้องเรียน</Text>
           </TouchableOpacity>
         </ScrollView>
       ) : (
@@ -160,15 +160,15 @@ export default function ComplaintsScreen() {
             <Text style={{ color: '#555', textAlign: 'center', marginTop: 40 }}>ยังไม่มีประวัติ</Text>
           ) : history.map((h, i) => (
             <View key={i} style={styles.histCard}>
-              <Text style={{ fontSize: 16 }}>{TYPES.find(t => t.key === h.type)?.icon ?? '📋'}</Text>
+              <Text style={{ fontSize: 21 }}>{TYPES.find(t => t.key === h.type)?.icon ?? '📋'}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '600' }}>
+                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>
                   {TYPES.find(t => t.key === h.type)?.label} · {h.line}
                 </Text>
-                <Text style={{ color: '#888', fontSize: 9 }} numberOfLines={1}>{h.detail}</Text>
+                <Text style={{ color: '#888', fontSize: 12 }} numberOfLines={1}>{h.detail}</Text>
               </View>
               <View style={[styles.statusBadge, h.status === 'resolved' ? styles.resolved : styles.pending]}>
-                <Text style={{ fontSize: 8, fontWeight: '700', color: h.status === 'resolved' ? '#2ecc71' : '#f59e0b' }}>
+                <Text style={{ fontSize: 10, fontWeight: '700', color: h.status === 'resolved' ? '#2ecc71' : '#f59e0b' }}>
                   {h.status === 'resolved' ? 'แก้ไขแล้ว' : 'รอดำเนินการ'}
                 </Text>
               </View>
@@ -182,49 +182,49 @@ export default function ComplaintsScreen() {
 
 const styles = StyleSheet.create({
   toggle: { flexDirection: 'row', backgroundColor: '#0a0a14', borderBottomWidth: 1, borderBottomColor: '#1e1e3a' },
-  toggleBtn: { flex: 1, padding: 12, alignItems: 'center' },
+  toggleBtn: { flex: 1, padding: 16, alignItems: 'center' },
   toggleActive: { borderBottomWidth: 2, borderBottomColor: '#a78bfa' },
-  label: { color: '#888', fontSize: 11 },
-  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  typeCard: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2a2a4a', borderRadius: 10, padding: 10, alignItems: 'center', width: '47%', gap: 4 },
+  label: { color: '#888', fontSize: 14 },
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  typeCard: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2a2a4a', borderRadius: 13, padding: 13, alignItems: 'center', width: '47%', gap: 5 },
   typeCardSel: { borderColor: '#a78bfa', backgroundColor: '#a78bfa11' },
-  typeLabel: { fontSize: 11, fontWeight: '600', color: '#888' },
-  lineBtn: { flex: 1, padding: 8, borderRadius: 8, borderWidth: 1, borderColor: '#2a2a4a', alignItems: 'center' },
+  typeLabel: { fontSize: 14, fontWeight: '600', color: '#888' },
+  lineBtn: { flex: 1, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: '#2a2a4a', alignItems: 'center' },
   lineBtnSel: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
-  textarea: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2a2a4a', borderRadius: 9, padding: 10, color: '#fff', minHeight: 80, textAlignVertical: 'top' },
-  photoPreview: { width: 60, height: 60, borderRadius: 8 },
-  photoAdd: { width: 60, height: 60, backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#3a3a5e', borderRadius: 8, alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed' },
-  submitBtn: { backgroundColor: '#7c3aed', borderRadius: 10, padding: 14, alignItems: 'center' },
-  histCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#1a1a2e', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#2a2a4a' },
-  statusBadge: { paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6, borderWidth: 1 },
+  textarea: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2a2a4a', borderRadius: 12, padding: 13, color: '#fff', minHeight: 104, textAlignVertical: 'top' },
+  photoPreview: { width: 78, height: 78, borderRadius: 10 },
+  photoAdd: { width: 78, height: 78, backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#3a3a5e', borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed' },
+  submitBtn: { backgroundColor: '#7c3aed', borderRadius: 13, padding: 18, alignItems: 'center' },
+  histCard: { flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: '#1a1a2e', borderRadius: 13, padding: 13, borderWidth: 1, borderColor: '#2a2a4a' },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
   resolved: { backgroundColor: '#2ecc7122', borderColor: '#2ecc7144' },
   pending: { backgroundColor: '#f59e0b22', borderColor: '#f59e0b44' },
   subcatPanel: {
     backgroundColor: '#1a1a2e',
     borderWidth: 1,
     borderColor: '#2a2a4a',
-    borderRadius: 10,
-    padding: 10,
-    gap: 6,
+    borderRadius: 13,
+    padding: 13,
+    gap: 8,
   },
   subcatHeader: {
     color: '#a78bfa',
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 5,
   },
   subcatRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 6,
+    gap: 13,
+    paddingVertical: 8,
   },
   checkbox: {
-    width: 18,
-    height: 18,
+    width: 23,
+    height: 23,
     borderWidth: 1.5,
     borderColor: '#3a3a5e',
-    borderRadius: 4,
+    borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -234,6 +234,6 @@ const styles = StyleSheet.create({
   },
   subcatLabel: {
     color: '#888',
-    fontSize: 12,
+    fontSize: 16,
   },
 });

@@ -62,27 +62,27 @@ export default function RoutesScreen() {
         <View style={styles.trackingCard}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
             <View style={styles.pulseDot} />
-            <Text style={{ color: '#a78bfa', fontSize: 10, fontWeight: '700', flex: 1 }}>กำลังติดตาม</Text>
+            <Text style={{ color: '#a78bfa', fontSize: 13, fontWeight: '700', flex: 1 }}>กำลังติดตาม</Text>
             <TouchableOpacity onPress={tracking.stopTracking} style={styles.stopBtn}>
-              <Text style={{ color: '#888', fontSize: 9 }}>⏹ หยุด</Text>
+              <Text style={{ color: '#888', fontSize: 12 }}>⏹ หยุด</Text>
             </TouchableOpacity>
           </View>
-          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700', marginBottom: 8 }}>
+          <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', marginBottom: 8 }}>
             🎯 {tracking.destinationStop?.name}
           </Text>
           {tracking.etaRows.map(row => (
             <View key={row.lineColor} style={styles.etaRow}>
               <View style={[styles.badge, { backgroundColor: row.color }]}>
-                <Text style={{ color: '#fff', fontSize: 8, fontWeight: '700' }}>{row.lineColor}</Text>
+                <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{row.lineColor}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#fff', fontSize: 9, fontWeight: '600' }}>{row.lineName}</Text>
-                <Text style={{ color: '#888', fontSize: 8 }}>📍 {tracking.boardingStops?.[row.lineColor]?.name ?? '—'}</Text>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>{row.lineName}</Text>
+                <Text style={{ color: '#888', fontSize: 10 }}>📍 {tracking.boardingStops?.[row.lineColor]?.name ?? '—'}</Text>
               </View>
-              <Text style={{ color: row.color, fontSize: 16, fontWeight: '800' }}>
+              <Text style={{ color: row.color, fontSize: 21, fontWeight: '800' }}>
                 {row.eta != null ? `~${row.eta}` : '—'}
               </Text>
-              <Text style={{ color: '#888', fontSize: 8 }}> น.</Text>
+              <Text style={{ color: '#888', fontSize: 10 }}> น.</Text>
             </View>
           ))}
         </View>
@@ -117,7 +117,7 @@ export default function RoutesScreen() {
                 style={styles.stopRow}
                 onPress={() => { setDestination(item); setQuery(''); }}
               >
-                <Text style={{ fontSize: 14 }}>🚏</Text>
+                <Text style={{ fontSize: 18 }}>🚏</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.stopName}>{item.name}</Text>
                   <View style={{ flexDirection: 'row', gap: 4, marginTop: 2 }}>
@@ -138,11 +138,11 @@ export default function RoutesScreen() {
         ) : (
           <>
             <View style={styles.destSelected}>
-              <Text style={{ color: '#888', fontSize: 9 }}>ปลายทางที่เลือก</Text>
+              <Text style={{ color: '#888', fontSize: 12 }}>ปลายทางที่เลือก</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700', flex: 1 }}>{destination.name}</Text>
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', flex: 1 }}>{destination.name}</Text>
                 <TouchableOpacity onPress={() => setDestination(null)} style={styles.changeBtn}>
-                  <Text style={{ color: '#888', fontSize: 9 }}>✕ เปลี่ยน</Text>
+                  <Text style={{ color: '#888', fontSize: 12 }}>✕ เปลี่ยน</Text>
                 </TouchableOpacity>
               </View>
               {lineResults.map(r => (
@@ -159,7 +159,7 @@ export default function RoutesScreen() {
               ))}
             </View>
             <TouchableOpacity style={styles.trackBtn} onPress={handleTrack}>
-              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700' }}>
                 🔔 ติดตาม — แจ้งเตือนอัตโนมัติ
               </Text>
             </TouchableOpacity>
@@ -175,19 +175,19 @@ const styles = StyleSheet.create({
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 21,
+    paddingVertical: 13,
     borderBottomWidth: 1,
     borderBottomColor: '#1e1e3a',
   },
   backBtnText: {
     color: '#a78bfa',
-    fontSize: 13,
+    fontSize: 17,
     fontWeight: '600',
   },
   sectionTitle: {
     color: '#a78bfa',
-    fontSize: 10,
+    fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1,
@@ -196,67 +196,67 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f0f1a',
     borderWidth: 1,
     borderColor: '#3a3a6a',
-    borderRadius: 9,
-    padding: 10,
+    borderRadius: 12,
+    padding: 13,
     color: '#fff',
-    fontSize: 13,
+    fontSize: 17,
   },
   stopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 10,
+    gap: 10,
+    padding: 13,
     backgroundColor: '#1a1a2e',
-    borderRadius: 10,
+    borderRadius: 13,
     borderWidth: 1,
     borderColor: '#2a2a4a',
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  stopName: { color: '#fff', fontSize: 11, fontWeight: '600' },
-  lineDot: { width: 7, height: 7, borderRadius: 3.5 },
+  stopName: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  lineDot: { width: 9, height: 9, borderRadius: 5 },
   destSelected: {
     backgroundColor: '#1a1a2e',
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 13,
+    padding: 13,
     borderWidth: 1,
     borderColor: '#2a2a4a',
-    gap: 6,
+    gap: 8,
   },
   changeBtn: {
     borderWidth: 1,
     borderColor: '#2a2a4a',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
   trackBtn: {
     backgroundColor: '#7c3aed',
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 13,
+    padding: 16,
     alignItems: 'center',
   },
   trackingCard: {
     backgroundColor: '#0f0f1a',
-    borderRadius: 10,
+    borderRadius: 13,
     borderWidth: 1,
     borderColor: '#a78bfa55',
-    padding: 10,
+    padding: 13,
   },
-  pulseDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#2ecc71' },
+  pulseDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#2ecc71' },
   stopBtn: {
     borderWidth: 1,
     borderColor: '#2a2a4a',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
   etaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 5,
+    gap: 8,
+    paddingVertical: 7,
     borderBottomWidth: 1,
     borderBottomColor: '#1e1e3a',
   },
-  badge: { paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
+  badge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 5 },
 });

@@ -21,7 +21,7 @@ export default function SustainabilityScreen() {
           <Text style={styles.bannerNum}>{t?.co2_saved_kg?.toFixed(1) ?? '—'} <Text style={styles.bannerUnit}>kg</Text></Text>
           <Text style={styles.bannerDesc}>= ปลูกต้นไม้ {t?.trees_equiv ?? '—'} ต้น 🌳</Text>
         </View>
-        <Text style={{ fontSize: 36 }}>🌍</Text>
+        <Text style={{ fontSize: 47 }}>🌍</Text>
       </View>
 
       <Text style={styles.sectionTitle}>วันนี้</Text>
@@ -33,7 +33,7 @@ export default function SustainabilityScreen() {
           { icon: '🌳', val: `${t?.trees_equiv ?? '—'}`, unit: 'ต้น', label: 'เทียบต้นไม้', color: '#2ecc71' },
         ].map(s => (
           <View key={s.label} style={styles.statCard}>
-            <Text style={{ fontSize: 16 }}>{s.icon}</Text>
+            <Text style={{ fontSize: 21 }}>{s.icon}</Text>
             <Text style={[styles.statVal, { color: s.color }]}>{s.val} <Text style={styles.statUnit}>{s.unit}</Text></Text>
             <Text style={styles.statLabel}>{s.label}</Text>
           </View>
@@ -56,19 +56,19 @@ export default function SustainabilityScreen() {
 }
 
 const styles = StyleSheet.create({
-  banner: { backgroundColor: '#1a3a1a', borderWidth: 1, borderColor: '#2ecc71', borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center' },
-  bannerLabel: { color: '#888', fontSize: 10 },
-  bannerNum: { color: '#2ecc71', fontSize: 28, fontWeight: '800', marginVertical: 2 },
-  bannerUnit: { fontSize: 12, color: '#888' },
-  bannerDesc: { color: '#aaa', fontSize: 11 },
-  sectionTitle: { color: '#a78bfa', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
-  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  statCard: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2a2a4a', borderRadius: 10, padding: 10, width: '47%', gap: 2 },
-  statVal: { fontSize: 20, fontWeight: '800' },
-  statUnit: { fontSize: 11, color: '#888', fontWeight: '400' },
-  statLabel: { color: '#888', fontSize: 10 },
-  chartCard: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2a2a4a', borderRadius: 10, padding: 10 },
-  chartTitle: { color: '#888', fontSize: 10, marginBottom: 8 },
+  banner: { backgroundColor: '#1a3a1a', borderWidth: 1, borderColor: '#2ecc71', borderRadius: 16, padding: 18, flexDirection: 'row', alignItems: 'center' },
+  bannerLabel: { color: '#888', fontSize: 13 },
+  bannerNum: { color: '#2ecc71', fontSize: 36, fontWeight: '800', marginVertical: 2 },
+  bannerUnit: { fontSize: 16, color: '#888' },
+  bannerDesc: { color: '#aaa', fontSize: 14 },
+  sectionTitle: { color: '#a78bfa', fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+  statGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  statCard: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2a2a4a', borderRadius: 13, padding: 13, width: '47%', gap: 2 },
+  statVal: { fontSize: 26, fontWeight: '800' },
+  statUnit: { fontSize: 14, color: '#888', fontWeight: '400' },
+  statLabel: { color: '#888', fontSize: 13 },
+  chartCard: { backgroundColor: '#1a1a2e', borderWidth: 1, borderColor: '#2a2a4a', borderRadius: 13, padding: 13 },
+  chartTitle: { color: '#888', fontSize: 13, marginBottom: 10 },
   bar: { width: '100%', borderRadius: 3 },
-  barDay: { color: '#666', fontSize: 9 },
+  barDay: { color: '#666', fontSize: 12 },
 });

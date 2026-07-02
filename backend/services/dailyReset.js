@@ -16,12 +16,12 @@ async function resetDrivers() {
 
     await sendLineMessage(msg);
   } catch (err) {
-    console.error('❌ Daily Reset error:', err.message);
+    console.error('❌ Daily Reset error:', err);
   }
 }
 
 function start() {
-  cron.schedule('59 23 * * *', resetDrivers);
+  cron.schedule('59 23 * * *', resetDrivers, { timezone: 'Asia/Bangkok' });
   console.log('🔄 Daily Reset scheduled at 23:59 every day');
 }
 

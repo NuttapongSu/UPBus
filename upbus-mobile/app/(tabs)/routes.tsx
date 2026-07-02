@@ -117,7 +117,7 @@ export default function RoutesScreen() {
 
         {!destination ? (
           <FlatList
-            data={filtered.slice(0, 20)}
+            data={filtered.slice(0, 50)}
             keyExtractor={s => s.id}
             scrollEnabled={false}
             renderItem={({ item }) => (

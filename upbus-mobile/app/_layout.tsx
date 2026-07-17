@@ -1,10 +1,12 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, TextInput } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Mitr_300Light, Mitr_400Regular, Mitr_500Medium, Mitr_600SemiBold, Mitr_700Bold } from '@expo-google-fonts/mitr';
 import { registerForPushNotificationsAsync } from '../lib/notifications';
+import PreloadScreen from '../components/PreloadScreen';
+import { SlowLoadContext } from '../lib/slowLoadContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -16,6 +18,8 @@ export default function RootLayout() {
     Mitr_600SemiBold,
     Mitr_700Bold,
   });
+  const [appReady, setAppReady] = useState(false);
+  const [slowLoad, setSlowLoad] = useState(false);
 
   useEffect(() => {
     registerForPushNotificationsAsync();
@@ -34,12 +38,26 @@ export default function RootLayout() {
   (TextInput as any).defaultProps = (TextInput as any).defaultProps ?? {};
   (TextInput as any).defaultProps.style = defaultStyle;
 
+  if (!appReady) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <PreloadScreen
+          onReady={({ slowLoad }) => {
+            setSlowLoad(slowLoad);
+            setAppReady(true);
+          }}
+        />
+      </>
+    );
+  }
+
   return (
-    <>
+    <SlowLoadContext.Provider value={slowLoad}>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
       </Stack>
-    </>
+    </SlowLoadContext.Provider>
   );
 }

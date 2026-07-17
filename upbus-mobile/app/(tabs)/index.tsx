@@ -4,7 +4,10 @@ import MapView, { Polyline, Marker } from 'react-native-maps';
 import { useRef, useState, useEffect, useMemo } from 'react';
 import * as Location from 'expo-location';
 import useSWR from 'swr';
-import { getBuses, getKml, BusData } from '../../lib/api';
+import { getBuses, BusData } from '../../lib/api';
+import GREEN_KML from '../../assets/kml/green';
+import RED_KML from '../../assets/kml/red';
+import BLUE_KML from '../../assets/kml/blue';
 import { useAnimatedBuses, RouteMap, JunctionMap, TerminalMap } from '../../lib/useAnimatedBuses';
 import BusMarker, { BusMarkerHandle } from '../../components/BusMarker';
 import BusDetailSheet from '../../components/BusDetailSheet';
@@ -125,10 +128,10 @@ const LINE_CONFIG = [
   { key: 'Red',   label: 'หอพัก',  color: '#e74c3c', kmlLine: 'red'   },
 ] as const;
 
-const KML_SOURCES: { file: string; lineKey: string; color: string }[] = [
-  { file: 'green',    lineKey: 'Green', color: '#2ecc71' },
-  { file: 'red',      lineKey: 'Red',   color: '#e74c3c' },
-  { file: 'blue',     lineKey: 'Blue',  color: '#3498db' },
+const KML_SOURCES: { kml: string; lineKey: string; color: string }[] = [
+  { kml: GREEN_KML, lineKey: 'Green', color: '#2ecc71' },
+  { kml: RED_KML,   lineKey: 'Red',   color: '#e74c3c' },
+  { kml: BLUE_KML,  lineKey: 'Blue',  color: '#3498db' },
 ];
 
 const UP_CAMPUS_REGION = {
@@ -148,25 +151,6 @@ export default function MapScreen() {
   const [stops, setStops] = useState<StopMarker[]>([]);
   const [locationGranted, setLocationGranted] = useState(false);
   const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
-
-  const [now, setNow] = useState(new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  function formatThaiDate(d: Date): string {
-    const buddhistYear = d.getFullYear() + 543;
-    const month = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()];
-    return `${d.getDate()} ${month} ${String(buddhistYear).slice(2)}`;
-  }
-
-  function formatTime(d: Date): string {
-    return [d.getHours(), d.getMinutes(), d.getSeconds()]
-      .map(n => String(n).padStart(2, '0'))
-      .join(':');
-  }
 
   // Request location permission and center map on user at startup
   useEffect(() => {
@@ -196,6 +180,10 @@ export default function MapScreen() {
   const { routeMap, junctionMap, terminalMap } = useMemo<{
     routeMap: RouteMap; junctionMap: JunctionMap; terminalMap: TerminalMap;
   }>(() => {
+    const bangkokHour = parseInt(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok', hour: 'numeric', hour12: false }),
+      10,
+    );
     const routeMap    = new Map<string, { lat: number; lng: number }[]>();
     const junctionMap = new Map<string, number>();
     const terminalMap = new Map<string, number>();
@@ -203,10 +191,35 @@ export default function MapScreen() {
       const segs = polylines.filter(p => p.lineKey === color);
       if (segs.length === 0) continue;
       const combined = segs.flatMap(s => s.coords.map(c => ({ lat: c.latitude, lng: c.longitude })));
-      routeMap.set(color, combined);
       if (segs.length >= 2) {
-        junctionMap.set(color, segs[0].coords.length - 1);
+        const pkyJunction = segs[0].coords.length - 1;
+        // Before 14:00 Green turns around at อธิการบดี — clip motion route so
+        // engine treats it as a true two-segment route ending there (like PKY).
+        if (color === 'Green' && bangkokHour < 14) {
+          const RECTOR_LAT = 19.0290, RECTOR_LNG = 99.8961;
+          let fwdIdx = 0, fwdD = Infinity;
+          for (let i = 0; i <= pkyJunction; i++) {
+            const c = combined[i];
+            const d = (c.lat - RECTOR_LAT) ** 2 + (c.lng - RECTOR_LNG) ** 2;
+            if (d < fwdD) { fwdD = d; fwdIdx = i; }
+          }
+          let retIdx = pkyJunction + 1, retD = Infinity;
+          for (let i = pkyJunction + 1; i < combined.length; i++) {
+            const c = combined[i];
+            const d = (c.lat - RECTOR_LAT) ** 2 + (c.lng - RECTOR_LNG) ** 2;
+            if (d < retD) { retD = d; retIdx = i; }
+          }
+          if (fwdIdx > 0 && retIdx > pkyJunction) {
+            const clipped = [...combined.slice(0, fwdIdx + 1), ...combined.slice(retIdx)];
+            routeMap.set(color, clipped);
+            junctionMap.set(color, fwdIdx);
+            continue;
+          }
+        }
+        routeMap.set(color, combined);
+        junctionMap.set(color, pkyJunction);
       } else {
+        routeMap.set(color, combined);
         terminalMap.set(color, Math.floor(combined.length * 0.9));
       }
     }
@@ -224,18 +237,20 @@ export default function MapScreen() {
       m.get(stop.lineKey)!.push({ lat: stop.lat, lng: stop.lng });
     }
     for (const [lineKey, lineStops] of m) {
-      const routeCoords = polylines
-        .filter(p => p.lineKey === lineKey)
-        .flatMap(p => p.coords);
+      // Use routeMap (already clipped for Green before 14:00) for arc-length sort
+      const motionRoute = routeMap.get(lineKey);
+      const routeCoords = motionRoute
+        ? motionRoute.map(p => ({ latitude: p.lat, longitude: p.lng }))
+        : polylines.filter(p => p.lineKey === lineKey).flatMap(p => p.coords);
       if (routeCoords.length > 1) {
         lineStops.sort((a, b) => stopArcLen(a.lat, a.lng, routeCoords) - stopArcLen(b.lat, b.lng, routeCoords));
       }
     }
     return m;
-  }, [stops, polylines]);
+  }, [stops, routeMap]);
 
   const markerRefs = useRef<Map<string, BusMarkerHandle>>(new Map());
-  const { positionRef: busPositions, activeBusIds } = useAnimatedBuses(buses, routeMap, stopsByRoute, markerRefs, junctionMap, terminalMap);
+  const { positionRef: busPositions, activeBusIds, chargingBusIds } = useAnimatedBuses(buses, routeMap, stopsByRoute, markerRefs, junctionMap, terminalMap);
 
   // Follow selected bus — read position via ref to avoid re-creating interval every frame
   useEffect(() => {
@@ -251,29 +266,18 @@ export default function MapScreen() {
     return () => clearInterval(id);
   }, [selectedBusId]);
 
-  // Fetch all KML files once at startup — parse both polylines and stops
+  // Parse all KML files once at startup — polylines and stops from bundled assets
   useEffect(() => {
-    Promise.all(
-      KML_SOURCES.map(src =>
-        getKml(src.file)
-          .then(kmlText => {
-            const segments = parseKmlCoordinates(kmlText);
-            const kmlStops = parseKmlStops(kmlText, src.lineKey);
-            console.log(`[KML] ${src.file}: ${segments.length} segments, ${kmlStops.length} stops`);
-            return {
-              polylines: segments.map((coords): RoutePolyline => ({ color: src.color, lineKey: src.lineKey, coords })),
-              stops: kmlStops,
-            };
-          })
-          .catch(e => {
-            console.warn(`[KML] ${src.file} FAILED:`, e.message);
-            return { polylines: [] as RoutePolyline[], stops: [] as StopMarker[] };
-          })
-      )
-    ).then(results => {
-      setPolylines(results.flatMap(r => r.polylines));
-      setStops(results.flatMap(r => r.stops));
+    const results = KML_SOURCES.map(src => {
+      const segments = parseKmlCoordinates(src.kml);
+      const kmlStops = parseKmlStops(src.kml, src.lineKey);
+      return {
+        polylines: segments.map((coords): RoutePolyline => ({ color: src.color, lineKey: src.lineKey, coords })),
+        stops: kmlStops,
+      };
     });
+    setPolylines(results.flatMap(r => r.polylines));
+    setStops(results.flatMap(r => r.stops));
   }, []);
 
   // Filter stops: if a line is selected, only show stops on that line
@@ -287,6 +291,12 @@ export default function MapScreen() {
     if (lineFilter && b.color !== lineFilter) return false;
     return true;
   });
+
+  // Moving = ignition on + speed above the same threshold busMotionEngine uses to animate
+  const movingBusCount = displayedBuses.filter(b => b.acc === 1 && b.speed >= 5).length;
+  const chargingBusCount = displayedBuses.filter(b => chargingBusIds.has(b.imei_id)).length;
+  const totalBusCount = displayedBuses.length;
+  const parkedBusCount = totalBusCount - movingBusCount - chargingBusCount;
 
   // Auto-close sheet only after 2 consecutive missed polls (≥10s), not on transient API dropout
   const missCountRef = useRef(0);
@@ -317,16 +327,20 @@ export default function MapScreen() {
       {/* ─── Header bar ─────────────────────────────────── */}
       <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
         <View style={styles.headerCell}>
-          <Text style={styles.headerLabel}>วันที่</Text>
-          <Text style={styles.headerValue}>{formatThaiDate(now)}</Text>
+          <Text style={styles.headerLabel}>ทั้งหมด</Text>
+          <Text style={styles.headerValue}>{totalBusCount} คัน</Text>
         </View>
         <View style={[styles.headerCell, styles.headerCellCenter]}>
-          <Text style={styles.headerLabel}>เวลา</Text>
-          <Text style={styles.headerValue}>{formatTime(now)}</Text>
+          <Text style={styles.headerLabel}>จอด</Text>
+          <Text style={styles.headerValue}>{parkedBusCount} คัน</Text>
+        </View>
+        <View style={[styles.headerCell, styles.headerCellCenter]}>
+          <Text style={styles.headerLabel}>ชาร์จ</Text>
+          <Text style={styles.headerValue}>{chargingBusCount} คัน</Text>
         </View>
         <View style={[styles.headerCell, styles.headerCellRight]}>
-          <Text style={styles.headerLabel}>รถวิ่ง</Text>
-          <Text style={styles.headerValue}>{activeBusIds.size} คัน</Text>
+          <Text style={styles.headerLabel}>วิ่ง</Text>
+          <Text style={styles.headerValue}>{movingBusCount} คัน</Text>
         </View>
       </View>
 
@@ -373,6 +387,7 @@ export default function MapScreen() {
               lat={anim.lat}
               lng={anim.lng}
               color={bus.color}
+              department={bus.department}
               bearing={anim.bearing}
               isSelected={bus.imei_id === selectedBusId}
               onPress={() => setSelectedBusId(bus.imei_id)}

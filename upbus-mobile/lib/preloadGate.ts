@@ -27,12 +27,19 @@ export async function runPreload<T>({
   loadRoutes();
   onProgress(30);
 
+  let timeoutHandle: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<typeof TIMEOUT>(resolve => {
+    timeoutHandle = setTimeout(() => resolve(TIMEOUT), timeoutMs);
+  });
+
   const dataPromise = Promise.race<T | typeof TIMEOUT>([
-    loadBuses(),
-    delay(timeoutMs).then(() => TIMEOUT),
+    loadBuses().catch(() => TIMEOUT),
+    timeoutPromise,
   ]);
 
   const [busesResult] = await Promise.all([dataPromise, delay(minDelayMs)]);
+
+  clearTimeout(timeoutHandle!);
 
   onProgress(100);
 

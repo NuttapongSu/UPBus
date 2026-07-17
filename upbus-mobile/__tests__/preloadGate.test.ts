@@ -36,6 +36,21 @@ test('runPreload always waits at least minDelayMs even if data loads instantly',
   expect(Date.now() - start).toBeGreaterThanOrEqual(45);
 });
 
+test('runPreload treats a loadBuses rejection like a timeout without throwing', async () => {
+  const progressCalls: number[] = [];
+  const start = Date.now();
+  const result = await runPreload({
+    loadRoutes: () => {},
+    loadBuses: () => Promise.reject(new Error('network error')),
+    onProgress: (pct: 30 | 100) => progressCalls.push(pct),
+    minDelayMs: 50,
+    timeoutMs: 1000,
+  });
+  expect(Date.now() - start).toBeGreaterThanOrEqual(45);
+  expect(result).toEqual({ buses: null, slowLoad: true });
+  expect(progressCalls).toEqual([30, 100]);
+});
+
 test('runPreload calls loadRoutes synchronously before the first progress update', () => {
   const order: string[] = [];
   runPreload({

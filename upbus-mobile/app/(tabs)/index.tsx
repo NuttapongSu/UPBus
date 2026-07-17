@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MapView, { Polyline, Marker } from 'react-native-maps';
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo, useContext } from 'react';
 import * as Location from 'expo-location';
 import useSWR from 'swr';
 import { getBuses, BusData } from '../../lib/api';
@@ -9,6 +9,7 @@ import { parseAllKml, LatLng, RoutePolyline, StopMarker } from '../../lib/kmlPar
 import { useAnimatedBuses, RouteMap, JunctionMap, TerminalMap } from '../../lib/useAnimatedBuses';
 import BusMarker, { BusMarkerHandle } from '../../components/BusMarker';
 import BusDetailSheet from '../../components/BusDetailSheet';
+import { SlowLoadContext } from '../../lib/slowLoadContext';
 
 const BUS_STOP_IMAGE = require('../../assets/images/bus-stop-1.png');
 
@@ -75,6 +76,14 @@ export default function MapScreen() {
   const [stops, setStops] = useState<StopMarker[]>([]);
   const [locationGranted, setLocationGranted] = useState(false);
   const [selectedBusId, setSelectedBusId] = useState<string | null>(null);
+  const slowLoad = useContext(SlowLoadContext);
+  const [showSlowBanner, setShowSlowBanner] = useState(slowLoad);
+
+  useEffect(() => {
+    if (!slowLoad) return;
+    const id = setTimeout(() => setShowSlowBanner(false), 4000);
+    return () => clearTimeout(id);
+  }, [slowLoad]);
 
   // Request location permission and center map on user at startup
   useEffect(() => {
@@ -241,6 +250,11 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
+      {showSlowBanner && (
+        <View style={[styles.slowBanner, { top: insets.top + 4 }]}>
+          <Text style={styles.slowBannerText}>โหลดข้อมูลรถช้ากว่าปกติ กำลังลองใหม่...</Text>
+        </View>
+      )}
       {/* ─── Header bar ─────────────────────────────────── */}
       <View style={[styles.header, { paddingTop: insets.top + 4 }]}>
         <View style={styles.headerCell}>
@@ -349,6 +363,22 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  slowBanner: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    zIndex: 10,
+    backgroundColor: 'rgba(124,58,237,0.95)',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  slowBannerText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
   },
   map: {
     flex: 1,

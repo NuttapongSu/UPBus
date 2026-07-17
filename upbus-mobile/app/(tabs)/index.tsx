@@ -5,61 +5,12 @@ import { useRef, useState, useEffect, useMemo } from 'react';
 import * as Location from 'expo-location';
 import useSWR from 'swr';
 import { getBuses, BusData } from '../../lib/api';
-import GREEN_KML from '../../assets/kml/green';
-import RED_KML from '../../assets/kml/red';
-import BLUE_KML from '../../assets/kml/blue';
+import { parseAllKml, LatLng, RoutePolyline, StopMarker } from '../../lib/kmlParser';
 import { useAnimatedBuses, RouteMap, JunctionMap, TerminalMap } from '../../lib/useAnimatedBuses';
 import BusMarker, { BusMarkerHandle } from '../../components/BusMarker';
 import BusDetailSheet from '../../components/BusDetailSheet';
 
 const BUS_STOP_IMAGE = require('../../assets/images/bus-stop-1.png');
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface LatLng {
-  latitude: number;
-  longitude: number;
-}
-
-interface RoutePolyline {
-  color: string;
-  lineKey: string;
-  coords: LatLng[];
-}
-
-interface StopMarker {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  lineKey: string;
-}
-
-// ─── KML parser ───────────────────────────────────────────────────────────────
-
-function parseKmlCoordinates(kmlText: string): LatLng[][] {
-  const results: LatLng[][] = [];
-  // Match each <coordinates>…</coordinates> block
-  const coordBlockRe = /<coordinates>([\s\S]*?)<\/coordinates>/g;
-  let blockMatch: RegExpExecArray | null;
-  while ((blockMatch = coordBlockRe.exec(kmlText)) !== null) {
-    const block = blockMatch[1].trim();
-    if (!block) continue;
-    // Each token is "lng,lat,alt"
-    const coords: LatLng[] = [];
-    const tokenRe = /(-?\d+\.?\d*),(-?\d+\.?\d*)(?:,-?\d+\.?\d*)?/g;
-    let m: RegExpExecArray | null;
-    while ((m = tokenRe.exec(block)) !== null) {
-      const lng = parseFloat(m[1]);
-      const lat = parseFloat(m[2]);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        coords.push({ latitude: lat, longitude: lng });
-      }
-    }
-    if (coords.length > 1) results.push(coords);
-  }
-  return results;
-}
 
 // ─── Stop arc-length sort ─────────────────────────────────────────────────────
 
@@ -98,27 +49,6 @@ function stopArcLen(lat: number, lng: number, route: LatLng[]): number {
   return arc;
 }
 
-const EXCLUDED_STOP_KEYWORDS = ['ชาร์จ'];
-
-function parseKmlStops(kmlText: string, lineKey: string): StopMarker[] {
-  const stops: StopMarker[] = [];
-  const placemarkRe = /<Placemark[\s\S]*?<\/Placemark>/g;
-  let pm: RegExpExecArray | null;
-  while ((pm = placemarkRe.exec(kmlText)) !== null) {
-    if (!/<Point>/.test(pm[0])) continue;
-    const nameMatch = pm[0].match(/<name>([\s\S]*?)<\/name>/);
-    const coordMatch = pm[0].match(/<coordinates>([\s\S]*?)<\/coordinates>/);
-    if (!coordMatch) continue;
-    const name = nameMatch ? nameMatch[1].trim() : '';
-    if (EXCLUDED_STOP_KEYWORDS.some(kw => name.includes(kw))) continue;
-    const parts = coordMatch[1].trim().split(',').map(Number);
-    const lng = parts[0], lat = parts[1];
-    if (isNaN(lat) || isNaN(lng)) continue;
-    stops.push({ id: `${lineKey}-${lng}-${lat}`, name, lat, lng, lineKey });
-  }
-  return stops;
-}
-
 // ─── Line config ──────────────────────────────────────────────────────────────
 
 const LINE_CONFIG = [
@@ -127,12 +57,6 @@ const LINE_CONFIG = [
   { key: 'Blue',  label: 'ประตู3', color: '#3498db', kmlLine: 'blue'  },
   { key: 'Red',   label: 'หอพัก',  color: '#e74c3c', kmlLine: 'red'   },
 ] as const;
-
-const KML_SOURCES: { kml: string; lineKey: string; color: string }[] = [
-  { kml: GREEN_KML, lineKey: 'Green', color: '#2ecc71' },
-  { kml: RED_KML,   lineKey: 'Red',   color: '#e74c3c' },
-  { kml: BLUE_KML,  lineKey: 'Blue',  color: '#3498db' },
-];
 
 const UP_CAMPUS_REGION = {
   latitude: 19.0298,
@@ -268,16 +192,9 @@ export default function MapScreen() {
 
   // Parse all KML files once at startup — polylines and stops from bundled assets
   useEffect(() => {
-    const results = KML_SOURCES.map(src => {
-      const segments = parseKmlCoordinates(src.kml);
-      const kmlStops = parseKmlStops(src.kml, src.lineKey);
-      return {
-        polylines: segments.map((coords): RoutePolyline => ({ color: src.color, lineKey: src.lineKey, coords })),
-        stops: kmlStops,
-      };
-    });
-    setPolylines(results.flatMap(r => r.polylines));
-    setStops(results.flatMap(r => r.stops));
+    const { polylines, stops } = parseAllKml();
+    setPolylines(polylines);
+    setStops(stops);
   }, []);
 
   // Filter stops: if a line is selected, only show stops on that line

@@ -59,6 +59,8 @@ const LINE_CONFIG = [
   { key: 'Red',   label: 'หอพัก',  color: '#e74c3c', kmlLine: 'red'   },
 ] as const;
 
+const EMPTY_BUSES: BusData[] = [];
+
 const UP_CAMPUS_REGION = {
   latitude: 19.0298,
   longitude: 99.9037,
@@ -102,7 +104,7 @@ export default function MapScreen() {
   }, []);
 
   // Poll buses every 5s
-  const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, { refreshInterval: 10000 });
+  const { data: buses = EMPTY_BUSES } = useSWR<BusData[]>('/api/buses', getBuses, { refreshInterval: 10000 });
 
   // Build route map from parsed polylines (memoised — changes only at startup).
   // junctionMap: two-segment routes (Green/Red) — last index of Seg1, used to

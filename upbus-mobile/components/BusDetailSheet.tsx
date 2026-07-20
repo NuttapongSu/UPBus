@@ -8,12 +8,14 @@ const LINE_LABELS: Record<string, string> = {
   Blue:  'ประตู3',
   Red:   'หอพัก',
   Purple: '-',
+  Orange: 'นอกเส้นทาง',
 };
 const LINE_COLORS: Record<string, string> = {
   Green:  '#2ecc71',
   Blue:   '#3498db',
   Red:    '#e74c3c',
   Purple: '#9b59b6',
+  Orange: '#f39c12',
 };
 
 function parseDateThai(dateStr: string): string {
@@ -52,7 +54,16 @@ export default function BusDetailSheet({ bus, onClose }: { bus: BusData | null; 
   const busNum  = bus ? String(parseInt(bus.imei_id.replace('TC', ''), 10)) : '';
   const label   = bus ? (LINE_LABELS[bus.color] ?? bus.color) : '';
   const dot     = bus ? (LINE_COLORS[bus.color] ?? '#9b59b6') : '#9b59b6';
-  const accText = bus?.acc === 1 ? '🟢 ทำงาน' : '🔴 กำลังชาร์จ';
+  const bangkokHour = parseInt(
+    new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok', hour: 'numeric', hour12: false }),
+    10,
+  );
+  const PKY_LAT = 19.02548, PKY_LNG = 99.89511;
+  const dlat = (bus?.latitude ?? 0) - PKY_LAT, dlng = (bus?.longitude ?? 0) - PKY_LNG;
+  const atPkyCharging = bus?.color === 'Green' && bangkokHour < 14
+    && dlat * dlat + dlng * dlng < 5e-7;
+  const effectiveAcc = atPkyCharging ? 0 : (bus?.acc ?? 0);
+  const accText = effectiveAcc === 1 ? '🟢 ทำงาน' : '🔴 กำลังชาร์จ';
   const time    = bus ? parseDateThai(bus.date) : '-';
 
   return (
@@ -68,6 +79,9 @@ export default function BusDetailSheet({ bus, onClose }: { bus: BusData | null; 
       </View>
 
       {/* Detail rows */}
+      {bus?.department ? (
+        <Text style={styles.row}>หน่วยงาน: {bus.department}</Text>
+      ) : null}
       <Text style={styles.row}>คนขับ: {bus?.driver || '-'}</Text>
       <View style={styles.rowGroup}>
         <Text style={styles.row}>ความเร็ว: {bus?.speed ?? 0} km/h</Text>

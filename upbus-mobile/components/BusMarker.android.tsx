@@ -1,13 +1,27 @@
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import { Image, View, Text } from 'react-native';
 import { Marker } from 'react-native-maps';
 
-const BUS_IMAGES: Record<string, any> = {
+// Android-specific BusMarker: tracksViewChanges stays true permanently.
+// Toggling tracksViewChanges true→false triggers a Fabric (New Architecture)
+// crash where mountChildComponentView receives a nil view reference.
+// Performance trade-off (always live-updating snapshot) is acceptable vs. crashing.
+
+const BUS_IMAGES_NORMAL: Record<string, any> = {
   Green:  require('../assets/images/bus-green-base.png'),
   Red:    require('../assets/images/bus-red-base.png'),
   Blue:   require('../assets/images/bus-blue-base.png'),
   Purple: require('../assets/images/bus-purple-base-2.png'),
   Orange: require('../assets/images/bus-orange-base.png'),
+};
+
+// Pre-flipped assets for Android — scaleX:-1 is unreliable inside Marker snapshots
+const BUS_IMAGES_FLIP: Record<string, any> = {
+  Green:  require('../assets/images/bus-green-base-flip.png'),
+  Red:    require('../assets/images/bus-red-base-flip.png'),
+  Blue:   require('../assets/images/bus-blue-base-flip.png'),
+  Purple: require('../assets/images/bus-purple-base-flip.png'),
+  Orange: require('../assets/images/bus-orange-base-flip.png'),
 };
 
 export interface BusMarkerHandle {
@@ -32,7 +46,6 @@ const BusMarker = forwardRef<BusMarkerHandle, Props>(function BusMarker(
   { busId, lat, lng, color, department, bearing = 0, isSelected = false, onPress },
   ref,
 ) {
-  const imageSource = BUS_IMAGES[color] ?? BUS_IMAGES['Purple'];
   const busNum = String(parseInt(busId.replace('TC', ''), 10));
   const deptLabel = color === 'Orange' ? (department ? shortDept(department) : 'นอกเส้นทาง') : null;
 
@@ -40,13 +53,15 @@ const BusMarker = forwardRef<BusMarkerHandle, Props>(function BusMarker(
   const [flip, setFlip] = useState<1 | -1>(bearing <= 180 ? -1 : 1);
   const flipRef = useRef<1 | -1>(flip);
 
-  const [tracksViews, setTracksViews] = useState(true);
-  const tracksTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const imageSource = flip === -1
+    ? (BUS_IMAGES_NORMAL[color] ?? BUS_IMAGES_NORMAL['Purple'])
+    : (BUS_IMAGES_FLIP[color] ?? BUS_IMAGES_FLIP['Purple']);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    const id = setTimeout(() => setTracksViews(isSelected), 500);
-    return () => clearTimeout(id);
-  }, [isSelected]);
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useImperativeHandle(ref, () => ({
     moveTo(newLat: number, newLng: number) {
@@ -57,16 +72,9 @@ const BusMarker = forwardRef<BusMarkerHandle, Props>(function BusMarker(
     },
     setBearing(newBearing: number) {
       const newFlip: 1 | -1 = newBearing <= 180 ? -1 : 1;
-      if (newFlip !== flipRef.current) {
+      if (newFlip !== flipRef.current && mountedRef.current) {
         flipRef.current = newFlip;
         setFlip(newFlip);
-        // Briefly re-enable tracksViewChanges so the snapshot updates
-        if (tracksTimerRef.current) clearTimeout(tracksTimerRef.current);
-        setTracksViews(true);
-        tracksTimerRef.current = setTimeout(() => {
-          setTracksViews(isSelected);
-          tracksTimerRef.current = null;
-        }, 300);
       }
     },
   }));
@@ -76,7 +84,7 @@ const BusMarker = forwardRef<BusMarkerHandle, Props>(function BusMarker(
       ref={markerRef}
       coordinate={{ latitude: lat, longitude: lng }}
       onPress={onPress}
-      tracksViewChanges={tracksViews}
+      tracksViewChanges
       identifier={busId}
     >
       <View style={{
@@ -90,7 +98,7 @@ const BusMarker = forwardRef<BusMarkerHandle, Props>(function BusMarker(
       }}>
         <Image
           source={imageSource}
-          style={{ width: 62, height: 62, transform: [{ scaleX: flip }] }}
+          style={{ width: 62, height: 62 }}
           resizeMode="contain"
         />
         <Text style={{

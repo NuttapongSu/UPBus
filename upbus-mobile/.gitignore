@@ -16,7 +16,17 @@ expo-env.d.ts
 *.p8
 *.p12
 *.key
+*.der
 *.mobileprovision
+credentials.json
+credentials/
+Cer And/
+
+# EAS build config (contains personal Apple ID)
+eas.json
+
+# build artifacts
+build-output/
 
 # Metro
 .metro-health-check*

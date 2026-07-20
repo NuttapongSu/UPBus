@@ -6,3 +6,4 @@ frontend/.env.local
 frontend/.next/
 upbus-mobile/node_modules/
 upbus-mobile/.expo/
+error.txt

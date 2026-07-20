@@ -1,6 +1,6 @@
 import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import useSWR from 'swr';
 import * as Location from 'expo-location';
 import { getBuses, BusStop, BusData } from '../../lib/api';
@@ -55,6 +55,20 @@ export default function RoutesScreen() {
     if (!destination || !userPos) return [];
     return findTransferRoutes(stops, buses, destination.id, userPos.lat, userPos.lng, routeMap.size > 0 ? routeMap : undefined);
   }, [destination, userPos, stops, buses, routeMap]);
+
+  // Sync live bus ETAs into the tracking store while tracking is active
+  useEffect(() => {
+    if (!tracking.isTracking || !buses.length) return;
+    const updatedRows = tracking.etaRows.map(row => {
+      const boardingStop = tracking.boardingStops[row.lineColor];
+      if (!boardingStop) return { ...row, eta: null };
+      const approachingBus = findApproachingBus(buses, row.lineColor, boardingStop);
+      const eta = approachingBus ? calcEtaMinutes(approachingBus, boardingStop) : null;
+      return { ...row, eta };
+    });
+    tracking.setEtaRows(updatedRows);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buses, tracking.isTracking]);
 
   async function handleTrack() {
     if (!destination) return;

@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
-import { getKml } from './api';
+import { useMemo } from 'react';
+import GREEN_KML from '../assets/kml/green';
+import RED_KML from '../assets/kml/red';
+import BLUE_KML from '../assets/kml/blue';
 
 export type RoutePoint = { lat: number; lng: number };
 export type RouteMap   = Map<string, RoutePoint[]>;
 
 const KML_SOURCES = [
-  { file: 'green', lineKey: 'Green' },
-  { file: 'red',   lineKey: 'Red'   },
-  { file: 'blue',  lineKey: 'Blue'  },
+  { kml: GREEN_KML, lineKey: 'Green' },
+  { kml: RED_KML,   lineKey: 'Red'   },
+  { kml: BLUE_KML,  lineKey: 'Blue'  },
 ] as const;
 
 function parseCoords(kmlText: string): RoutePoint[][] {
@@ -25,23 +27,42 @@ function parseCoords(kmlText: string): RoutePoint[][] {
 }
 
 export function useRouteMap(): RouteMap {
-  const [map, setMap] = useState<RouteMap>(new Map());
+  return useMemo(() => {
+    const bangkokHour = parseInt(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok', hour: 'numeric', hour12: false }),
+      10,
+    );
+    const m: RouteMap = new Map();
+    for (const { kml, lineKey } of KML_SOURCES) {
+      const segs = parseCoords(kml);
+      if (segs.length === 0) continue;
+      const combined = segs.flat();
 
-  useEffect(() => {
-    Promise.all(
-      KML_SOURCES.map(src =>
-        getKml(src.file)
-          .then(kml => ({ lineKey: src.lineKey, segs: parseCoords(kml) }))
-          .catch(() => ({ lineKey: src.lineKey, segs: [] as RoutePoint[][] }))
-      )
-    ).then(results => {
-      const m: RouteMap = new Map();
-      for (const { lineKey, segs } of results) {
-        if (segs.length > 0) m.set(lineKey, segs.flat());
+      // Before 14:00 Green turns around at อธิการบดี — clip so route-based
+      // logic (e.g. transfer suggestions) doesn't offer stops beyond that point.
+      if (lineKey === 'Green' && bangkokHour < 14 && segs.length >= 2) {
+        const pkyJunction = segs[0].length - 1;
+        const RECTOR_LAT = 19.0290, RECTOR_LNG = 99.8961;
+        let fwdIdx = 0, fwdD = Infinity;
+        for (let i = 0; i <= pkyJunction; i++) {
+          const c = combined[i];
+          const d = (c.lat - RECTOR_LAT) ** 2 + (c.lng - RECTOR_LNG) ** 2;
+          if (d < fwdD) { fwdD = d; fwdIdx = i; }
+        }
+        let retIdx = pkyJunction + 1, retD = Infinity;
+        for (let i = pkyJunction + 1; i < combined.length; i++) {
+          const c = combined[i];
+          const d = (c.lat - RECTOR_LAT) ** 2 + (c.lng - RECTOR_LNG) ** 2;
+          if (d < retD) { retD = d; retIdx = i; }
+        }
+        if (fwdIdx > 0 && retIdx > pkyJunction) {
+          m.set(lineKey, [...combined.slice(0, fwdIdx + 1), ...combined.slice(retIdx)]);
+          continue;
+        }
       }
-      setMap(m);
-    });
-  }, []);
 
-  return map;
+      m.set(lineKey, combined);
+    }
+    return m;
+  }, []);
 }

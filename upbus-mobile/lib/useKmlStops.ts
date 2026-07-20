@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
-import { getKml } from './api';
+import { useMemo } from 'react';
 import type { BusStop } from './api';
+import GREEN_KML from '../assets/kml/green';
+import RED_KML from '../assets/kml/red';
+import BLUE_KML from '../assets/kml/blue';
 
 const EXCLUDED_KEYWORDS = ['ชาร์จ'];
 const KML_SOURCES = [
-  { file: 'green', lineKey: 'Green' },
-  { file: 'red',   lineKey: 'Red'   },
-  { file: 'blue',  lineKey: 'Blue'  },
+  { kml: GREEN_KML, lineKey: 'Green' },
+  { kml: RED_KML,   lineKey: 'Red'   },
+  { kml: BLUE_KML,  lineKey: 'Blue'  },
 ] as const;
 
 function dist(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -38,32 +40,23 @@ function parsePoints(kmlText: string, lineKey: string) {
 }
 
 export function useKmlStops(): BusStop[] {
-  const [stops, setStops] = useState<BusStop[]>([]);
-
-  useEffect(() => {
-    Promise.all(
-      KML_SOURCES.map(src =>
-        getKml(src.file).then(kml => parsePoints(kml, src.lineKey)).catch(() => [])
-      )
-    ).then(results => {
-      const merged: BusStop[] = [];
-      for (const s of results.flat()) {
-        const dir = s.name.includes('ขาไป') ? 'go' : s.name.includes('ขากลับ') ? 'back' : null;
-        const existing = merged.find(m => {
-          if (dist(m.lat, m.lng, s.lat, s.lng) >= 50) return false;
-          const mDir = m.name.includes('ขาไป') ? 'go' : m.name.includes('ขากลับ') ? 'back' : null;
-          if (dir !== null && mDir !== null && dir !== mDir) return false;
-          return true;
-        });
-        if (existing) {
-          if (!existing.lines.includes(s.lineKey)) existing.lines.push(s.lineKey);
-        } else {
-          merged.push({ id: s.name.slice(0, 30), name: s.name, lat: s.lat, lng: s.lng, lines: [s.lineKey] });
-        }
+  return useMemo(() => {
+    const allPoints = KML_SOURCES.flatMap(src => parsePoints(src.kml, src.lineKey));
+    const merged: BusStop[] = [];
+    for (const s of allPoints) {
+      const dir = s.name.includes('ขาไป') ? 'go' : s.name.includes('ขากลับ') ? 'back' : null;
+      const existing = merged.find(m => {
+        if (dist(m.lat, m.lng, s.lat, s.lng) >= 50) return false;
+        const mDir = m.name.includes('ขาไป') ? 'go' : m.name.includes('ขากลับ') ? 'back' : null;
+        if (dir !== null && mDir !== null && dir !== mDir) return false;
+        return true;
+      });
+      if (existing) {
+        if (!existing.lines.includes(s.lineKey)) existing.lines.push(s.lineKey);
+      } else {
+        merged.push({ id: s.name.slice(0, 30), name: s.name, lat: s.lat, lng: s.lng, lines: [s.lineKey] });
       }
-      setStops(merged);
-    });
+    }
+    return merged;
   }, []);
-
-  return stops;
 }

@@ -20,20 +20,27 @@ export interface AnimBus {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
+export type JunctionMap  = Map<string, number>; // color → junctionIdx in concatenated route
+export type TerminalMap  = Map<string, number>; // color → terminalIdx for circular loops
+
 export function useAnimatedBuses(
   buses:        BusData[],
   routes:       RouteMap,
   stopsByRoute: StopsByRoute,
   markerRefs:   React.RefObject<Map<string, BusMarkerHandle>>,
+  junctionMap?: JunctionMap,
+  terminalMap?: TerminalMap,
 ): {
-  positionRef:  React.RefObject<Map<string, AnimBus>>;
-  activeBusIds: Set<string>;
+  positionRef:   React.RefObject<Map<string, AnimBus>>;
+  activeBusIds:  Set<string>;
+  chargingBusIds: Set<string>;
 } {
   const motionRef   = useRef<Map<string, BusMotionState & { color: string; driver: string }>>(new Map());
   const routesRef   = useRef<RouteMap>(routes);
   const stopsRef    = useRef<StopsByRoute>(stopsByRoute);
   const positionRef = useRef<Map<string, AnimBus>>(new Map());
-  const [activeBusIds, setActiveBusIds] = useState<Set<string>>(new Set());
+  const [activeBusIds, setActiveBusIds]     = useState<Set<string>>(new Set());
+  const [chargingBusIds, setChargingBusIds] = useState<Set<string>>(new Set());
 
   useEffect(() => { routesRef.current = routes; },       [routes]);
   useEffect(() => { stopsRef.current  = stopsByRoute; }, [stopsByRoute]);
@@ -47,6 +54,7 @@ export function useAnimatedBuses(
   useEffect(() => {
     const map = motionRef.current;
     const activeIds = new Set<string>();
+    const chargingIds = new Set<string>();
 
     for (const bus of buses) {
       if (bus.latitude == null || bus.longitude == null) continue;
@@ -81,15 +89,55 @@ export function useAnimatedBuses(
       const gpsTs = bus.date
         ? new Date(bus.date.replace(' ', 'T') + '+07:00').getTime()
         : Date.now();
+      const routeColor = bus.color === 'Purple' ? (activeColor ?? bus.color) : bus.color;
+      const junction   = junctionMap?.get(routeColor);
+      const terminal   = terminalMap?.get(routeColor);
+
+      // Green bus at PKY before 14:00 = charging, not in service
+      const bangkokHour = parseInt(
+        new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok', hour: 'numeric', hour12: false }), 10,
+      );
+      const PKY_LAT = 19.02548, PKY_LNG = 99.89511;
+      const dlat = bus.latitude - PKY_LAT, dlng = bus.longitude - PKY_LNG;
+      const atPkyCharging = bus.color === 'Green' && bangkokHour < 14
+        && dlat * dlat + dlng * dlng < 5e-7;
+      if (atPkyCharging) chargingIds.add(bus.imei_id);
+      const effectiveAcc = (atPkyCharging ? 0 : (bus.acc ?? 0)) as 0 | 1;
+
+      // Charging at PKY before 14:00 — empty route holds bus at actual GPS coords
+      const motionRoute = atPkyCharging ? [] : route;
+      const motionStops = atPkyCharging ? [] : stops;
       const motion = onGpsUpdate(
         routeChanged ? null : prev,
-        route, stops,
+        motionRoute, motionStops,
         bus.latitude, bus.longitude,
         bus.bearing ?? 0,
         bus.speed   ?? 0,
         gpsTs,
-        bus.acc ?? 0,
+        effectiveAcc,
+        junction,
+        terminal,
       );
+
+      // DEBUG — remove after diagnosing reversal
+      if (bus.speed > 0) {
+        const dirFlipped = prev && prev.direction !== motion.direction;
+        const legByTerminal = motion.lastDepartedTerminal === 'junction' ? 'ขากลับ'
+          : motion.lastDepartedTerminal === 'start' ? 'ขาไป' : null;
+        const leg = junction !== undefined
+          ? (legByTerminal ?? (motion.routeIdx <= junction ? 'ขาไป(idx)' : 'ขากลับ(idx)'))
+          : '?';
+        const terminal = terminalMap?.get(routeColor);
+        const stopInfo = terminal !== undefined
+          ? ` stops=${motion.stopsVisited}`
+          : '';
+        console.log(
+          `[DIR] ${bus.imei_id}(${bus.color}) bear=${bus.bearing?.toFixed(0)}° spd=${bus.speed?.toFixed(1)} acc=${bus.acc}` +
+          ` idx=${motion.routeIdx}${junction !== undefined ? `/${junction}` : ''} leg=${leg} dir=${motion.direction > 0 ? '+1' : '-1'} lock=${motion.directionLock}` +
+          ` confirmed=${motion.confirmed}${stopInfo}` +
+          (dirFlipped ? ' *** FLIPPED ***' : ''),
+        );
+      }
 
       map.set(bus.imei_id, { ...motion, activeColor, color: bus.color, driver: bus.driver });
     }
@@ -102,6 +150,7 @@ export function useAnimatedBuses(
     }
 
     setActiveBusIds(new Set(activeIds));
+    setChargingBusIds(chargingIds);
   }, [buses]);
 
   // ── 60 fps loop: advanceFrame → imperative marker update (no React re-render) ──
@@ -159,5 +208,5 @@ export function useAnimatedBuses(
     return () => clearTimeout(timer);
   }, [markerRefs]);
 
-  return { positionRef, activeBusIds };
+  return { positionRef, activeBusIds, chargingBusIds };
 }

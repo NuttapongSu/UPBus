@@ -27,6 +27,8 @@ export interface BusMotionState {
   blendFromLat?:  number;   // predicted position just before GPS update arrived
   blendFromLng?:  number;
   blendStartMs?:  number;   // wall-clock timestamp (Date.now()) when blend started
+  stopsVisited:   number;   // circular routes: stops passed this lap (0=at terminal, 1=departed, 2..N=each stop passed)
+  lastDepartedTerminal?: 'start' | 'junction'; // two-leg routes: 'start'=departed หน้ามอ (ขาไป), 'junction'=departed PKY (ขากลับ)
 }
 
 // ─── Internal geometry ───────────────────────────────────────────────────────
@@ -83,6 +85,22 @@ function snapToRouteNear(
     distHi += haversine(route[hi].lat, route[hi].lng, route[hi + 1].lat, route[hi + 1].lng);
     hi++;
   }
+  let bestIdx = lo, bestT = 0, bestLat = lat, bestLng = lng, bestD = Infinity;
+  for (let i = lo; i <= hi; i++) {
+    const p = projectOnSeg(route[i], route[i + 1], lat, lng);
+    const d = haversine(lat, lng, p.lat, p.lng);
+    if (d < bestD) { bestD = d; bestIdx = i; bestT = p.t; bestLat = p.lat; bestLng = p.lng; }
+  }
+  return { idx: bestIdx, t: bestT, lat: bestLat, lng: bestLng };
+}
+
+// Snap within an explicit index range [lo, hi] — used to lock a bus to one
+// leg of a two-segment out-and-back route so it cannot jump to the parallel leg.
+function snapToRouteInRange(
+  route: RoutePoint[], lat: number, lng: number, lo: number, hi: number,
+): { idx: number; t: number; lat: number; lng: number } {
+  lo = Math.max(0, Math.min(lo, route.length - 2));
+  hi = Math.max(lo, Math.min(hi, route.length - 2));
   let bestIdx = lo, bestT = 0, bestLat = lat, bestLng = lng, bestD = Infinity;
   for (let i = lo; i <= hi; i++) {
     const p = projectOnSeg(route[i], route[i + 1], lat, lng);
@@ -236,13 +254,17 @@ function bearingOfSegment(route: RoutePoint[], idx: number, direction: 1 | -1): 
 export function onGpsUpdate(
   prev:             BusMotionState | null,
   route:            RoutePoint[],   // ordered route polyline
-  stops:            RoutePoint[],   // ordered stops in circular route order
+  stops:            RoutePoint[],   // ordered stops (used by advanceFrame stop-freeze)
   gpsLat:           number,
   gpsLng:           number,
   gpsBearing:       number,         // degrees 0–360 from GPS device
   gpsSpeedKph:      number,
   gpsTimestampMs:   number,         // Date.now()-equivalent when vendor GPS was captured
   acc:              0 | 1 = 0,     // ignition: 1 = engine on, 0 = engine off / charging
+  junctionIdx?:     number,         // index in route where Seg1 ends / Seg2 begins
+                                    // (for two-segment out-and-back routes like Green/Red)
+  terminalIdx?:     number,         // ~90% of route length for circular loops — prevents false wrap
+                                    // at the terminal where route start/end share the same location
 ): BusMotionState {
   // acc=0 (engine off) → hard stop regardless of GPS speed noise
   const speedMs = (acc === 1 && gpsSpeedKph >= 5) ? gpsSpeedKph / 3.6 : 0;
@@ -256,6 +278,8 @@ export function onGpsUpdate(
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
       confirmed: false,
       msElapsedSinceGps: 0,
+      stopsVisited: prev?.stopsVisited ?? 0,
+      lastDepartedTerminal: prev?.lastDepartedTerminal,
     };
   }
 
@@ -264,6 +288,17 @@ export function onGpsUpdate(
   // they're never read while confirmed is false (advanceFrame won't move the
   // bus, and the windowed-snap guard below only fires once prev.confirmed).
   if (prev === null) {
+    // Detect terminal proximity on first poll so second poll (first confirmation)
+    // can pick the correct leg via lastDepartedTerminal without needing GPS bearing.
+    let initLastDeparted: BusMotionState['lastDepartedTerminal'];
+    if (junctionIdx !== undefined && gpsSpeedKph >= 5) {
+      const TERM_M = 200;
+      if (haversine(gpsLat, gpsLng, route[junctionIdx].lat, route[junctionIdx].lng) < TERM_M) {
+        initLastDeparted = 'junction';
+      } else if (haversine(gpsLat, gpsLng, route[0].lat, route[0].lng) < TERM_M) {
+        initLastDeparted = 'start';
+      }
+    }
     return {
       routeIdx: 0, routeT: 0,
       direction: 1,
@@ -272,22 +307,95 @@ export function onGpsUpdate(
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
       confirmed: false,
       msElapsedSinceGps: 0,
+      stopsVisited: 0,
+      lastDepartedTerminal: initLastDeparted,
     };
   }
 
-  // Locality-biased snap: prefer the point near where the bus was last seen,
-  // falling back to a global search only when that's a much worse fit (route
-  // change, GPS glitch, or first confirmation after a cold-start hold). See
-  // snapToRouteNear for why. Guarded on prev.confirmed, not just prev's
-  // existence — an unconfirmed placeholder's routeIdx is meaningless and must
-  // never be used as a window anchor.
+  // ── Snap to route ────────────────────────────────────────────────────────────
+  // For routes with two one-way legs concatenated (e.g. Green ขาไป + ขากลับ),
+  // junctionIdx marks the boundary.  Leg assignment is driven by lastDepartedTerminal
+  // (which terminal the bus most recently left) rather than GPS bearing, which is
+  // unreliable at startup and when both legs share the same road near the terminal.
+  //
+  //   lastDepartedTerminal = 'start'    → ขาไป   (departed หน้ามอ, idx 0 .. junctionIdx)
+  //   lastDepartedTerminal = 'junction' → ขากลับ (departed PKY,     idx junctionIdx+1 .. end)
   const SNAP_WINDOW_M = 300;
+  const TERMINAL_M = 200;
   let gpsSnapped = snapToRoute(route, gpsLat, gpsLng);
+
+  // Pre-compute terminal proximity and update departure tracking before both confirmed
+  // and first-confirmation paths so both can use the same lastDepartedTerminal value.
+  let nearPky = false;
+  let nearHmo = false;
+  let lastDepartedTerminal = prev?.lastDepartedTerminal;
+  if (junctionIdx !== undefined) {
+    nearPky = haversine(gpsLat, gpsLng, route[junctionIdx].lat, route[junctionIdx].lng) < TERMINAL_M;
+    nearHmo = haversine(gpsLat, gpsLng, route[0].lat, route[0].lng) < TERMINAL_M;
+    if (gpsSpeedKph >= 5 && nearPky) lastDepartedTerminal = 'junction';
+    else if (gpsSpeedKph >= 5 && nearHmo) lastDepartedTerminal = 'start';
+  }
+
   if (prev.confirmed) {
+    // Windowed snap first
     const windowed  = snapToRouteNear(route, gpsLat, gpsLng, prev.routeIdx, SNAP_WINDOW_M);
     const windowedD = haversine(gpsLat, gpsLng, windowed.lat, windowed.lng);
     const globalD   = haversine(gpsLat, gpsLng, gpsSnapped.lat, gpsSnapped.lng);
     if (windowedD <= globalD + 30) gpsSnapped = windowed;
+
+    // Terminal zone forcing: applies only when bus is moving (≥5 km/h).
+    // Stopped at terminal = still dwell at end of current leg (waiting for queue).
+    // Moving at terminal = departing → force to the correct next leg.
+    if (junctionIdx !== undefined) {
+      if (gpsSpeedKph >= 5 && nearPky) {
+        // Departing PKY → ขากลับ (leg 2)
+        gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, junctionIdx + 1, route.length - 2);
+      } else if (gpsSpeedKph >= 5 && nearHmo) {
+        // Departing หน้ามอ → ขาไป (leg 1)
+        gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, 0, junctionIdx);
+      } else if (!nearPky && !nearHmo) {
+        // Mid-route: lock to the leg the bus last departed from.
+        // lastDepartedTerminal takes priority; fall back to routeIdx position if no history.
+        const onSecondLeg = lastDepartedTerminal === 'junction'
+          || (lastDepartedTerminal === undefined && prev.routeIdx > junctionIdx);
+        const lo = onSecondLeg ? junctionIdx + 1 : 0;
+        const hi = onSecondLeg ? route.length - 2 : junctionIdx;
+        if (gpsSnapped.idx < lo || gpsSnapped.idx > hi) {
+          gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, lo, hi);
+        }
+      }
+      // nearPky/nearHmo && speed<5 → bus is dwelling at terminal, keep current snap
+    }
+
+    if (terminalIdx !== undefined && prev.routeIdx > terminalIdx) {
+      // Bus is in the terminal approach zone of a circular loop.
+      // Only allow lap wrap when the bus has passed all stops this circuit.
+      // Without this guard, a bus near ประตูสาม at the START of a lap could
+      // falsely snap back to idx=0 before completing the route.
+      const fullLapCompleted = stops.length < 2 || (prev.stopsVisited ?? 0) >= stops.length;
+      if (gpsSnapped.idx < 10) {
+        const newLapBearing = bearingOfSegment(route, Math.max(0, gpsSnapped.idx), 1);
+        const bearingOk = gpsSpeedKph >= 5 && angleDiff(gpsBearing, newLapBearing) < 90;
+        if (!fullLapCompleted || !bearingOk) {
+          gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, terminalIdx, route.length - 2);
+        }
+      } else if (gpsSnapped.idx < terminalIdx) {
+        gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, terminalIdx, route.length - 2);
+      }
+    }
+  } else if (junctionIdx !== undefined) {
+    // First confirmation: use terminal proximity then lastDepartedTerminal.
+    // GPS bearing removed — unreliable at startup and on shared road sections near terminals.
+    if (nearPky) {
+      gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, junctionIdx + 1, route.length - 2);
+    } else if (nearHmo) {
+      gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, 0, junctionIdx);
+    } else if (lastDepartedTerminal === 'junction') {
+      gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, junctionIdx + 1, route.length - 2);
+    } else if (lastDepartedTerminal === 'start') {
+      gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, 0, junctionIdx);
+    }
+    // else: mid-route with no terminal history → global snap already done
   }
 
   // ── Direction detection with hysteresis ────────────────────────────────────
@@ -301,33 +409,26 @@ export function onGpsUpdate(
   let direction:     1 | -1 = prevDir;
   let directionLock: number  = prevLock;
 
-  if (speedMs === 0 || gpsSpeedKph < 1.8 || stops.length < 3) {
-    // Bus stationary or not enough data — keep current direction, maintain lock.
+  if (junctionIdx !== undefined) {
+    // Two-leg route (ขาไป + ขากลับ): direction is always +1.
+    // The leg (ขาไป vs ขากลับ) is encoded in routeIdx — no bearing detection needed.
+    direction     = 1;
+    directionLock = MAX_DIR_LOCK;
+  } else if (speedMs === 0 || gpsSpeedKph < 1.8) {
+    // Bus stationary or very slow — keep current direction, maintain lock.
     directionLock = Math.min(MAX_DIR_LOCK, prevLock + 1);
   } else {
-    const n = stops.length;
-    let nearestIdx = 0, nearestD = Infinity;
-    for (let i = 0; i < n; i++) {
-      const d = haversine(gpsLat, gpsLng, stops[i].lat, stops[i].lng);
-      if (d < nearestD) { nearestD = d; nearestIdx = i; }
-    }
-    const f1 = stops[(nearestIdx+1)%n], f2 = stops[(nearestIdx+2)%n];
-    const b1 = stops[(nearestIdx-1+n)%n], b2 = stops[(nearestIdx-2+n)%n];
-    const gps = { lat: gpsLat, lng: gpsLng };
-    const sf = angleDiff(gpsBearing, bearingTo(gps, f1)) + angleDiff(gpsBearing, bearingTo(gps, f2));
-    const sb = angleDiff(gpsBearing, bearingTo(gps, b1)) + angleDiff(gpsBearing, bearingTo(gps, b2));
-    const detectedDir: 1 | -1 = sf <= sb ? 1 : -1;
+    // Circular route: compare GPS bearing to route segment bearing.
+    const segBearing = bearingOfSegment(route, gpsSnapped.idx, 1);
+    const detectedDir: 1 | -1 = angleDiff(gpsBearing, segBearing) < 90 ? 1 : -1;
 
     if (detectedDir === prevDir) {
-      // Consistent — build lock (more evidence = harder to flip later).
       direction     = prevDir;
       directionLock = Math.min(MAX_DIR_LOCK, prevLock + 1);
     } else if (prevLock > 0) {
-      // Opposite detected but lock still holds — resist the flip, drain one count.
       direction     = prevDir;
       directionLock = prevLock - 1;
     } else {
-      // Lock fully drained: accept the flip.
       direction     = detectedDir;
       directionLock = 1;
     }
@@ -370,6 +471,36 @@ export function onGpsUpdate(
     }
   }
 
+  // ── Stop counter (circular routes only) ──────────────────────────────────────
+  // stopsVisited tracks progress around the loop this lap:
+  //   0 = at terminal (ประตูสาม) or just arrived
+  //   1 = departed terminal (ประตูสาม counts as stop 1)
+  //   2..N = each subsequent stop passed in route order
+  // Full lap = stopsVisited >= stops.length → reset to 0 on next terminal arrival
+  const STOP_ZONE_M = 80;
+  let stopsVisited = prev?.stopsVisited ?? 0;
+
+  if (terminalIdx !== undefined && stops.length >= 2) {
+    const terminal   = stops[0]; // ประตูสาม = first stop by arc-length
+    const atTerminal = haversine(gpsLat, gpsLng, terminal.lat, terminal.lng) < STOP_ZONE_M;
+
+    if (atTerminal) {
+      if (stopsVisited >= stops.length) {
+        // Completed full lap → reset for next departure
+        stopsVisited = 0;
+      } else if (stopsVisited === 0 && gpsSpeedKph >= 5) {
+        // Departing ประตูสาม → count it as stop 1
+        stopsVisited = 1;
+      }
+    } else if (stopsVisited >= 1 && stopsVisited < stops.length) {
+      // Mid-route: check if we've reached the next expected stop
+      const nextStop = stops[stopsVisited]; // stops[1] → stops[N-1]
+      if (haversine(gpsLat, gpsLng, nextStop.lat, nextStop.lng) < STOP_ZONE_M) {
+        stopsVisited++;
+      }
+    }
+  }
+
   // acc=0 (engine off) → use raw GPS coords (not snapped) so bus shows at actual parking/charging spot
   const usePrevPos = acc === 1 && prev != null;
 
@@ -397,6 +528,8 @@ export function onGpsUpdate(
     blendFromLat: shouldBlend ? prevLat : undefined,
     blendFromLng: shouldBlend ? prevLng : undefined,
     blendStartMs: shouldBlend ? Date.now() : undefined,
+    stopsVisited,
+    lastDepartedTerminal,
   };
 }
 
@@ -409,7 +542,7 @@ export function advanceFrame(
   intersections?: IntersectionPoint[],
 ): BusMotionState {
   const msElapsedSinceGps = state.msElapsedSinceGps + dtMs;
-  if (route.length < 2) return { ...state, msElapsedSinceGps };
+  if (route.length < 2) return { ...state, msElapsedSinceGps }; // stopsVisited preserved via ...state
 
   // First-ever fix hasn't been confirmed by a second poll yet — hold in
   // place rather than dead-reckoning from a placeholder route position.

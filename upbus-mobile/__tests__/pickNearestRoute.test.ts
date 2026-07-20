@@ -17,7 +17,7 @@ test('advanceFrame freezes position inside an intersection radius', () => {
   const state: BusMotionState = {
     routeIdx: 0, routeT: 0, direction: 1, directionLock: 0,
     speedMs: 5, multiplier: 1, targetMultiplier: 1,
-    lat: 19.0, lng: 99.0, bearing: 0, confirmed: true, msElapsedSinceGps: 0,
+    lat: 19.0, lng: 99.0, bearing: 0, confirmed: true, msElapsedSinceGps: 0, stopsVisited: 0,
   };
   const intersections = [{ lat: 19.0, lng: 99.0, name: 'test', radiusM: 50 }];
   const halted = advanceFrame(state, routeA, 1000, [], intersections);
@@ -29,7 +29,7 @@ test('advanceFrame moves normally when no intersections are passed', () => {
   const state: BusMotionState = {
     routeIdx: 0, routeT: 0, direction: 1, directionLock: 0,
     speedMs: 5, multiplier: 1, targetMultiplier: 1,
-    lat: 19.0, lng: 99.0, bearing: 0, confirmed: true, msElapsedSinceGps: 0,
+    lat: 19.0, lng: 99.0, bearing: 0, confirmed: true, msElapsedSinceGps: 0, stopsVisited: 0,
   };
   const moved = advanceFrame(state, routeA, 1000, []);
   expect(moved.lat !== state.lat || moved.lng !== state.lng).toBe(true);
@@ -46,7 +46,7 @@ test('advanceFrame never moves an unconfirmed state, regardless of speed or elap
   const state: BusMotionState = {
     routeIdx: 0, routeT: 0, direction: 1, directionLock: 0,
     speedMs: 20, multiplier: 1, targetMultiplier: 1,
-    lat: 19.0005, lng: 99.0002, bearing: 0, confirmed: false, msElapsedSinceGps: 0,
+    lat: 19.0005, lng: 99.0002, bearing: 0, confirmed: false, msElapsedSinceGps: 0, stopsVisited: 0,
   };
   const moved = advanceFrame(state, routeA, 5000, []);
   expect(moved.lat).toBe(state.lat);

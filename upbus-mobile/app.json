@@ -2,18 +2,14 @@
   "expo": {
     "name": "UP Smart Transit",
     "slug": "upbus-mobile",
-    "version": "1.0.0",
+    "version": "1.2.2",
     "orientation": "portrait",
     "scheme": "upbus",
     "userInterfaceStyle": "dark",
     "icon": "./assets/images/icon.png",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#0f0f1a"
-    },
     "ios": {
       "bundleIdentifier": "th.ac.up.bustransit",
-      "buildNumber": "3",
+      "buildNumber": "13",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "ใช้ตำแหน่งเพื่อหาป้ายรถใกล้คุณ",
         "NSCameraUsageDescription": "แอปขอใช้กล้องเพื่อถ่ายภาพประกอบการแจ้งปัญหา เช่น สภาพรถหรือพฤติกรรมคนขับ ในหน้าแจ้งเรื่องร้องเรียน",
@@ -22,15 +18,23 @@
       }
     },
     "android": {
-      "package": "th.ac.up.bustransit",
+      "package": "up.ac.th_smarttransit",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAz2lobS3wNZdURKMyC1Dfvxc2BoefXLeo"
+        }
+      },
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0f0f1a"
+        "backgroundColor": "#ffffff"
       },
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -59,6 +63,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "97135214-1cb4-4c69-8987-0d4bb9bd4909"
+      }
     }
   }
 }

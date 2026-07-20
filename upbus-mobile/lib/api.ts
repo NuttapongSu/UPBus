@@ -1,6 +1,6 @@
 const BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:5000';
 
-export type BusColor = 'Red' | 'Green' | 'Blue' | 'Purple';
+export type BusColor = 'Red' | 'Green' | 'Blue' | 'Purple' | 'Orange';
 
 export interface BusData {
   imei_id: string;
@@ -41,7 +41,12 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   return res.json();
 }
 
-export const getBuses = () => apiFetch<BusData[]>('/api/buses');
+export const getBuses = () =>
+  apiFetch<BusData[]>('/api/buses').then(data => {
+    const t = new Date().toLocaleTimeString('th-TH', { hour12: false });
+    console.log(`[Poll] buses updated: ${data.length} คัน | ${t}`);
+    return data;
+  });
 export const getKml = (line: string): Promise<string> =>
   fetch(`${BASE}/api/kml/${line}`).then(r => {
     if (!r.ok) throw new Error(`KML ${line} → ${r.status}`);
@@ -51,8 +56,16 @@ export const getStops = () => apiFetch<BusStop[]>('/api/stops');
 export const getSustainability = () => apiFetch<SustainabilityData>('/api/sustainability');
 
 export async function postComplaint(form: FormData): Promise<void> {
-  const res = await fetch(`${BASE}/api/complaints`, { method: 'POST', body: form });
-  if (!res.ok) throw new Error(`Complaint submit failed: ${res.status}`);
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${BASE}/api/complaints`);
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Complaint submit failed: ${xhr.status} ${xhr.responseText}`));
+    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.send(form);
+  });
 }
 
 export async function registerPushToken(

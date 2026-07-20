@@ -1,0 +1,584 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document id="11YOqDiaiAJA0uMmouWC4szARGgGZe7m9">
+	<name>รร.สาธิต - PKY</name>
+	<gx:CascadingStyle kml:id="__managed_style_16C6CF48AF402EA86E2E_highlight">
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=db4436&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+				<scale>0</scale>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>6</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<text><![CDATA[<h3>$[name]</h3>]]></text>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_16C6CF48AF402EA86E2E_normal">
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=db4436&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+				<scale>0</scale>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>4</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<text><![CDATA[<h3>$[name]</h3>]]></text>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_2C6FA32BBD402EA86E2C_highlight">
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=db4436&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+				<scale>0</scale>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>6</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_2C6FA32BBD402EA86E2C_normal">
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=db4436&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+				<scale>0</scale>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>4</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_0A8CAC9BB7402EA86E2C_highlight">
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=db4436&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+				<scale>0</scale>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>6</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<text><![CDATA[<div>&lt;h3&gt;$[name]&lt;/h3&gt;<br></div>]]></text>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_17EB43A557402EA86E2C_normal">
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>4</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_04E280C21C402EA86E2B">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_04E280C21C402EA86E2B_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_04E280C21C402EA86E2B_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<gx:CascadingStyle kml:id="__managed_style_04E280C21C402EA86E2B_highlight">
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=db4436&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+				<scale>0</scale>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>6</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<text><![CDATA[<div>&lt;h3&gt;$[name]&lt;/h3&gt;<br></div>]]></text>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_007AB8C878402EA86E2E_highlight">
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff5252ff</color>
+				<width>9.6375</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_0A8CAC9BB7402EA86E2C_normal">
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=db4436&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+				<scale>0</scale>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>4</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<text><![CDATA[<div>&lt;h3&gt;$[name]&lt;/h3&gt;<br></div>]]></text>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_007AB8C878402EA86E2E_normal">
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff5252ff</color>
+				<width>6.425</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_04E280C21C402EA86E2B_normal">
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=db4436&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+				<scale>0</scale>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>4</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+				<text><![CDATA[<div>&lt;h3&gt;$[name]&lt;/h3&gt;<br></div>]]></text>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_007AB8C878402EA86E2E">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_007AB8C878402EA86E2E_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_007AB8C878402EA86E2E_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<StyleMap id="__managed_style_2C6FA32BBD402EA86E2C">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_2C6FA32BBD402EA86E2C_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_2C6FA32BBD402EA86E2C_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<gx:CascadingStyle kml:id="__managed_style_17EB43A557402EA86E2C_highlight">
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>6</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_16C6CF48AF402EA86E2E">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_16C6CF48AF402EA86E2E_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_16C6CF48AF402EA86E2E_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<StyleMap id="__managed_style_0A8CAC9BB7402EA86E2C">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<StyleMap id="__managed_style_17EB43A557402EA86E2C">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_17EB43A557402EA86E2C_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_17EB43A557402EA86E2C_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Folder id="0886EB476B402E751774">
+		<name>สายประตู2</name>
+		<open>1</open>
+		<styleUrl>#__managed_style_17EB43A557402EA86E2C</styleUrl>
+		<Folder id="08BDD4980C402E61BAF6">
+			<name>ขาไป</name>
+			<open>1</open>
+			<styleUrl>#__managed_style_17EB43A557402EA86E2C</styleUrl>
+			<Placemark id="098FDCFB14402E40AF96">
+				<name>ขาไป(ประตู2 -PKY)</name>
+				<LookAt>
+					<longitude>99.89517599174086</longitude>
+					<latitude>19.025544222204</latitude>
+					<altitude>493.1554316821016</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>269.264810280547</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_007AB8C878402EA86E2E</styleUrl>
+				<LineString>
+					<coordinates>
+						99.88374658418003,19.03800159516403,0 99.88405080091532,19.0384307108821,0 99.88430942298923,19.03844697706255,0 99.88450231662941,19.03844343442096,0 99.88461906715695,19.0384442250764,0 99.88474553975782,19.03844323682419,0 99.88488260387707,19.03841802606992,0 99.88505899556853,19.0383552040126,0 99.88518683277358,19.03830543236954,0 99.88533180595265,19.03821776480762,0 99.88546286010666,19.0381120032899,0 99.88557103143231,19.03801597112127,0 99.88563860306732,19.03793412536583,0 99.88562082071617,19.03781592545424,0 99.88559898730952,19.0376937712688,0 99.88553003172076,19.0371991133618,0 99.88549199811521,19.03695070624599,0 99.88541392540181,19.03644035694392,0 99.88537019388235,19.03614202382073,0 99.88534846007664,19.03595495628555,0 99.88532289397182,19.03581923049663,0 99.88531328801011,19.03569464057993,0 99.88531822751411,19.03560731757238,0 99.88533691010019,19.03548166052708,0 99.88538633396962,19.0353253192116,0 99.88543170516731,19.03519527186752,0 99.88559032872995,19.03482268082127,0 99.88564668664293,19.03466039806131,0 99.88574550823876,19.03442668731427,0 99.88578100891131,19.03433874416792,0 99.88586076656911,19.03429096537984,0 99.88600061341094,19.03426627180104,0 99.88615966240828,19.03422593125281,0 99.88629184130178,19.03419690859671,0 99.88647998840189,19.03411873069826,0 99.88697494018341,19.0338442349715,0 99.88754024807358,19.0335747831083,0 99.88831406762394,19.03322756178801,0 99.88876275601957,19.0330439259026,0 99.88886830419717,19.03299989382626,0 99.88899442164902,19.03295362646572,0 99.88909245820905,19.03293814349001,0 99.88919249542172,19.03293436160502,0 99.88935560324025,19.03294360746212,0 99.88958923225638,19.03296067384601,0 99.88991873971594,19.03300766370084,0 99.89046022224052,19.03308732123927,0 99.89060300082519,19.03310969657737,0 99.89087837378447,19.03315046944374,0 99.89105467189526,19.03316600305211,0 99.89119559351815,19.03315596664167,0 99.89141652101436,19.03311527408745,0 99.89210870009698,19.0329117401437,0 99.89222643859665,19.03285515580214,0 99.89234889264787,19.0327615591471,0 99.89286584286218,19.03232254062518,0 99.89293606154786,19.03225235897821,0 99.89303817430958,19.03216423138436,0 99.89321631943866,19.03207033399987,0 99.89337116104052,19.03199338281528,0 99.89346377853389,19.03194740340066,0 99.89357570980454,19.03188031442313,0 99.89366584575204,19.03182202243636,0 99.89374865443715,19.03171612278004,0 99.89378674081121,19.03162492034289,0 99.89380814557944,19.0315454896689,0 99.89380821959219,19.03144003694293,0 99.8938111891257,19.0313384623114,0 99.89383147020027,19.03117277571529,0 99.89387341944084,19.0310250623555,0 99.89394202066185,19.03088765355147,0 99.89404641932924,19.03075493463347,0 99.89427810967919,19.03045526694001,0 99.89440086902029,19.03027703043358,0 99.89456003214377,19.03007833921059,0 99.89467830135439,19.02992006911838,0 99.89489528887751,19.02959492496378,0 99.89504872528708,19.02941339637376,0 99.89516773890013,19.02936742616508,0 99.89536165789555,19.02936517335189,0 99.89553496493048,19.02945464989065,0 99.8956472059235,19.02950663103545,0 99.8957909360923,19.02958835952943,0 99.89623059389582,19.02982275081187,0 99.89651916292154,19.02998215661095,0 99.89762886458874,19.03058646589058,0 99.89789642607406,19.03074283660456,0 99.89797574091463,19.03077051430689,0 99.89802576650422,19.03076885191444,0 99.89810651363553,19.03075855342183,0 99.89819044818792,19.03072047119806,0 99.89826747564908,19.03065283379683,0 99.89830721497324,19.03057825494918,0 99.89831860954244,19.03049858633603,0 99.89830183476444,19.03041020422584,0 99.89825091911501,19.03031472595517,0 99.89817697777677,19.03026155491692,0 99.89811132973028,19.03021996589302,0 99.89804695600685,19.03022073925172,0 99.89798680742362,19.03020929282043,0 99.89789866584151,19.03015813336543,0 99.89780043643562,19.03009925367595,0 99.89766447649455,19.03002235994458,0 99.89736718262351,19.02985437520363,0 99.89695372745589,19.02962902251676,0 99.89602907724262,19.02906676625737,0 99.89579525248433,19.02889877605056,0 99.89564010313106,19.02881273625589,0 99.89549582856999,19.02872016098726,0 99.89535812225992,19.02860222177917,0 99.89527948967483,19.02846940514449,0 99.89528483621797,19.02829129377546,0 99.89538186107799,19.0281178262212,0 99.89549981220323,19.02792055148779,0 99.8955874779132,19.02775947005829,0 99.89565603009936,19.02760117804823,0 99.89568160034864,19.02743348489374,0 99.89564389488612,19.02717540233767,0 99.8956163933647,19.02693470839399,0 99.89558013011494,19.02663808220543,0 99.89552216718873,19.02623593016471,0 99.89547838627659,19.02591446546274,0 99.89546898705771,19.02584296596501,0 99.89544063246279,19.02577010252438,0 99.89539306267936,19.02571588990027,0 99.89533537778134,19.02567248585128,0 99.89525066933936,19.02564679956969,0 99.89518382197004,19.02563750451342,0 99.89508556047655,19.02562083495386,0 99.89510474779443,19.02552385645054,0 99.8951212248048,19.02539419330053,0 
+					</coordinates>
+				</LineString>
+			</Placemark>
+		</Folder>
+		<Folder id="04B6672372402E724FE1">
+			<name>ขากลับ</name>
+			<open>1</open>
+			<styleUrl>#__managed_style_17EB43A557402EA86E2C</styleUrl>
+			<Placemark id="0425FC489E402E54075C">
+				<name>ขากลับ(PKY-ประตูสอง)</name>
+				<LookAt>
+					<longitude>99.88405258778333</longitude>
+					<latitude>19.03800187500909</latitude>
+					<altitude>501.2639515096912</altitude>
+					<heading>359.9999991404968</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>253.3278234279715</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_007AB8C878402EA86E2E</styleUrl>
+				<LineString>
+					<coordinates>
+						99.89500746470381,19.02568979427765,0 99.89518839942333,19.02570409621946,0 99.8953039029355,19.02572769612649,0 99.89535432872684,19.02574024380433,0 99.89538165525263,19.0257625760207,0 99.89540146812841,19.02579685468859,0 99.89542132504333,19.0258330962303,0 99.89543280990168,19.02591373039553,0 99.89544388224044,19.02599967651794,0 99.89556172351578,19.02690736048758,0 99.89558484303716,19.0270744840834,0 99.89562326835804,19.02740836574026,0 99.89562398283012,19.02744829372728,0 99.89563065917883,19.02749993208368,0 99.89562384081221,19.02755344712503,0 99.8956143140593,19.02761199531638,0 99.89558148522752,19.02768831945664,0 99.89553031124539,19.02777871895195,0 99.89526609838336,19.0282618221375,0 99.89519665771263,19.02848227265025,0 99.89510960494384,19.02872159617619,0 99.89505878452069,19.02883718269872,0 99.89503250382963,19.02891343594033,0 99.89500011903917,19.02903936329047,0 99.89498988866654,19.02918123876464,0 99.89493725611395,19.02933082145098,0 99.89487339058364,19.02943422841302,0 99.89467758889566,19.02974490479581,0 99.89453612234126,19.02996131300419,0 99.89435545439575,19.0302068713647,0 99.89427523372744,19.03033708856531,0 99.89394364762026,19.03077369777099,0 99.89382721175468,19.03096154845359,0 99.89377645500844,19.03108836412873,0 99.89373983158298,19.03124496102409,0 99.89373208569853,19.03135284671156,0 99.89372995066557,19.0314854771668,0 99.89372395973814,19.03158489275161,0 99.89369678633537,19.0316643660268,0 99.89363508924538,19.03173250706551,0 99.89355493034621,19.03178592804946,0 99.89342480568934,19.03185705223564,0 99.89325423605659,19.03195638893194,0 99.89309692022231,19.03203669733083,0 99.89297096544514,19.03210478490448,0 99.89285703832628,19.03221153355356,0 99.89269470443008,19.03237954659483,0 99.89249069767838,19.0325376204533,0 99.89240820938092,19.03262298391729,0 99.89232695077655,19.03269794533674,0 99.89222243691006,19.03276618433424,0 99.89205820848525,19.03285293035004,0 99.89189055433205,19.03289535149158,0 99.8917878091496,19.03294203909315,0 99.89157374840003,19.03299376700947,0 99.89142104285847,19.03303842812664,0 99.89128426499248,19.03307369354501,0 99.89111100638533,19.03309476332735,0 99.89083263425958,19.03307458241199,0 99.89059743712949,19.03304086561351,0 99.89034370482528,19.03300945139909,0 99.89003725638267,19.0329653043871,0 99.88973823972539,19.03291305688654,0 99.88950833004733,19.0328907536329,0 99.88930679615363,19.03287577669349,0 99.8890962137534,19.03288281720246,0 99.8889001647976,19.0329286601588,0 99.88863917218426,19.03302342265307,0 99.8868127739313,19.03384164818589,0 99.88646492511987,19.03401673535854,0 99.88632596478526,19.03408298953789,0 99.88624622783186,19.03411383674497,0 99.8860937978567,19.03416166345136,0 99.88575863359699,19.03423708602534,0 99.88531679209034,19.03434546841701,0 99.88511258543826,19.03439299247472,0 99.88486204092561,19.03442928652921,0 99.88466244562041,19.03445835780227,0 99.88435365663798,19.03447164830357,0 99.88423904053101,19.03447333597937,0 99.88414804119958,19.03446674681264,0 99.88404553163095,19.0345578755516,0 99.88401885849477,19.03470852274721,0 99.88404049013053,19.03498862622263,0 99.88408689314005,19.03515026289387,0 99.88415149785131,19.03529103330785,0 99.88416840349491,19.03533920601283,0 99.88428848290133,19.03549346636028,0 99.88441617078161,19.03560489304711,0 99.88466148115162,19.03572742944696,0 99.88487917302962,19.0358052342796,0 99.88524749492225,19.03595045222763,0 99.88528293916507,19.03598693666731,0 99.88531038408357,19.03612523921261,0 99.88547221913548,19.03723468254493,0 99.88555818565675,19.03790774728216,0 99.88553516178114,19.03795233504847,0 99.88539988000963,19.03808777594475,0 99.88528503914934,19.03818393184861,0 99.88517793373984,19.03824714618315,0 99.88501066701217,19.03831223190349,0 99.88483870748495,19.03836486466089,0 99.88470602367821,19.0383824229073,0 99.88424886549046,19.0383799050688,0 99.88410021909523,19.0383667933872,0 99.88402931766326,19.03835037204915,0 99.88396812978897,19.03825392798879,0 99.88388595360168,19.03812545921905,0 99.88381814649459,19.03804042488115,0 99.8837714941651,19.03798493051888,0 
+					</coordinates>
+				</LineString>
+			</Placemark>
+		</Folder>
+		<Folder id="02EB4D047C402E788894">
+			<name>จุดจอด</name>
+			<open>1</open>
+			<styleUrl>#__managed_style_17EB43A557402EA86E2C</styleUrl>
+			<Placemark id="5D0BE29D34000006">
+				<name>จุดจอดรถประตูสอง</name>
+				<styleUrl>#__managed_style_04E280C21C402EA86E2B</styleUrl>
+				<Point>
+					<coordinates>99.883652,19.038062,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="02CC9E5165402E588D1B">
+				<name>สถานีหน้าอาคารสงวนเสริมศรี(ขาไป)</name>
+				<LookAt>
+					<longitude>99.88640177660656</longitude>
+					<latitude>19.03415421868581</latitude>
+					<altitude>496.5071420762269</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>258.0846316773751</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.886346,19.034292,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="5D0BE29D34000003">
+				<name>สถานีหน้าเวียงพะเยา(ขาไป)</name>
+				<styleUrl>#__managed_style_04E280C21C402EA86E2B</styleUrl>
+				<Point>
+					<coordinates>99.890860,19.033257,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="5D0BE29D34000002">
+				<name>สถานีหน้าอาคาร ๙๙ ปี(ขาไป)</name>
+				<styleUrl>#__managed_style_04E280C21C402EA86E2B</styleUrl>
+				<Point>
+					<coordinates>99.893448,19.032077,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="0BF2D54187402E426BA1">
+				<name>สถานีหน้าคณะศิลปศาสตร์</name>
+				<LookAt>
+					<longitude>99.89552798136542</longitude>
+					<latitude>19.02946249701108</latitude>
+					<altitude>491.7804996393186</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>117.0074748479237</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.895732,19.029681,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="0F2ABE3119402E432C54">
+				<name>สถานีหน้าคณะวิทยาศาสตร์</name>
+				<LookAt>
+					<longitude>99.89774682367599</longitude>
+					<latitude>19.03070376015712</latitude>
+					<altitude>500.5475657660169</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>108.2404204132945</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.897597,19.030695,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="0171024559402E459D1F">
+				<name>สถานีหน้าหอประชุมพญางำเมือง</name>
+				<LookAt>
+					<longitude>99.8976817855573</longitude>
+					<latitude>19.03007929376302</latitude>
+					<altitude>499.5804535798746</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>109.2075405129799</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.897748,19.029944,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="06E2663135402E54C83E">
+				<name>สถานีโรงเรียนสาธิตมหาวิทยาลัยพะเยา</name>
+				<LookAt>
+					<longitude>99.88368602846764</longitude>
+					<latitude>19.03506648501906</latitude>
+					<altitude>516.1864143468084</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>238.4053664545718</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_2C6FA32BBD402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.884051,19.035348,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="5D0BE29D34000004">
+				<name>สถานีหน้าโรงเรียนสาธิตมหาวิทยาลัยพะเยา</name>
+				<styleUrl>#__managed_style_04E280C21C402EA86E2B</styleUrl>
+				<Point>
+					<coordinates>99.884246,19.034365,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="0AD93FDD5F402E595900">
+				<name>สถานีหน้าอาคารสงวนเสริมศรี(ขากลับ)</name>
+				<LookAt>
+					<longitude>99.88640177660656</longitude>
+					<latitude>19.03415421868581</latitude>
+					<altitude>496.5071420762269</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>258.0846316773751</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.886207,19.034012,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="0238F6304C402E5BF001">
+				<name>สถานีหน้าเวียงพะเยา(ขากลับ)</name>
+				<LookAt>
+					<longitude>99.89085219804917</longitude>
+					<latitude>19.03315138602208</latitude>
+					<altitude>482.4272458722069</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>272.1645365588484</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.890895,19.032971,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="0297895430402E5D5F71">
+				<name>สถานีหน้าอาคาร ๙๙ ปี(ขากลับ)</name>
+				<LookAt>
+					<longitude>99.89367817027345</longitude>
+					<latitude>19.03198666176191</latitude>
+					<altitude>484.9833947992344</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>269.6084181910555</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.893220,19.031849,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="06A29A2A74402E463244">
+				<name>สถานีหน้าตึกอธิการบดี</name>
+				<LookAt>
+					<longitude>99.89611699538119</longitude>
+					<latitude>19.02914226982073</latitude>
+					<altitude>489.3381485816424</altitude>
+					<heading>0</heading>
+					<tilt>0</tilt>
+					<gx:fovy>35</gx:fovy>
+					<range>119.4498375580588</range>
+					<altitudeMode>absolute</altitudeMode>
+				</LookAt>
+				<styleUrl>#__managed_style_0A8CAC9BB7402EA86E2C</styleUrl>
+				<Point>
+					<coordinates>99.896108,19.028986,0</coordinates>
+				</Point>
+			</Placemark>
+			<Placemark id="5D0BE29D34000005">
+				<name>จุดจอดรถบัสPKY</name>
+				<styleUrl>#__managed_style_16C6CF48AF402EA86E2E</styleUrl>
+				<Point>
+					<coordinates>99.895234,19.025409,0</coordinates>
+				</Point>
+			</Placemark>
+		</Folder>
+	</Folder>
+</Document>
+</kml>

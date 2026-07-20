@@ -12140,7 +12140,7 @@ let currentEndPoint = null;
 let isSelectingStart = true;
 
 // Global variables for map
-const backendUrl = "https://bustransit.up.ac.th/api/get"; //https://bustransit.up.ac.th/api/get http://localhost:5000/api
+const backendUrl = "https://bustransit.up.ac.th/api/buses"; //https://bustransit.up.ac.th/api/get http://localhost:5000/api
 
 let map;
 let busMarkers = [];
@@ -13395,7 +13395,8 @@ async function updateBusLocations() {
       }
     });
 
-    console.log(`✅ Updated ${busMarkers.length} buses (that are not null)`);
+    const pollTime = new Date().toLocaleTimeString('th-TH', { hour12: false });
+    console.log(`✅ Updated ${busMarkers.length} buses | poll ล่าสุด: ${pollTime}`);
   } catch (err) {
     console.error("❌ Error updating bus:", err);
   }

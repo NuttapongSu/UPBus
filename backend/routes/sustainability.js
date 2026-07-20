@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { calcTreesEquiv, calcEVCO2, calcNGVCO2, calcCO2Saved, calcKwhUsed } = require('../services/co2Calculator');
+const { calcTreesEquiv, calcEVCO2, calcDieselCO2, calcCO2Saved, calcKwhUsed } = require('../services/co2Calculator');
 
 // คำนวณชั่วโมงปัจจุบัน (partial) จาก gps_snapshots โดยตรง
 async function getLiveCurrentHour() {
@@ -15,7 +15,7 @@ async function getLiveCurrentHour() {
             AVG(bv)  as avg_bv,   AVG(be)  as avg_be,
             COUNT(*) as cnt
      FROM gps_snapshots
-     WHERE recorded_at >= ? AND odo > 0
+     WHERE recorded_at >= ? AND odo > 0 AND acc = 1 AND speed > 0
      GROUP BY bus_id`,
     [hourStart]
   );
@@ -27,7 +27,7 @@ async function getLiveCurrentHour() {
   rows.forEach(row => {
     const rawKm = Math.max(0, row.odo_last - row.odo_first) / 1000;
     liveKm  += Math.min(rawKm, MAX_KM_PER_BUS_PER_HOUR); // ตัด outlier odo
-    liveKwh += calcKwhUsed(row.avg_bv, row.avg_be, elapsedSec);
+    liveKwh += calcKwhUsed(row.avg_bv, row.avg_be, row.cnt * 30);
   });
 
   return { liveKm, liveKwh, liveC02: calcCO2Saved(liveKm, liveKwh) };
@@ -62,9 +62,9 @@ router.get('/', async (req, res) => {
     const kwh = today.kwh_used;
 
     // คำนวณจาก km/kWh รวมโดยตรง เพื่อให้ ev+ngv+co2Saved สอดคล้องกันเสมอ
-    today.ev_co2_kg   = +calcEVCO2(kwh).toFixed(2);
-    today.ngv_co2_kg  = +calcNGVCO2(km).toFixed(2);
-    today.co2_saved_kg = +(today.ngv_co2_kg - today.ev_co2_kg).toFixed(3);
+    today.ev_co2_kg      = +calcEVCO2(kwh).toFixed(2);
+    today.diesel_co2_kg  = +calcDieselCO2(km).toFixed(2);
+    today.co2_saved_kg   = +(today.diesel_co2_kg - today.ev_co2_kg).toFixed(3);
     if (today.co2_saved_kg < 0) today.co2_saved_kg = 0;
     today.trees_equiv = Math.round(calcTreesEquiv(today.co2_saved_kg));
 

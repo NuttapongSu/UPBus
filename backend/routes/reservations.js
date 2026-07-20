@@ -42,16 +42,19 @@ router.get('/availability', async (req, res) => {
 
 // POST /api/reservations/request
 router.post('/request', async (req, res) => {
+  const body = req.body || {};
   const {
     department, reserved_date,
-    requester_name, requester_phone,
     coordinator_name, coordinator_phone,
     note,
     start_time, end_time, all_day,
     bus_count,
-  } = req.body;
+  } = body;
+  // ฟอร์มไม่มีช่องแยก "ผู้ขอ" ใช้ผู้ประสานงานแทนทั้ง requester และ coordinator
+  const requester_name  = coordinator_name;
+  const requester_phone = coordinator_phone;
 
-  if (!department || !reserved_date || !requester_name) {
+  if (!department || !reserved_date) {
     return res.status(400).json({ error: 'กรุณากรอกข้อมูลให้ครบ' });
   }
 

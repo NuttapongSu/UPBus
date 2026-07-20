@@ -48,7 +48,7 @@ async function aggregateLastHour() {
       totalKm += km;
       const avgBv = bus.count > 0 ? bus.bvSum / bus.count : 0;
       const avgBe = bus.count > 0 ? bus.beSum / bus.count : 0;
-      totalKwh += calcKwhUsed(avgBv, avgBe, 3600); // 1 ชั่วโมง
+      totalKwh += calcKwhUsed(avgBv, avgBe, bus.count * 30); // เวลา active จริง (30s/snapshot)
     });
 
     const co2Saved = calcCO2Saved(totalKm, totalKwh);

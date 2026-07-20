@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const mockGps = require('./mockGps');
 const pushNotify = require('./pushNotify');
+const routeCheckpoints = require('./routeCheckpoints');
 
 const CNAME = 'PHAYAO01';
 const API_URL = 'https://api01.sitgps.com/api/get_list_deviceV2';
@@ -139,7 +140,8 @@ async function fetchAndStore() {
       await updateDailyStats(busesWithOdo);
     }
 
-    console.log(`✅ GPS Updated: ${cachedBusData.length} คัน`);
+    const pollTime = new Date().toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour12: false });
+    console.log(`✅ GPS Updated: ${cachedBusData.length} คัน | poll ล่าสุด: ${pollTime}`);
 
     db.query(`SELECT bus_number, status_color FROM buses`).then(([rows]) => {
       const colorMap = new Map(rows.map(r => [
@@ -150,6 +152,13 @@ async function fetchAndStore() {
         ...b,
         color: colorMap.get(b.imei_id) || 'Purple',
       }));
+
+      // Wire wrong-route detection — runs per poll, updates RAM state in routeCheckpoints
+      busesWithColor.forEach(b => {
+        routeCheckpoints.checkBusRoute(b.imei_id, b.color, b.latitude, b.longitude)
+          .catch(e => console.error('[routeCheckpoints]', b.imei_id, e.message));
+      });
+
       pushNotify.dispatchNotifications(busesWithColor).catch(e =>
         console.error('[pushNotify] dispatch error:', e.message)
       );

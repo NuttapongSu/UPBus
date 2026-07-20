@@ -346,8 +346,17 @@ router.get('/admin/drivers', requireSession, async (req, res) => {
       LEFT JOIN buses b ON b.current_driver_id = d.id
       ORDER BY d.id ASC
     `);
+    const [buses] = await db.query(`
+      SELECT b.bus_number, b.status_color, b.current_driver_id,
+             d.full_name AS driver_name, d.id AS driver_id
+      FROM buses b
+      LEFT JOIN drivers d ON d.id = b.current_driver_id
+      WHERE b.bus_number BETWEEN 1 AND 30
+      ORDER BY b.bus_number ASC
+    `);
     res.render('admin_drivers', {
       drivers,
+      buses,
       success: req.query.success || null,
       error:   req.query.error   || null,
     });
@@ -398,6 +407,22 @@ router.post('/admin/drivers/delete', requireSession, async (req, res) => {
     res.redirect('/admin/drivers?success=ลบคนขับสำเร็จ');
   } catch (err) {
     console.error('Delete driver error:', err);
+    res.redirect('/admin/drivers?error=เกิดข้อผิดพลาด');
+  }
+});
+
+// POST /admin/drivers/clear-bus — เคลียร์คนขับออกจากรถโดย admin
+router.post('/admin/drivers/clear-bus', requireSession, async (req, res) => {
+  const { driver_id } = req.body;
+  if (!driver_id) return res.redirect('/admin/drivers?error=ไม่พบ driver_id');
+  try {
+    await db.query(
+      'UPDATE buses SET current_driver_id = NULL, status_color = "Purple" WHERE current_driver_id = ?',
+      [driver_id]
+    );
+    res.redirect('/admin/drivers?success=เคลียร์รถสำเร็จ');
+  } catch (err) {
+    console.error('Clear bus error:', err);
     res.redirect('/admin/drivers?error=เกิดข้อผิดพลาด');
   }
 });

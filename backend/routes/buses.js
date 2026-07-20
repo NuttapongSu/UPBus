@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { getCachedBusData, getCachedBusById, BUS_IDS } = require('../services/gpsPoller');
+const { getWrongRouteState } = require('../services/routeCheckpoints');
 
 // GET /api/buses — merge RAM cache + DB + today's reservations
 router.get('/', async (req, res) => {
@@ -26,14 +27,17 @@ router.get('/', async (req, res) => {
     reservations.forEach(r => reserveMap.set(r.bus_number, r.department));
 
     const gpsMap = new Map(getCachedBusData().map(b => [b.imei_id, b]));
+    const wrongRoutes = getWrongRouteState();
 
     const finalData = BUS_IDS.map(tc => {
       const gps = gpsMap.get(tc) || { imei_id: tc, latitude: null, longitude: null, speed: 0, bearing: 0, soc: 0 };
       const dbInfo = dbMap.get(tc) || { status_color: 'Purple', full_name: 'ไม่ระบุคนขับ' };
       const department = reserveMap.get(tc) || null;
-      // มี reservation → สีส้ม (วิ่งนอกเส้นทาง/จองหน่วยงาน)
-      // ไม่มี reservation → ใช้สีจาก DB (Purple = ไม่มีคนขับ)
-      const color = department ? 'Orange' : dbInfo.status_color;
+      // มี reservation → สีส้ม
+      // ตรวจพบผิดสาย (streak ≥ threshold) → override เป็นสายที่ตรวจจับได้
+      // ปกติ → ใช้สีจาก DB
+      const baseColor = wrongRoutes[tc]?.detectedRoute ?? dbInfo.status_color;
+      const color = department ? 'Orange' : baseColor;
       return { ...gps, color, driver: dbInfo.full_name, department };
     });
 

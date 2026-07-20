@@ -6,7 +6,13 @@ export async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> 
   return res.json();
 }
 
-export const getBuses = () => apiFetch<BusData[]>('/api/buses');
+export const getBuses = () =>
+  apiFetch<BusData[]>('/api/buses').then(data => {
+    const t = new Date().toLocaleTimeString('th-TH', { hour12: false });
+    console.log(`[Poll] buses updated: ${data.length} คัน | ${t}`);
+    if (data[0]) console.log('[Poll] sample:', JSON.stringify(data[0]));
+    return data;
+  });
 export const getSustainability = () => apiFetch<SustainabilityData>('/api/sustainability');
 export const getBusDetail = (busId: string) => apiFetch<BusDetail>(`/api/buses/${busId}`);
 
@@ -75,7 +81,7 @@ export interface SustainabilityData {
     km_total: number;
     trees_equiv: number;
     ev_co2_kg: number;
-    ngv_co2_kg: number;
+    diesel_co2_kg: number;
     buses_active: number;
   };
   weekly: { day: string; co2: number }[];

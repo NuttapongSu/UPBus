@@ -27,6 +27,7 @@ export interface BusMotionState {
   blendFromLat?:  number;   // predicted position just before GPS update arrived
   blendFromLng?:  number;
   blendStartMs?:  number;   // wall-clock timestamp (Date.now()) when blend started
+  stopsVisited:   number;   // circular routes: stops passed this lap (0=at terminal/start)
 }
 
 // ─── Internal geometry ───────────────────────────────────────────────────────
@@ -56,6 +57,22 @@ function snapToRoute(
   if (route.length < 2) return { idx: 0, t: 0, lat, lng };
   let bestIdx = 0, bestT = 0, bestLat = lat, bestLng = lng, bestD = Infinity;
   for (let i = 0; i < route.length - 1; i++) {
+    const p = projectOnSeg(route[i], route[i + 1], lat, lng);
+    const d = haversine(lat, lng, p.lat, p.lng);
+    if (d < bestD) { bestD = d; bestIdx = i; bestT = p.t; bestLat = p.lat; bestLng = p.lng; }
+  }
+  return { idx: bestIdx, t: bestT, lat: bestLat, lng: bestLng };
+}
+
+// Snap within an explicit index range [lo, hi] — used to lock a bus to one
+// leg of a two-segment out-and-back route so it cannot jump to the parallel leg.
+function snapToRouteInRange(
+  route: RoutePoint[], lat: number, lng: number, lo: number, hi: number,
+): { idx: number; t: number; lat: number; lng: number } {
+  lo = Math.max(0, Math.min(lo, route.length - 2));
+  hi = Math.max(lo, Math.min(hi, route.length - 2));
+  let bestIdx = lo, bestT = 0, bestLat = lat, bestLng = lng, bestD = Infinity;
+  for (let i = lo; i <= hi; i++) {
     const p = projectOnSeg(route[i], route[i + 1], lat, lng);
     const d = haversine(lat, lng, p.lat, p.lng);
     if (d < bestD) { bestD = d; bestIdx = i; bestT = p.t; bestLat = p.lat; bestLng = p.lng; }
@@ -236,15 +253,19 @@ function bearingOfSegment(route: RoutePoint[], idx: number, direction: 1 | -1): 
 export function onGpsUpdate(
   prev:             BusMotionState | null,
   route:            RoutePoint[],   // ordered route polyline
-  stops:            RoutePoint[],   // ordered stops in circular route order
+  stops:            RoutePoint[],   // ordered stops (used by advanceFrame stop-freeze)
   gpsLat:           number,
   gpsLng:           number,
   gpsBearing:       number,         // degrees 0–360 from GPS device
   gpsSpeedKph:      number,
   gpsTimestampMs:   number,         // Date.now()-equivalent when vendor GPS was captured
+  acc:              0 | 1 = 0,     // ignition: 1 = engine on, 0 = engine off / charging
+  junctionIdx?:     number,         // index where Seg1 ends / Seg2 begins (two-segment routes)
+  terminalIdx?:     number,         // ~90% of route length for circular loops — prevents false wrap
+                                    // at the terminal where route start/end share the same location
 ): BusMotionState {
-  // below 5 km/h = GPS noise / bus stationary — don't advance
-  const speedMs = gpsSpeedKph >= 5 ? gpsSpeedKph / 3.6 : 0;
+  // acc=0 (engine off) → hard stop regardless of GPS speed noise
+  const speedMs = (acc === 1 && gpsSpeedKph >= 5) ? gpsSpeedKph / 3.6 : 0;
 
   if (route.length < 2) {
     return {
@@ -255,6 +276,7 @@ export function onGpsUpdate(
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
       confirmed: false,
       msElapsedSinceGps: 0,
+      stopsVisited: prev?.stopsVisited ?? 0,
     };
   }
 
@@ -271,6 +293,7 @@ export function onGpsUpdate(
       lat: gpsLat, lng: gpsLng, bearing: gpsBearing,
       confirmed: false,
       msElapsedSinceGps: 0,
+      stopsVisited: 0,
     };
   }
 
@@ -282,11 +305,45 @@ export function onGpsUpdate(
   // never be used as a window anchor.
   const SNAP_WINDOW_M = 300;
   let gpsSnapped = snapToRoute(route, gpsLat, gpsLng);
+
   if (prev.confirmed) {
     const windowed  = snapToRouteNear(route, gpsLat, gpsLng, prev.routeIdx, SNAP_WINDOW_M);
     const windowedD = haversine(gpsLat, gpsLng, windowed.lat, windowed.lng);
     const globalD   = haversine(gpsLat, gpsLng, gpsSnapped.lat, gpsSnapped.lng);
     if (windowedD <= globalD + 30) gpsSnapped = windowed;
+
+    if (junctionIdx !== undefined) {
+      const onSecondLeg = prev.routeIdx > junctionIdx;
+      const lo = onSecondLeg ? junctionIdx + 1 : 0;
+      const hi = onSecondLeg ? route.length - 2 : junctionIdx;
+      if (gpsSnapped.idx < lo || gpsSnapped.idx > hi) {
+        gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, lo, hi);
+      }
+    }
+
+    if (terminalIdx !== undefined && prev.routeIdx > terminalIdx) {
+      // Bus is in the terminal approach zone of a circular loop.
+      // Snap returning to idx < 10 could be a genuine new-lap wrap OR a false
+      // snap to the route's geographic start (same location as the end).
+      // Confirm with GPS bearing: if bearing matches the forward segment at the
+      // new-lap position, the bus has truly crossed the terminal — allow wrap.
+      // Otherwise lock it to the terminal zone until the next poll.
+      if (gpsSnapped.idx < 10) {
+        const newLapBearing = bearingOfSegment(route, Math.max(0, gpsSnapped.idx), 1);
+        if (gpsSpeedKph < 5 || angleDiff(gpsBearing, newLapBearing) >= 90) {
+          gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, terminalIdx, route.length - 2);
+        }
+      } else if (gpsSnapped.idx < terminalIdx) {
+        // Mid-route false snap while in terminal zone — clamp back
+        gpsSnapped = snapToRouteInRange(route, gpsLat, gpsLng, terminalIdx, route.length - 2);
+      }
+    }
+  } else if (junctionIdx !== undefined && gpsSpeedKph >= 5) {
+    const seg1Snap = snapToRouteInRange(route, gpsLat, gpsLng, 0, junctionIdx);
+    const seg2Snap = snapToRouteInRange(route, gpsLat, gpsLng, junctionIdx + 1, route.length - 2);
+    const b1 = bearingTo(route[seg1Snap.idx], route[Math.min(seg1Snap.idx + 1, route.length - 1)]);
+    const b2 = bearingTo(route[seg2Snap.idx], route[Math.min(seg2Snap.idx + 1, route.length - 1)]);
+    gpsSnapped = angleDiff(gpsBearing, b1) <= angleDiff(gpsBearing, b2) ? seg1Snap : seg2Snap;
   }
 
   // ── Direction detection with hysteresis ────────────────────────────────────
@@ -300,33 +357,24 @@ export function onGpsUpdate(
   let direction:     1 | -1 = prevDir;
   let directionLock: number  = prevLock;
 
-  if (speedMs === 0 || gpsSpeedKph < 1.8 || stops.length < 3) {
-    // Bus stationary or not enough data — keep current direction, maintain lock.
+  if (speedMs === 0 || gpsSpeedKph < 1.8) {
+    // Bus stationary or very slow — keep current direction, maintain lock.
     directionLock = Math.min(MAX_DIR_LOCK, prevLock + 1);
   } else {
-    const n = stops.length;
-    let nearestIdx = 0, nearestD = Infinity;
-    for (let i = 0; i < n; i++) {
-      const d = haversine(gpsLat, gpsLng, stops[i].lat, stops[i].lng);
-      if (d < nearestD) { nearestD = d; nearestIdx = i; }
-    }
-    const f1 = stops[(nearestIdx+1)%n], f2 = stops[(nearestIdx+2)%n];
-    const b1 = stops[(nearestIdx-1+n)%n], b2 = stops[(nearestIdx-2+n)%n];
-    const gps = { lat: gpsLat, lng: gpsLng };
-    const sf = angleDiff(gpsBearing, bearingTo(gps, f1)) + angleDiff(gpsBearing, bearingTo(gps, f2));
-    const sb = angleDiff(gpsBearing, bearingTo(gps, b1)) + angleDiff(gpsBearing, bearingTo(gps, b2));
-    const detectedDir: 1 | -1 = sf <= sb ? 1 : -1;
+    // Compare GPS bearing to the route segment bearing at the snapped position.
+    // This avoids dependence on stop ordering in KML (which may be wrong for
+    // routes with parallel outbound/return legs on different roads).
+    // angleDiff < 90° → bus faces forward along route polyline direction.
+    const segBearing = bearingOfSegment(route, gpsSnapped.idx, 1);
+    const detectedDir: 1 | -1 = angleDiff(gpsBearing, segBearing) < 90 ? 1 : -1;
 
     if (detectedDir === prevDir) {
-      // Consistent — build lock (more evidence = harder to flip later).
       direction     = prevDir;
       directionLock = Math.min(MAX_DIR_LOCK, prevLock + 1);
     } else if (prevLock > 0) {
-      // Opposite detected but lock still holds — resist the flip, drain one count.
       direction     = prevDir;
       directionLock = prevLock - 1;
     } else {
-      // Lock fully drained: accept the flip.
       direction     = detectedDir;
       directionLock = 1;
     }
@@ -374,6 +422,28 @@ export function onGpsUpdate(
     }
   }
 
+  // ── Stop counter (circular routes only) ──────────────────────────────────────
+  const STOP_ZONE_M = 80;
+  let stopsVisited = prev?.stopsVisited ?? 0;
+
+  if (terminalIdx !== undefined && stops.length >= 2) {
+    const terminal   = stops[0];
+    const atTerminal = haversine(gpsLat, gpsLng, terminal.lat, terminal.lng) < STOP_ZONE_M;
+
+    if (atTerminal) {
+      if (stopsVisited >= stops.length) {
+        stopsVisited = 0;
+      } else if (stopsVisited === 0 && gpsSpeedKph >= 5) {
+        stopsVisited = 1;
+      }
+    } else if (stopsVisited >= 1 && stopsVisited < stops.length) {
+      const nextStop = stops[stopsVisited];
+      if (haversine(gpsLat, gpsLng, nextStop.lat, nextStop.lng) < STOP_ZONE_M) {
+        stopsVisited++;
+      }
+    }
+  }
+
   // If prev was confirmed and has moved more than 2m from new GPS snap → blend
   const prevLat = prev?.lat;
   const prevLng = prev?.lng;
@@ -398,6 +468,7 @@ export function onGpsUpdate(
     blendFromLat: shouldBlend ? prevLat : undefined,
     blendFromLng: shouldBlend ? prevLng : undefined,
     blendStartMs: shouldBlend ? Date.now() : undefined,
+    stopsVisited,
   };
 }
 

@@ -48,6 +48,8 @@ export function useBusMarkers(
   buses:            BusData[],
   routePathByColor: Record<string, LatLng[]>,
   stopsByColor:     Record<string, RoutePoint[]>,
+  junctionByColor?: Record<string, number>,
+  terminalByColor?: Record<string, number>,
 ) {
   const markersRef       = useRef<Map<string, MarkerState>>(new Map());
   const animRef          = useRef<number | null>(null);
@@ -102,8 +104,19 @@ export function useBusMarkers(
 
     const routesMapForPicking = new Map(Object.entries(routePathByColor)) as Map<string, RoutePoint[]>;
 
+    const bangkokHour = parseInt(
+      new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok', hour: 'numeric', hour12: false }), 10,
+    );
+    const PKY_LAT = 19.02548, PKY_LNG = 99.89511;
+
     buses.forEach(bus => {
       if (bus.latitude == null) return;
+
+      // Green bus at PKY before 14:00 = charging, not in service
+      const dlat = bus.latitude - PKY_LAT, dlng = (bus.longitude ?? 0) - PKY_LNG;
+      const atPkyCharging = bus.color === 'Green' && bangkokHour < 14
+        && dlat * dlat + dlng * dlng < 5e-7;
+      const effectiveAcc = (atPkyCharging ? 0 : (bus.acc ?? 0)) as 0 | 1;
 
       const prev = markersRef.current.get(bus.imei_id);
 
@@ -128,17 +141,39 @@ export function useBusMarkers(
       // fresh snap exactly like a brand-new bus would get.
       const routeChanged = bus.color === 'Purple' && prev?.motion.activeColor !== activeColor;
 
+      const routeColor = bus.color === 'Purple' ? (activeColor ?? bus.color) : bus.color;
+      // Charging at PKY before 14:00 — pass empty route so engine holds bus at
+      // actual GPS coords (PKY) instead of snapping to the clipped route endpoint.
+      const motionRoute = atPkyCharging ? [] : route;
+      const motionStops = atPkyCharging ? [] : stops;
       const motion = {
         ...onGpsUpdate(
-          routeChanged ? null : (prev?.motion ?? null), route, stops,
+          routeChanged ? null : (prev?.motion ?? null), motionRoute, motionStops,
           bus.latitude, bus.longitude!,
           bus.bearing ?? 0, bus.speed ?? 0,
           parseBusDateMs(bus.date ?? ''),
+          effectiveAcc,
+          junctionByColor?.[routeColor],
+          terminalByColor?.[routeColor],
         ),
         activeColor,
       };
 
-      const accLabel = bus.acc === 1 ? '🟢 ทำงาน' : '🔴 กำลังชาร์จ';
+      if (bus.speed > 0) {
+        const junction = junctionByColor?.[routeColor];
+        const terminal = terminalByColor?.[routeColor];
+        const legLabel = junction !== undefined
+          ? (motion.direction === -1 ? 'ขากลับ(dir)' : motion.routeIdx <= junction ? 'ขาไป(idx)' : 'ขากลับ(idx)')
+          : '?';
+        const stopInfo = terminal !== undefined ? ` stops=${motion.stopsVisited}` : '';
+        console.log(
+          `[DIR] ${bus.imei_id}(${bus.color}) bear=${bus.bearing?.toFixed(0)}° spd=${bus.speed?.toFixed(1)} acc=${bus.acc}` +
+          ` idx=${motion.routeIdx}${junction !== undefined ? `/${junction}` : ''} leg=${legLabel} dir=${motion.direction > 0 ? '+1' : '-1'} lock=${motion.directionLock}` +
+          ` confirmed=${motion.confirmed}${stopInfo}`,
+        );
+      }
+
+      const accLabel = effectiveAcc === 1 ? '🟢 ทำงาน' : '🔴 กำลังชาร์จ';
       const popupHtml =
         `<b>รถ ${bus.imei_id}</b><br>` +
         `คนขับ: ${bus.driver || '-'}<br>` +
@@ -150,7 +185,7 @@ export function useBusMarkers(
 
       const isOffRoute = bus.color === 'Orange';
       const isReserved = !!bus.department;
-      const isCharging = bus.acc === 0;
+      const isCharging = effectiveAcc === 0;
       const imgSrc     = (isReserved || isOffRoute) ? BUS_IMG.Orange : (BUS_IMG[bus.color] || BUS_IMG.Purple);
       const chargeBadge = `<div class="charge-badge" style="position:absolute;bottom:6px;right:4px;font-size:16px;line-height:1;pointer-events:none;filter:drop-shadow(0 0 2px rgba(0,0,0,0.6));display:${isCharging ? '' : 'none'};">⚡</div>`;
       const shortDept   = (s: string) => s.length > 14 ? s.slice(0, 13) + '…' : s;

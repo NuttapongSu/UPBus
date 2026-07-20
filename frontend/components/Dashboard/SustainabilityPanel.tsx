@@ -27,13 +27,13 @@ export default function SustainabilityPanel() {
   const kwhUsed     = today?.kwh_used      ?? 0;
   const kmTotal     = today?.km_total      ?? 0;
   const trees       = today?.trees_equiv   ?? 0;
-  const evCO2       = today?.ev_co2_kg     ?? 0;
-  const ngvCO2      = today?.ngv_co2_kg    ?? 0;
+  const evCO2       = today?.ev_co2_kg      ?? 0;
+  const dieselCO2   = today?.diesel_co2_kg ?? 0;
   const busesActive = today?.buses_active  ?? 0;
   const co2PerKm  = kmTotal > 0 ? co2Saved / kmTotal : 0;
 
   // % ที่ EV ปล่อยน้อยกว่า NGV (clamp 0–100 กรณีรถชาร์จ/จอดทำให้ EV > NGV)
-  const savingPct = ngvCO2 > 0 ? Math.max(0, Math.round((1 - evCO2 / ngvCO2) * 100)) : 0;
+  const savingPct = dieselCO2 > 0 ? Math.max(0, Math.round((1 - evCO2 / dieselCO2) * 100)) : 0;
 
   const chartData = {
     labels: weekly.map(w => fmtDay(w.day)),
@@ -74,7 +74,6 @@ export default function SustainabilityPanel() {
           label="พลังงานที่ใช้"
           numericValue={kwhUsed}
           unit="kWh"
-          sub="67% โซลาร์เซลล์"
           color="#f39c12"
         />
         <StatCard
@@ -89,7 +88,7 @@ export default function SustainabilityPanel() {
       {/* EV vs NGV comparison */}
       <div className="bg-[#1a1a2e] border border-[#2a2a4a] rounded-xl p-3">
         <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-widest">
-          EV UP BUS VS NGV UP BUS
+          EV UP BUS VS DIESEL UP BUS
         </p>
         <div className="grid grid-cols-2 gap-2 mb-2">
           <div className="bg-[#0d1f0d] rounded-lg p-2">
@@ -100,9 +99,9 @@ export default function SustainabilityPanel() {
             <p className="text-[10px] text-gray-500">kgCO₂e</p>
           </div>
           <div className="bg-[#1f1400] rounded-lg p-2">
-            <p className="text-[10px] text-gray-500 mb-1">NGV (ระยะเดียวกัน)</p>
+            <p className="text-[10px] text-gray-500 mb-1">Diesel B7 (ระยะเดียวกัน)</p>
             <p className="text-lg font-bold text-[#e67e22]">
-              <AnimatedNumber value={ngvCO2} format={(n) => n.toFixed(2)} />
+              <AnimatedNumber value={dieselCO2} format={(n) => n.toFixed(2)} />
             </p>
             <p className="text-[10px] text-gray-500">kgCO₂e</p>
           </div>
@@ -120,7 +119,7 @@ export default function SustainabilityPanel() {
           </span>
         </div>
         <p className="text-[10px] text-gray-600 mt-1">
-          EF กริดไทย 0.4750 kgCO₂e/kWh · NGV 0.40 kg CNG/km × 2.2088 kgCO₂e/kg
+          EF กริดไทย 0.4750 kgCO₂e/kWh · Diesel B7 0.40 L/km × 2.679 kgCO₂e/L
         </p>
       </div>
 

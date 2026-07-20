@@ -42,6 +42,8 @@ export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
   const mapRef = useRef<LeafletMap | null>(null);
   const routeCoordsByColorRef = useRef<Record<string, { lat: number; lng: number }[]>>({});
   const stopsByColorRef = useRef<Record<string, { lat: number; lng: number }[]>>({});
+  const junctionByColorRef  = useRef<Record<string, number>>({});
+  const terminalByColorRef  = useRef<Record<string, number>>({});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const routeLayersRef = useRef<Map<string, any>>(new Map());
   const userMarkerRef = useRef<Marker | null>(null);
@@ -92,15 +94,64 @@ export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
           // adjacent — raw KML Placemark order does not reliably match road order
           // (e.g. ศิลปศาสตร์/พยาบาล are swapped right after PKY in the Green KML,
           // which caused buses to reverse direction shortly after leaving PKY).
+          const bangkokHour = parseInt(
+            new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok', hour: 'numeric', hour12: false }),
+            10,
+          );
+          // Visual polyline always uses full KML coords
+          const polyline = Leaflet.polyline(coords.map(c => [c.lat, c.lng]), { color, weight: 5, opacity: 0.9 }).addTo(map);
+          routeLayersRef.current.set(key, polyline);
+          const lines = parseKmlLines(kmlText);
+          if (lines.length >= 2) {
+            const pkyJunction = lines[0].length - 1;
+            junctionByColorRef.current[key] = pkyJunction;
+
+            // Before 14:00 Green turns around at อธิการบดี instead of PKY.
+            // Clip the motion route so segment 1 ends at อธิการบดี (ขาไป) and
+            // segment 2 starts at อธิการบดี (ขากลับ) — identical to how PKY works.
+            if (key === 'Green' && bangkokHour < 14) {
+              const RECTOR_LAT = 19.0290, RECTOR_LNG = 99.8961;
+              let fwdIdx = 0, fwdD = Infinity;
+              for (let i = 0; i <= pkyJunction; i++) {
+                const c = coords[i];
+                const d = (c.lat - RECTOR_LAT) ** 2 + (c.lng - RECTOR_LNG) ** 2;
+                if (d < fwdD) { fwdD = d; fwdIdx = i; }
+              }
+              let retIdx = pkyJunction + 1, retD = Infinity;
+              for (let i = pkyJunction + 1; i < coords.length; i++) {
+                const c = coords[i];
+                const d = (c.lat - RECTOR_LAT) ** 2 + (c.lng - RECTOR_LNG) ** 2;
+                if (d < retD) { retD = d; retIdx = i; }
+              }
+              if (fwdIdx > 0 && retIdx > pkyJunction) {
+                const clipped = [...coords.slice(0, fwdIdx + 1), ...coords.slice(retIdx)];
+                routeCoordsByColorRef.current[key] = clipped;
+                junctionByColorRef.current[key] = fwdIdx;
+                stopsByColorRef.current[key] = parseKmlStopsOrdered(kmlText)
+                  .map(s => ({ ...s, _order: stopArcLen(s.lat, s.lng, clipped) }))
+                  .sort((a, b) => a._order - b._order)
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  .map(({ _order, ...s }) => s);
+                return parseKmlStops(kmlText)
+                  .map(s => ({ ...s, _order: stopArcLen(s.lat, s.lng, clipped[0] ? clipped : coords) }))
+                  .sort((a, b) => a._order - b._order)
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  .map(({ _order, ...s }) => s);
+              }
+            }
+
+          } else {
+            // Single-segment circular route: terminal zone starts at 90% of route
+            // length.  Prevents false wrap-back to idx=0 when bus is approaching
+            // the terminal whose geographic location matches the route start.
+            terminalByColorRef.current[key] = Math.floor(coords.length * 0.9);
+          }
+          // Default motion-engine stops (full route) — used by Red, Blue, and Green after 14:00
           stopsByColorRef.current[key] = parseKmlStopsOrdered(kmlText)
             .map(s => ({ ...s, _order: stopArcLen(s.lat, s.lng, coords) }))
             .sort((a, b) => a._order - b._order)
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             .map(({ _order, ...s }) => s);
-          const polyline = Leaflet.polyline(coords.map(c => [c.lat, c.lng]), { color, weight: 5, opacity: 0.9 }).addTo(map);
-          routeLayersRef.current.set(key, polyline);
-          // Sort stops by arc length along the first LineString (ขาไป direction)
-          const lines = parseKmlLines(kmlText);
           const refLine = lines[0] ?? [];
           return parseKmlStops(kmlText)
             .map(s => ({ ...s, _order: refLine.length > 0 ? stopArcLen(s.lat, s.lng, refLine) : 0 }))
@@ -113,14 +164,16 @@ export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
       Promise.all(routePromises).then(stopArrays => {
         const allStops = stopArrays.flat();
 
-        // Deduplicate: skip stops within 25 m of an already-kept stop (cross-route same shelter)
+        // Deduplicate: skip stops within 10 m of an already-kept stop (cross-route same shelter).
+        // 10 m catches exact-same-coordinate stops (shared shelters on multiple routes) while
+        // preserving ขาไป/ขากลับ pairs that are ~20 m apart on opposite sides of the road.
         const kept: typeof allStops = [];
         allStops.forEach(stop => {
           const c = Math.cos(stop.lat * Math.PI / 180);
           const isDup = kept.some(k => {
             const dlat = (k.lat - stop.lat) * 111000;
             const dlng = (k.lng - stop.lng) * c * 111000;
-            return dlat * dlat + dlng * dlng < 625; // 25 m²
+            return dlat * dlat + dlng * dlng < 100; // 10 m²
           });
           if (!isDup) kept.push(stop);
         });
@@ -230,7 +283,7 @@ export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
     }
   }, [selectedBus, buses]);
 
-  useBusMarkers(mapRef, buses, routeCoordsByColorRef.current, stopsByColorRef.current);
+  useBusMarkers(mapRef, buses, routeCoordsByColorRef.current, stopsByColorRef.current, junctionByColorRef.current, terminalByColorRef.current);
 
   return <div ref={mapDivRef} style={{ position: 'absolute', inset: 0 }} />;
 }

@@ -61,12 +61,13 @@ export default function BusRequestModal({ onClose }: Props) {
       return;
     }
     setLoading(true); setErrMsg('');
-    const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-    fd.append('all_day', allDay ? '1' : '0');
 
     try {
-      const res  = await fetch(`${API}/api/reservations/request`, { method: 'POST', body: fd });
+      const res  = await fetch(`${API}/api/reservations/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, all_day: allDay ? '1' : '0' }),
+      });
       const data = await res.json();
       if (!res.ok) { setErrMsg(data.error || 'เกิดข้อผิดพลาด'); }
       else { setAssigned(data.assigned_buses || []); setStep('success'); }

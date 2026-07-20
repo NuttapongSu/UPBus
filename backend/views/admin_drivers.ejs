@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UP Bus - จัดการคนขับ</title>
+    <title>UP Bus - จัดการรถ</title>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/assets/css/tailwind.output.css" />
     <style>body,h1,h2,h3,h4,h5,h6,p,span,a,div,table{font-family:'Kanit',sans-serif!important}</style>
@@ -16,7 +16,7 @@
     <div class="flex flex-col flex-1 w-full overflow-y-auto">
         <header class="z-10 py-4 bg-white shadow-md dark:bg-gray-800">
             <div class="container flex items-center justify-between h-full px-6 mx-auto">
-                <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">จัดการคนขับ</h2>
+                <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">จัดการรถ</h2>
                 <a href="/logout" onclick="return confirm('ยืนยันออกจากระบบ?');" class="text-sm text-purple-600 hover:underline">ออกจากระบบ</a>
             </div>
         </header>
@@ -30,6 +30,61 @@
                 <% if (error) { %>
                 <div class="mb-4 px-4 py-3 bg-red-100 text-red-800 rounded-lg"><%= error %></div>
                 <% } %>
+
+                <!-- ส่วนที่ 1: รายการรถ TC001–TC030 -->
+                <div class="mb-8 bg-white rounded-lg shadow-xs dark:bg-gray-800 overflow-hidden">
+                    <div class="px-6 py-4 border-b dark:border-gray-700 flex items-center justify-between">
+                        <h3 class="text-base font-semibold text-gray-700 dark:text-gray-200">รายการรถทั้งหมด (TC001–TC030)</h3>
+                        <div class="flex gap-3 text-xs text-gray-500">
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-purple-400 inline-block"></span>ว่าง</span>
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-400 inline-block"></span>Red</span>
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-400 inline-block"></span>Green</span>
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-400 inline-block"></span>Blue</span>
+                        </div>
+                    </div>
+                    <div class="p-4 grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 gap-3">
+                        <%
+                        // build a map from bus_number -> bus for quick lookup
+                        const busMap = {};
+                        buses.forEach(function(b){ busMap[b.bus_number] = b; });
+                        for (let n = 1; n <= 30; n++) {
+                            const bus = busMap[n];
+                            const busId = 'TC' + String(n).padStart(3,'0');
+                            const color = bus ? bus.status_color : 'Purple';
+                            const driverName = bus && bus.driver_name ? bus.driver_name : null;
+                            const driverId = bus && bus.driver_id ? bus.driver_id : null;
+                            let borderColor = 'border-purple-300';
+                            let dotColor = 'bg-purple-400';
+                            if (color === 'Red')   { borderColor = 'border-red-300';   dotColor = 'bg-red-400'; }
+                            if (color === 'Green') { borderColor = 'border-green-300'; dotColor = 'bg-green-400'; }
+                            if (color === 'Blue')  { borderColor = 'border-blue-300';  dotColor = 'bg-blue-400'; }
+                        %>
+                        <div class="border-2 <%= borderColor %> rounded-lg p-2 flex flex-col items-center text-center min-h-[90px]">
+                            <div class="flex items-center gap-1 mb-1">
+                                <span class="w-2 h-2 rounded-full <%= dotColor %> flex-shrink-0"></span>
+                                <span class="text-sm font-bold text-gray-800"><%= busId %></span>
+                            </div>
+                            <% if (driverName) { %>
+                                <span class="text-xs text-gray-600 leading-tight mb-1 line-clamp-2"><%= driverName %></span>
+                                <form method="POST" action="/admin/drivers/clear-bus"
+                                    onsubmit="return confirm('ยืนยันเคลียร์คนขับออกจาก <%= busId %>?');" class="mt-auto">
+                                    <input type="hidden" name="driver_id" value="<%= driverId %>">
+                                    <button type="submit"
+                                        style="padding:1px 8px;font-size:0.65rem;color:#fff;background:#f97316;border:none;border-radius:4px;cursor:pointer;white-space:nowrap;">เคลียร์รถ</button>
+                                </form>
+                            <% } else { %>
+                                <span class="text-xs text-gray-400 mt-auto">ว่าง</span>
+                            <% } %>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- ส่วนที่ 2: คนขับที่ว่าง + จัดการ -->
+                <%
+                const freeDrivers = drivers.filter(function(d){ return !d.bus_number; });
+                const busyDrivers = drivers.filter(function(d){ return !!d.bus_number; });
+                %>
 
                 <!-- เพิ่มคนขับ -->
                 <div class="mb-6 p-6 bg-white rounded-lg shadow-xs dark:bg-gray-800">
@@ -54,10 +109,10 @@
                     </form>
                 </div>
 
-                <!-- รายการคนขับ -->
-                <div class="bg-white rounded-lg shadow-xs dark:bg-gray-800 overflow-hidden">
+                <!-- คนขับที่ว่าง -->
+                <div class="mb-6 bg-white rounded-lg shadow-xs dark:bg-gray-800 overflow-hidden">
                     <div class="px-6 py-4 border-b dark:border-gray-700">
-                        <h3 class="text-base font-semibold text-gray-700 dark:text-gray-200">รายการคนขับทั้งหมด (<%= drivers.length %> คน)</h3>
+                        <h3 class="text-base font-semibold text-gray-700 dark:text-gray-200">คนขับที่ว่าง (<%= freeDrivers.length %> คน)</h3>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
@@ -66,39 +121,30 @@
                                     <th class="px-4 py-3 w-12">ID</th>
                                     <th class="px-4 py-3 w-48">ชื่อ-นามสกุล</th>
                                     <th class="px-4 py-3">LINE User ID</th>
-                                    <th class="px-4 py-3 w-24">รถที่ขับอยู่</th>
                                     <th class="px-4 py-3 w-28">จัดการ</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
-                                <% if (drivers.length === 0) { %>
-                                <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">ยังไม่มีคนขับในระบบ</td></tr>
+                                <% if (freeDrivers.length === 0) { %>
+                                <tr><td colspan="4" class="px-4 py-6 text-center text-gray-500">ไม่มีคนขับที่ว่าง</td></tr>
                                 <% } %>
-                                <% drivers.forEach(function(d) { %>
+                                <% freeDrivers.forEach(function(d) { %>
                                 <tr class="text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
                                     <td class="px-4 py-3 text-xs font-mono"><%= d.id %></td>
                                     <td class="px-4 py-3 font-semibold"><%= d.full_name %></td>
                                     <td class="px-4 py-3 text-xs font-mono text-gray-500"><%= d.line_user_id || '-' %></td>
                                     <td class="px-4 py-3">
-                                        <% if (d.bus_number) { %>
-                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">TC<%= String(d.bus_number).padStart(3,'0') %></span>
-                                        <% } else { %>
-                                        <span class="text-gray-400 text-xs">ไม่ได้ขับ</span>
-                                        <% } %>
-                                    </td>
-                                    <td class="px-4 py-3">
                                         <div class="flex flex-col gap-1">
-                                            <button
+                                            <button onclick="openEditFromBtn(this)"
                                                 data-id="<%= d.id %>"
-                                                data-name="<%- JSON.stringify(d.full_name) %>"
-                                                data-line="<%- JSON.stringify(d.line_user_id || '') %>"
-                                                onclick="openEditFromBtn(this)"
-                                                class="px-3 py-1 text-xs font-medium text-white bg-blue-500 rounded hover:bg-blue-600">แก้ไข</button>
+                                                data-name='<%- JSON.stringify(d.full_name) %>'
+                                                data-line='<%- JSON.stringify(d.line_user_id || '') %>'
+                                                style="padding:2px 8px;font-size:0.75rem;color:#fff;background:#8b5cf6;border:none;border-radius:4px;cursor:pointer;">แก้ไข</button>
                                             <form method="POST" action="/admin/drivers/delete"
                                                 onsubmit="return confirm('ยืนยันลบคนขับ?');">
                                                 <input type="hidden" name="id" value="<%= d.id %>">
                                                 <button type="submit"
-                                                    class="w-full px-3 py-1 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600">ลบ</button>
+                                                    style="width:100%;padding:2px 8px;font-size:0.75rem;color:#fff;background:#ef4444;border:none;border-radius:4px;cursor:pointer;">ลบ</button>
                                             </form>
                                         </div>
                                     </td>
@@ -108,6 +154,57 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- คนขับที่กำลังขับอยู่ (ยุบได้) -->
+                <% if (busyDrivers.length > 0) { %>
+                <div class="bg-white rounded-lg shadow-xs dark:bg-gray-800 overflow-hidden">
+                    <div class="px-6 py-4 border-b dark:border-gray-700">
+                        <h3 class="text-base font-semibold text-gray-700 dark:text-gray-200">คนขับที่กำลังขับอยู่ (<%= busyDrivers.length %> คน)</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
+                                    <th class="px-4 py-3 w-12">ID</th>
+                                    <th class="px-4 py-3 w-48">ชื่อ-นามสกุล</th>
+                                    <th class="px-4 py-3">LINE User ID</th>
+                                    <th class="px-4 py-3 w-24">รถที่ขับ</th>
+                                    <th class="px-4 py-3 w-28">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
+                                <% busyDrivers.forEach(function(d) { %>
+                                <tr class="text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td class="px-4 py-3 text-xs font-mono"><%= d.id %></td>
+                                    <td class="px-4 py-3 font-semibold"><%= d.full_name %></td>
+                                    <td class="px-4 py-3 text-xs font-mono text-gray-500"><%= d.line_user_id || '-' %></td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">TC<%= String(d.bus_number).padStart(3,'0') %></span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex flex-col gap-1">
+                                            <form method="POST" action="/admin/drivers/clear-bus"
+                                                onsubmit="return confirm('ยืนยันเคลียร์คนขับออกจากรถ?');">
+                                                <input type="hidden" name="driver_id" value="<%= d.id %>">
+                                                <button type="submit"
+                                                    style="width:100%;padding:2px 8px;font-size:0.75rem;color:#fff;background:#f97316;border:none;border-radius:4px;cursor:pointer;">เคลียร์รถ</button>
+                                            </form>
+                                            <form method="POST" action="/admin/drivers/delete"
+                                                onsubmit="return confirm('ยืนยันลบคนขับ?');">
+                                                <input type="hidden" name="id" value="<%= d.id %>">
+                                                <button type="submit"
+                                                    style="width:100%;padding:2px 8px;font-size:0.75rem;color:#fff;background:#ef4444;border:none;border-radius:4px;cursor:pointer;">ลบ</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <% } %>
+
             </div>
         </main>
     </div>

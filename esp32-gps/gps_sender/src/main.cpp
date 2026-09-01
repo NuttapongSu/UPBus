@@ -257,6 +257,9 @@ void checkAndApplyFirmwareUpdate() {
     return; // up to date
   }
 
+  // Relies on the backend emitting compact JSON with no extra whitespace (Express's
+  // default -- do not enable `app.set('json spaces', ...)` on the backend, it would
+  // silently break this string matching on every device in the fleet).
   int vStart = body.indexOf("\"version\":\"") + 11;
   int vEnd = body.indexOf('"', vStart);
   String newVersion = body.substring(vStart, vEnd);
@@ -272,6 +275,22 @@ void checkAndApplyFirmwareUpdate() {
 
   if (newVersion.length() == 0 || newMd5.length() == 0 || newSize <= 0) {
     Serial.println("[DBG-ota] malformed /firmware/check response, aborting");
+    return;
+  }
+
+  // Guards against re-flashing the same "new" version forever if the device's
+  // compiled FIRMWARE_VERSION and the admin-typed upload-form version string
+  // ever disagree (e.g. the constant wasn't bumped before building a release).
+  // Without this, checkAndApplyFirmwareUpdate() would see the same mismatched
+  // "update_available:true" every boot and re-flash in an infinite loop,
+  // never reaching loop()/GPS reporting again -- unrecoverable except by a
+  // physical USB reflash.
+  otaPrefs.begin("upbus-ota", false);
+  String lastTried = otaPrefs.getString("last_try", "");
+  otaPrefs.end();
+  if (lastTried == newVersion) {
+    Serial.println("[DBG-ota] already flashed this version but backend still reports it as available "
+                   "-- FIRMWARE_VERSION likely doesn't match the uploaded version string, refusing to reflash");
     return;
   }
 
@@ -320,6 +339,7 @@ void checkAndApplyFirmwareUpdate() {
   otaPrefs.begin("upbus-ota", false);
   otaPrefs.putUInt("prev_addr", (uint32_t)esp_ota_get_running_partition()->address);
   otaPrefs.putBool("pending", true);
+  otaPrefs.putString("last_try", newVersion);
   otaPrefs.end();
 
   Serial.println("[DBG-ota] update applied, restarting...");

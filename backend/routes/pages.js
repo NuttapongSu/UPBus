@@ -546,6 +546,11 @@ router.post('/admin/firmware/upload', requireSession, firmwareUpload.single('fir
     return res.redirect('/admin/firmware?error=กรุณาระบุเวอร์ชันและไฟล์ .bin');
   }
 
+  if (!/^[A-Za-z0-9._-]{1,20}$/.test((version || '').trim())) {
+    if (uploadedPath) fs.unlinkSync(uploadedPath);
+    return res.redirect('/admin/firmware?error=รูปแบบเวอร์ชันไม่ถูกต้อง (ใช้ได้เฉพาะ A-Z a-z 0-9 . _ - ความยาวไม่เกิน 20 ตัวอักษร)');
+  }
+
   const buf = fs.readFileSync(uploadedPath);
   if (buf.length === 0 || buf.readUInt8(0) !== 0xe9) {
     fs.unlinkSync(uploadedPath);
@@ -564,7 +569,7 @@ router.post('/admin/firmware/upload', requireSession, firmwareUpload.single('fir
     );
     res.redirect('/admin/firmware?success=อัปโหลดเฟิร์มแวร์ ' + encodeURIComponent(version.trim()) + ' สำเร็จ');
   } catch (err) {
-    fs.unlinkSync(finalPath);
+    if (fs.existsSync(finalPath)) fs.unlinkSync(finalPath);
     if (err.code === 'ER_DUP_ENTRY') return res.redirect('/admin/firmware?error=เวอร์ชันนี้มีอยู่แล้ว');
     console.error('Firmware upload error:', err);
     res.redirect('/admin/firmware?error=เกิดข้อผิดพลาด');
@@ -574,14 +579,12 @@ router.post('/admin/firmware/upload', requireSession, firmwareUpload.single('fir
 // POST /admin/firmware/:version/promote
 router.post('/admin/firmware/:version/promote', requireSession, async (req, res) => {
   try {
-    await db.query('UPDATE firmware_releases SET is_stable = 0 WHERE is_stable = 1');
-    const [result] = await db.query(
-      'UPDATE firmware_releases SET is_stable = 1 WHERE version = ?',
-      [req.params.version]
-    );
-    if (result.affectedRows === 0) {
+    const [found] = await db.query('SELECT id FROM firmware_releases WHERE version = ?', [req.params.version]);
+    if (found.length === 0) {
       return res.redirect('/admin/firmware?error=ไม่พบเวอร์ชันนี้');
     }
+    await db.query('UPDATE firmware_releases SET is_stable = 0 WHERE is_stable = 1');
+    await db.query('UPDATE firmware_releases SET is_stable = 1 WHERE id = ?', [found[0].id]);
     res.redirect('/admin/firmware?success=ตั้ง ' + encodeURIComponent(req.params.version) + ' เป็น stable สำเร็จ');
   } catch (err) {
     console.error('Firmware promote error:', err);

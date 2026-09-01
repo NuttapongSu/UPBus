@@ -45,6 +45,9 @@ router.get('/check', requireDeviceKey, async (req, res) => {
       return res.json({ update_available: false });
     }
 
+    // The ESP32 device firmware parses this response with manual string matching
+    // (no JSON library) -- do not enable `app.set('json spaces', ...)` anywhere in
+    // this app, it would silently break firmware update checks fleet-wide.
     res.json({
       update_available: true,
       version: resolved.version,
@@ -72,8 +75,12 @@ router.get('/download/:version', requireDeviceKey, async (req, res) => {
     const stream = fs.createReadStream(filePath);
     stream.on('error', (err) => {
       console.error('firmware/download stream error:', err);
+      if (res.headersSent) {
+        return res.destroy();
+      }
       res.status(404).json({ error: 'Firmware file not found' });
     });
+    res.on('close', () => stream.destroy());
     stream.pipe(res);
   } catch (err) {
     console.error('firmware/download error:', err);

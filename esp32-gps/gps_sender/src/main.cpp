@@ -182,8 +182,7 @@ void runOtaSelfTestOrRevert() {
       http.setConnectTimeout(5000);
       http.setTimeout(5000);
       String url = String(SERVER_URL);
-      url.replace("/ingest", ""); // SERVER_URL points at .../api/gps/ingest
-      url += "/../firmware/check?device_id=" + String(deviceId) + "&current_version=" + String(FIRMWARE_VERSION);
+      url.replace("/gps/ingest", "/firmware/check?device_id=" + String(deviceId) + "&current_version=" + String(FIRMWARE_VERSION));
       http.begin(client, url);
       http.addHeader("X-Device-Key", deviceKey);
       int status = http.GET();
@@ -242,8 +241,7 @@ void checkAndApplyFirmwareUpdate() {
   checkHttp.setConnectTimeout(5000);
   checkHttp.setTimeout(5000);
   String checkUrl = String(SERVER_URL);
-  checkUrl.replace("/ingest", "");
-  checkUrl += "/../firmware/check?device_id=" + String(deviceId) + "&current_version=" + String(FIRMWARE_VERSION);
+  checkUrl.replace("/gps/ingest", "/firmware/check?device_id=" + String(deviceId) + "&current_version=" + String(FIRMWARE_VERSION));
   checkHttp.begin(checkClient, checkUrl);
   checkHttp.addHeader("X-Device-Key", deviceKey);
   int checkStatus = checkHttp.GET();
@@ -285,8 +283,7 @@ void checkAndApplyFirmwareUpdate() {
   dlHttp.setConnectTimeout(5000);
   dlHttp.setTimeout(20000);
   String dlUrl = String(SERVER_URL);
-  dlUrl.replace("/ingest", "");
-  dlUrl += "/../firmware/download/" + newVersion;
+  dlUrl.replace("/gps/ingest", "/firmware/download/" + newVersion);
   dlHttp.begin(dlClient, dlUrl);
   dlHttp.addHeader("X-Device-Key", deviceKey);
   int dlStatus = dlHttp.GET();

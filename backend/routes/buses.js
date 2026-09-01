@@ -11,10 +11,10 @@ const gpsIngestRouter = require('./gpsIngest');
 // field (soc/bv/be/odo/acc/color/driver) still comes from vendor+DB as before.
 function withEsp32PositionOverride(vendorGps, busId) {
   const esp32 = gpsIngestRouter.getLatestByDevice(busId);
-  if (!esp32) return vendorGps;
+  if (!esp32) return { ...vendorGps, source: 'vendor' };
 
   const ageMs = Date.now() - new Date(esp32.recorded_at).getTime();
-  if (ageMs > gpsIngestRouter.DEVICE_ONLINE_THRESHOLD_MS) return vendorGps;
+  if (ageMs > gpsIngestRouter.DEVICE_ONLINE_THRESHOLD_MS) return { ...vendorGps, source: 'vendor' };
 
   return {
     ...vendorGps,
@@ -22,6 +22,7 @@ function withEsp32PositionOverride(vendorGps, busId) {
     longitude: esp32.lng,
     speed: esp32.speed,
     bearing: esp32.bearing,
+    source: 'esp32',
   };
 }
 

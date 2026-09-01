@@ -53,6 +53,9 @@ export interface BusData {
   driver: string;
   date: string;
   department: string | null;
+  // 'esp32' when this position came from the bus's own GPS device (fresher,
+  // ~2s cadence) instead of the vendor poll (~10s) -- see buses.js.
+  source?: 'esp32' | 'vendor';
 }
 
 export interface BusDetail {

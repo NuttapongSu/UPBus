@@ -263,6 +263,10 @@ export function onGpsUpdate(
   junctionIdx?:     number,         // index where Seg1 ends / Seg2 begins (two-segment routes)
   terminalIdx?:     number,         // ~90% of route length for circular loops — prevents false wrap
                                     // at the terminal where route start/end share the same location
+  pollIntervalS:    number = 10,    // expected seconds between GPS updates for THIS bus -- 10 for
+                                    // vendor-polled buses (default, unchanged), lower (e.g. 2) for a
+                                    // bus reporting via its own ESP32 device, which updates far more
+                                    // often than the vendor's ~10s poll cycle
 ): BusMotionState {
   // acc=0 (engine off) → hard stop regardless of GPS speed noise
   const speedMs = (acc === 1 && gpsSpeedKph >= 5) ? gpsSpeedKph / 3.6 : 0;
@@ -400,7 +404,7 @@ export function onGpsUpdate(
 
   // Compute targetMultiplier proportional to how far ahead/behind GPS is.
   // multiplier itself lerps toward target at 0.04/frame in advanceFrame.
-  const POLL_S = 10; // expected seconds between GPS polls
+  const POLL_S = pollIntervalS;
   const THRESH = 15; // metres dead-band — within this = "on target"
   let targetMultiplier: number;
 

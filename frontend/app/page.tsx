@@ -26,7 +26,12 @@ const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://bustransit.up.ac
 
 export default function HomePage() {
   const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, {
-    refreshInterval: 10000,
+    // Matches the ESP32 fleet's ~2s report cadence so those buses' fresher
+    // position actually reaches the browser -- vendor-only buses still only
+    // get new data every ~10s at the backend (gpsPoller's own poll cycle),
+    // so this just means some of these fetches return unchanged data for
+    // them, not a problem, just a few extra no-op requests.
+    refreshInterval: 2000,
   });
 
   const [selectedLine, setSelectedLine] = useState<string | null>(null);

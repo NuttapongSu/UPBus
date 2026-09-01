@@ -155,6 +155,7 @@ export function useBusMarkers(
           effectiveAcc,
           junctionByColor?.[routeColor],
           terminalByColor?.[routeColor],
+          bus.source === 'esp32' ? 2 : 10,
         ),
         activeColor,
       };

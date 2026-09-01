@@ -1,11 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
 function requireSession(req, res, next) {
   if (req.session && req.session.admin) return next();
   res.redirect('/login');
 }
+
+const FIRMWARE_DIR = path.join(__dirname, '..', 'uploads', 'firmware');
+fs.mkdirSync(FIRMWARE_DIR, { recursive: true });
+
+const firmwareUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, FIRMWARE_DIR),
+    // Filename must not depend on req.body here: multer's storage callback
+    // fires while the multipart stream is still being parsed, so the
+    // "version" text field may not be populated on req.body yet if it
+    // appears after the file field in the form. Write to a temp name and
+    // rename to "<version>.bin" in the route handler once req.body is
+    // fully available instead.
+    filename: (req, file, cb) => cb(null, 'upload-' + Date.now() + '-' + Math.round(Math.random() * 1e9) + '.bin'),
+  }),
+  limits: { fileSize: 4 * 1024 * 1024 }, // 4MB — generous headroom over a default_ota.csv OTA slot
+});
 
 // GET /login
 router.get('/login', (req, res) => {
@@ -481,6 +502,111 @@ router.post('/admin/admins/delete', requireSession, async (req, res) => {
     res.redirect('/admin/admins?success=ลบ Admin สำเร็จ');
   } catch (err) {
     res.redirect('/admin/admins?error=เกิดข้อผิดพลาด');
+  }
+});
+
+// ─── FIRMWARE OTA ───────────────────────────────────────────────────────────
+
+// GET /admin/firmware
+router.get('/admin/firmware', requireSession, async (req, res) => {
+  try {
+    const [releases] = await db.query(
+      'SELECT id, version, md5, size_bytes, notes, is_stable, uploaded_at FROM firmware_releases ORDER BY uploaded_at DESC'
+    );
+    const [targets] = await db.query('SELECT device_id, target_version FROM firmware_targets');
+    const targetByDevice = {};
+    targets.forEach((t) => { targetByDevice[t.device_id] = t.target_version; });
+
+    const BUS_COUNT = 35;
+    const devices = [];
+    for (let i = 1; i <= BUS_COUNT; i++) {
+      const device_id = 'TC' + String(i).padStart(3, '0');
+      devices.push({ device_id, target_version: targetByDevice[device_id] || null });
+    }
+
+    res.render('admin_firmware', {
+      releases,
+      devices,
+      success: req.query.success || null,
+      error:   req.query.error   || null,
+    });
+  } catch (err) {
+    console.error('Firmware page error:', err);
+    res.status(500).send('Firmware error: ' + err.message);
+  }
+});
+
+// POST /admin/firmware/upload
+router.post('/admin/firmware/upload', requireSession, firmwareUpload.single('firmware'), async (req, res) => {
+  const { version, notes } = req.body;
+  const uploadedPath = req.file && req.file.path;
+
+  if (!version || !uploadedPath) {
+    if (uploadedPath) fs.unlinkSync(uploadedPath);
+    return res.redirect('/admin/firmware?error=กรุณาระบุเวอร์ชันและไฟล์ .bin');
+  }
+
+  const buf = fs.readFileSync(uploadedPath);
+  if (buf.length === 0 || buf.readUInt8(0) !== 0xe9) {
+    fs.unlinkSync(uploadedPath);
+    return res.redirect('/admin/firmware?error=ไฟล์ไม่ใช่ ESP32 firmware image ที่ถูกต้อง (magic byte ไม่ตรง)');
+  }
+
+  const finalFilename = version.trim() + '.bin';
+  const finalPath = path.join(FIRMWARE_DIR, finalFilename);
+  const md5 = crypto.createHash('md5').update(buf).digest('hex');
+
+  try {
+    fs.renameSync(uploadedPath, finalPath);
+    await db.query(
+      'INSERT INTO firmware_releases (version, filename, md5, size_bytes, notes) VALUES (?, ?, ?, ?, ?)',
+      [version.trim(), finalFilename, md5, buf.length, notes || null]
+    );
+    res.redirect('/admin/firmware?success=อัปโหลดเฟิร์มแวร์ ' + encodeURIComponent(version.trim()) + ' สำเร็จ');
+  } catch (err) {
+    fs.unlinkSync(finalPath);
+    if (err.code === 'ER_DUP_ENTRY') return res.redirect('/admin/firmware?error=เวอร์ชันนี้มีอยู่แล้ว');
+    console.error('Firmware upload error:', err);
+    res.redirect('/admin/firmware?error=เกิดข้อผิดพลาด');
+  }
+});
+
+// POST /admin/firmware/:version/promote
+router.post('/admin/firmware/:version/promote', requireSession, async (req, res) => {
+  try {
+    await db.query('UPDATE firmware_releases SET is_stable = 0 WHERE is_stable = 1');
+    const [result] = await db.query(
+      'UPDATE firmware_releases SET is_stable = 1 WHERE version = ?',
+      [req.params.version]
+    );
+    if (result.affectedRows === 0) {
+      return res.redirect('/admin/firmware?error=ไม่พบเวอร์ชันนี้');
+    }
+    res.redirect('/admin/firmware?success=ตั้ง ' + encodeURIComponent(req.params.version) + ' เป็น stable สำเร็จ');
+  } catch (err) {
+    console.error('Firmware promote error:', err);
+    res.redirect('/admin/firmware?error=เกิดข้อผิดพลาด');
+  }
+});
+
+// POST /admin/firmware/target — ตั้ง/ล้าง canary ต่อ device
+router.post('/admin/firmware/target', requireSession, async (req, res) => {
+  const { device_id, target_version } = req.body;
+  if (!device_id) return res.redirect('/admin/firmware?error=ไม่พบ device_id');
+
+  try {
+    if (!target_version) {
+      await db.query('DELETE FROM firmware_targets WHERE device_id = ?', [device_id]);
+    } else {
+      await db.query(
+        'INSERT INTO firmware_targets (device_id, target_version) VALUES (?, ?) ON DUPLICATE KEY UPDATE target_version = VALUES(target_version)',
+        [device_id, target_version]
+      );
+    }
+    res.redirect('/admin/firmware?success=อัปเดต target ของ ' + encodeURIComponent(device_id) + ' สำเร็จ');
+  } catch (err) {
+    console.error('Firmware target error:', err);
+    res.redirect('/admin/firmware?error=เกิดข้อผิดพลาด');
   }
 });
 

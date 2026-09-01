@@ -1033,7 +1033,37 @@ git commit -m "feat(esp32-gps): add OTA check/apply/self-test/revert logic"
 
 - [ ] **Step 7: Physical hardware verification (do not skip before trusting this on the live fleet)**
 
+**Corrected during the final whole-branch review** (2026-09-01): the shipped `setup()` calls
+`runOtaSelfTestOrRevert()` *before* `checkAndApplyFirmwareUpdate()`, so a broken build that hangs
+immediately after `runWifiSetup()` never reaches `runOtaSelfTestOrRevert()` at all — `pending` stays
+`true`, the explicit `esp_ota_set_boot_partition()` revert this design relies on never runs, and the
+board hangs forever with no watchdog to save it. That test would "fail" for a reason unrelated to the
+mechanism being tested. Two separate broken-build tests are needed to cover both revert paths:
+
 1. Flash the new firmware (with `FIRMWARE_VERSION = "1.0.0"`) to one test board via USB as normal.
-2. Bump `FIRMWARE_VERSION` to `"1.0.1"` in a *deliberately broken* build (e.g. add `while(true) delay(1000);` right after `runWifiSetup()` so it can never reach the self-test's HTTP check), upload that `.bin` via the admin page, set it as that one board's canary target.
-3. Confirm on serial monitor that the board downloads `1.0.1`, restarts, and — because it can never pass self-test — **reverts back to `1.0.0` and resumes normal operation**, rather than boot-looping forever on the broken build. This is the auto-revert path the whole design depends on; per the deviation note at the top of this plan, it has not been exercised on real hardware in this session.
-4. Only after that passes, repeat with a genuinely good `1.0.1` build and confirm it stays on `1.0.1` (self-test passes, `esp_ota_mark_app_valid_cancel_rollback()` runs, no revert on next reboot).
+2. **Test A — exercise the explicit revert (the one this design actually depends on):** bump
+   `FIRMWARE_VERSION` to `"1.0.1"` in a build that reaches `runOtaSelfTestOrRevert()` but fails its
+   HTTP self-test on purpose — e.g. point `SERVER_URL` at an unreachable host in this build only, or
+   hard-code the self-test's status check to treat success as failure. Upload via the admin page, set
+   it as that one board's canary target. Confirm on serial monitor that the board downloads `1.0.1`,
+   restarts, runs `runOtaSelfTestOrRevert()`, fails its self-test within `FIRMWARE_SELFTEST_TIMEOUT_MS`,
+   and **reverts back to `1.0.0` via the explicit `esp_ota_set_boot_partition()` call and resumes
+   normal operation** — not boot-looping forever.
+3. **Test B — the hang-before-self-test case (relies on the bootloader's own rollback, unverified):**
+   bump `FIRMWARE_VERSION` to `"1.0.2"` in a build that hangs (e.g. `while(true) delay(1000);`) *right
+   after* `runWifiSetup()`, before `runOtaSelfTestOrRevert()` is ever entered. Upload, canary-target the
+   same board. This is a real-world failure mode (a bad build can hang anywhere), and this design's
+   *only* defense against it is whatever bootloader-level rollback the precompiled Arduino-ESP32
+   bootloader provides — which, per the deviation note at the top of this plan, could not be confirmed
+   from this session. Confirm on serial monitor whether the board actually recovers on its own. If it
+   does not, that's a real, currently-undefended gap — worth a watchdog timer as a follow-up, not
+   something to silently accept.
+4. Only after both pass (or Test B's result is understood and accepted), repeat with a genuinely good
+   `1.0.1`/`1.0.2` build and confirm it stays on the new version (self-test passes,
+   `esp_ota_mark_app_valid_cancel_rollback()` runs, no revert on next reboot).
+
+**Pre-rollout checklist (from the final review — confirm all of these before promoting to the live fleet, not just this step):**
+- [ ] `backend/migrations/009_firmware_ota.sql` applied to the production database (this repo has no migration runner — apply it by hand, and apply it *before* the new backend code first boots, since `/admin/firmware` and `/api/firmware/check` both 500 without these tables — fails safe: devices just don't update, but confirm this ordering anyway)
+- [ ] `SERVER_URL` in `main.cpp` switched off `/gpstest` to the production path before flashing any board that will actually receive OTA updates from the live admin panel
+- [ ] Both Test A and Test B above run on at least one physical board
+- [ ] Confirm the `FIRMWARE_VERSION` constant in the build actually matches the version string typed into the admin upload form for every real release — this is exactly the mismatch the final review's Critical fix (Task 7 fix round 2, the `last_try` guard) defends against, but a matching version string is still the correct, intended way to avoid ever triggering that guard in the first place

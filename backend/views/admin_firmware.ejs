@@ -1,0 +1,160 @@
+<!-- backend/views/admin_firmware.ejs -->
+<!DOCTYPE html>
+<html :class="{ 'theme-dark': dark }" x-data="data()" lang="th">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UP Bus - เฟิร์มแวร์ GPS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/css/tailwind.output.css" />
+    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+    <script src="/assets/js/init-alpine.js"></script>
+    <style>body,h1,h2,h3,h4,h5,h6,p,span,a,div,table{font-family:'Kanit',sans-serif!important}</style>
+</head>
+<body>
+<div class="flex h-screen bg-gray-50 dark:bg-gray-900" :class="{ 'overflow-hidden': isSideMenuOpen }">
+
+    <%- include('partials/sidebar', { page: 'firmware' }) %>
+
+    <div class="flex flex-col flex-1 w-full overflow-y-auto">
+        <header class="z-10 py-4 bg-white shadow-md dark:bg-gray-800">
+            <div class="container flex items-center justify-between h-full px-6 mx-auto">
+                <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">เฟิร์มแวร์ GPS</h2>
+                <a href="/logout" onclick="return confirm('ยืนยันออกจากระบบ?');" class="text-sm text-purple-600 hover:underline">ออกจากระบบ</a>
+            </div>
+        </header>
+
+        <main class="h-full overflow-y-auto">
+            <div class="container px-6 mx-auto py-6">
+
+                <% if (success) { %>
+                <div class="mb-4 px-4 py-3 bg-green-100 text-green-800 rounded-lg"><%= success %></div>
+                <% } %>
+                <% if (error) { %>
+                <div class="mb-4 px-4 py-3 bg-red-100 text-red-800 rounded-lg"><%= error %></div>
+                <% } %>
+
+                <!-- อัปโหลดเฟิร์มแวร์ใหม่ -->
+                <div class="mb-6 p-6 bg-white rounded-lg shadow-xs dark:bg-gray-800">
+                    <h3 class="text-base font-semibold text-gray-700 dark:text-gray-200 mb-4">อัปโหลดเฟิร์มแวร์ใหม่</h3>
+                    <form method="POST" action="/admin/firmware/upload" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">เวอร์ชัน</label>
+                            <input type="text" name="version" required placeholder="เช่น 1.1.0"
+                                class="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:outline-none focus:border-purple-400" />
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">Changelog</label>
+                            <input type="text" name="notes" placeholder="(ไม่บังคับ)"
+                                class="w-full px-3 py-2 text-sm border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:outline-none focus:border-purple-400" />
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-600 dark:text-gray-400 mb-1">ไฟล์ .bin</label>
+                            <input type="file" name="firmware" accept=".bin" required
+                                class="w-full text-sm text-gray-600 dark:text-gray-300" />
+                        </div>
+                        <div class="flex items-end">
+                            <button type="submit"
+                                class="w-full px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors">
+                                อัปโหลด
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- ประวัติเวอร์ชัน -->
+                <div class="mb-6 bg-white rounded-lg shadow-xs dark:bg-gray-800 overflow-hidden">
+                    <div class="px-6 py-4 border-b dark:border-gray-700">
+                        <h3 class="text-base font-semibold text-gray-700 dark:text-gray-200">ประวัติเวอร์ชัน (<%= releases.length %>)</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
+                                    <th class="px-4 py-3">เวอร์ชัน</th>
+                                    <th class="px-4 py-3">ขนาด</th>
+                                    <th class="px-4 py-3">MD5</th>
+                                    <th class="px-4 py-3">Changelog</th>
+                                    <th class="px-4 py-3">อัปโหลดเมื่อ</th>
+                                    <th class="px-4 py-3">สถานะ</th>
+                                    <th class="px-4 py-3">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
+                                <% releases.forEach(function(r) { %>
+                                <tr class="text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td class="px-4 py-3 font-semibold"><%= r.version %></td>
+                                    <td class="px-4 py-3 text-xs"><%= (r.size_bytes / 1024).toFixed(0) %> KB</td>
+                                    <td class="px-4 py-3 text-xs font-mono"><%= r.md5.slice(0, 12) %>...</td>
+                                    <td class="px-4 py-3 text-xs"><%= r.notes || '-' %></td>
+                                    <td class="px-4 py-3 text-xs text-gray-500"><%= new Date(r.uploaded_at).toLocaleString('th-TH') %></td>
+                                    <td class="px-4 py-3">
+                                        <% if (r.is_stable) { %>
+                                        <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">Stable</span>
+                                        <% } else { %>
+                                        <span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">-</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <% if (!r.is_stable) { %>
+                                        <form method="POST" action="/admin/firmware/<%= r.version %>/promote" onsubmit="return confirm('ตั้ง <%= r.version %> เป็น stable สำหรับทุกคันที่ไม่ได้ตั้ง canary?');">
+                                            <button type="submit" class="px-3 py-1 text-xs font-medium text-white bg-purple-600 rounded hover:bg-purple-700 transition-colors">Promote to stable</button>
+                                        </form>
+                                        <% } %>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Target ต่อคัน (canary) -->
+                <div class="bg-white rounded-lg shadow-xs dark:bg-gray-800 overflow-hidden">
+                    <div class="px-6 py-4 border-b dark:border-gray-700">
+                        <h3 class="text-base font-semibold text-gray-700 dark:text-gray-200">Target ต่อคัน (<%= devices.length %> คัน)</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b dark:border-gray-700 bg-gray-50 dark:text-gray-400 dark:bg-gray-800">
+                                    <th class="px-4 py-3">Device ID</th>
+                                    <th class="px-4 py-3">Target ปัจจุบัน</th>
+                                    <th class="px-4 py-3">ตั้งค่า</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y dark:divide-gray-700 dark:bg-gray-800">
+                                <% devices.forEach(function(d) { %>
+                                <tr class="text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td class="px-4 py-3 font-mono"><%= d.device_id %></td>
+                                    <td class="px-4 py-3">
+                                        <% if (d.target_version) { %>
+                                        <span class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded">canary: <%= d.target_version %></span>
+                                        <% } else { %>
+                                        <span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">(stable)</span>
+                                        <% } %>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <form method="POST" action="/admin/firmware/target" class="flex items-center gap-2">
+                                            <input type="hidden" name="device_id" value="<%= d.device_id %>">
+                                            <select name="target_version" class="px-2 py-1 text-xs border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
+                                                <option value="">(stable)</option>
+                                                <% releases.forEach(function(r) { %>
+                                                <option value="<%= r.version %>" <%= d.target_version === r.version ? 'selected' : '' %>><%= r.version %></option>
+                                                <% }); %>
+                                            </select>
+                                            <button type="submit" class="px-3 py-1 text-xs font-medium text-white bg-blue-500 rounded hover:bg-blue-600 transition-colors">ตั้งค่า</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+</body>
+</html>

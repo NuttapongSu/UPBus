@@ -20,6 +20,8 @@ const lineRouter          = require('./routes/line');
 const stopsRouter         = require('./routes/stops');
 const pushRouter          = require('./routes/push');
 const kmlRouter           = require('./routes/kml');
+const gpsIngestRouter     = require('./routes/gpsIngest');
+const firmwareDeviceRouter = require('./routes/firmwareDevice');
 
 const app = express();
 
@@ -58,6 +60,8 @@ app.use('/api/line',           lineRouter);
 app.use('/api/stops',          stopsRouter);
 app.use('/api/push',           pushRouter);
 app.use('/api/kml',            kmlRouter);
+app.use('/api/gps',            gpsIngestRouter);
+app.use('/api/firmware',       firmwareDeviceRouter);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));

@@ -62,7 +62,7 @@ const int GPS_SEND_OK_LED_CHANNEL = 0;
 const int GPS_SEND_FAIL_LED_CHANNEL = 1;
 const int LED_PWM_FREQ_HZ = 5000;
 const int LED_PWM_RESOLUTION_BITS = 8;
-const int LED_DIM_DUTY = 77; // ~30% of 255 (8-bit resolution)
+const int LED_DIM_DUTY = 64; // ~25% of 255 (8-bit resolution)
 
 const unsigned long WIFI_BLINK_AP_MS = 1000;      // AP portal open, waiting for registration
 const unsigned long WIFI_BLINK_SEARCH_MS = 150;   // searching for last-known WiFi

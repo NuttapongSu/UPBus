@@ -61,16 +61,20 @@ router.get('/check', requireDeviceKey, async (req, res) => {
 router.get('/download/:version', requireDeviceKey, async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT filename FROM firmware_releases WHERE version = ?',
+      'SELECT filename, size_bytes FROM firmware_releases WHERE version = ?',
       [req.params.version]
     );
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Unknown version' });
     }
     const filePath = path.join(FIRMWARE_DIR, rows[0].filename);
-    const content = fs.readFileSync(filePath);
-    res.set('Content-Length', content.length);
-    res.send(content);
+    res.set('Content-Length', rows[0].size_bytes);
+    const stream = fs.createReadStream(filePath);
+    stream.on('error', (err) => {
+      console.error('firmware/download stream error:', err);
+      res.status(404).json({ error: 'Firmware file not found' });
+    });
+    stream.pipe(res);
   } catch (err) {
     console.error('firmware/download error:', err);
     res.status(500).json({ error: 'Server error' });

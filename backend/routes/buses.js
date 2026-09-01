@@ -3,6 +3,27 @@ const router = express.Router();
 const db = require('../db');
 const { getCachedBusData, getCachedBusById, BUS_IDS } = require('../services/gpsPoller');
 const { getWrongRouteState } = require('../services/routeCheckpoints');
+const gpsIngestRouter = require('./gpsIngest');
+
+// Vendor GPS polls on a ~10s cycle; a bus with its own ESP32 GPS device pushes
+// far more often. When a bus has a recent ESP32 report, use it for the
+// position fields only (lat/lng/speed/bearing) to cut that lag -- every other
+// field (soc/bv/be/odo/acc/color/driver) still comes from vendor+DB as before.
+function withEsp32PositionOverride(vendorGps, busId) {
+  const esp32 = gpsIngestRouter.getLatestByDevice(busId);
+  if (!esp32) return vendorGps;
+
+  const ageMs = Date.now() - new Date(esp32.recorded_at).getTime();
+  if (ageMs > gpsIngestRouter.DEVICE_ONLINE_THRESHOLD_MS) return vendorGps;
+
+  return {
+    ...vendorGps,
+    latitude: esp32.lat,
+    longitude: esp32.lng,
+    speed: esp32.speed,
+    bearing: esp32.bearing,
+  };
+}
 
 // GET /api/buses — merge RAM cache + DB + today's reservations
 router.get('/', async (req, res) => {
@@ -30,7 +51,8 @@ router.get('/', async (req, res) => {
     const wrongRoutes = getWrongRouteState();
 
     const finalData = BUS_IDS.map(tc => {
-      const gps = gpsMap.get(tc) || { imei_id: tc, latitude: null, longitude: null, speed: 0, bearing: 0, soc: 0 };
+      const vendorGps = gpsMap.get(tc) || { imei_id: tc, latitude: null, longitude: null, speed: 0, bearing: 0, soc: 0 };
+      const gps = withEsp32PositionOverride(vendorGps, tc);
       const dbInfo = dbMap.get(tc) || { status_color: 'Purple', full_name: 'ไม่ระบุคนขับ' };
       const department = reserveMap.get(tc) || null;
       // มี reservation → สีส้ม

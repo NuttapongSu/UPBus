@@ -53,6 +53,17 @@ const int WIFI_STATUS_LED_PIN = 4;   // AP mode=slow blink, searching=fast blink
 const int GPS_SEND_OK_LED_PIN = 16;  // blinks once per successful GPS send (HTTP 2xx)
 const int GPS_SEND_FAIL_LED_PIN = 17; // blinks once per failed GPS send; solid ON while no GPS fix
 
+// GPIO16/17 are dimmed via PWM (too bright at full digitalWrite HIGH for their
+// enclosure) -- driven through the LEDC channel-based API since this board's
+// installed arduino-esp32 core (3.20017.241212) still exposes the legacy
+// ledcSetup/ledcAttachPin/ledcWrite(channel, ...) signatures, not the newer
+// pin-based ledcAttach(pin, ...).
+const int GPS_SEND_OK_LED_CHANNEL = 0;
+const int GPS_SEND_FAIL_LED_CHANNEL = 1;
+const int LED_PWM_FREQ_HZ = 5000;
+const int LED_PWM_RESOLUTION_BITS = 8;
+const int LED_DIM_DUTY = 77; // ~30% of 255 (8-bit resolution)
+
 const unsigned long WIFI_BLINK_AP_MS = 1000;      // AP portal open, waiting for registration
 const unsigned long WIFI_BLINK_SEARCH_MS = 150;   // searching for last-known WiFi
 const unsigned long CONFIG_TRIGGER_WINDOW_MS = 8000; // hold BOOT anytime in this window right after boot to force the setup AP
@@ -568,9 +579,9 @@ bool gpsSendFailBlinkState = false;
 
 void sendPosition(double lat, double lng, double speedKmh, double bearingDeg) {
   if (WiFi.status() != WL_CONNECTED) {
-    digitalWrite(GPS_SEND_OK_LED_PIN, LOW);
+    ledcWrite(GPS_SEND_OK_LED_CHANNEL, 0);
     gpsSendFailBlinkState = !gpsSendFailBlinkState;
-    digitalWrite(GPS_SEND_FAIL_LED_PIN, gpsSendFailBlinkState);
+    ledcWrite(GPS_SEND_FAIL_LED_CHANNEL, gpsSendFailBlinkState ? LED_DIM_DUTY : 0);
     return; // WiFiManager keeps trying to reconnect in the background
   }
 
@@ -597,12 +608,12 @@ void sendPosition(double lat, double lng, double speedKmh, double bearingDeg) {
   bool sendOk = statusCode >= 200 && statusCode < 300;
   if (sendOk) {
     gpsSendOkBlinkState = !gpsSendOkBlinkState;
-    digitalWrite(GPS_SEND_OK_LED_PIN, gpsSendOkBlinkState);
-    digitalWrite(GPS_SEND_FAIL_LED_PIN, LOW);
+    ledcWrite(GPS_SEND_OK_LED_CHANNEL, gpsSendOkBlinkState ? LED_DIM_DUTY : 0);
+    ledcWrite(GPS_SEND_FAIL_LED_CHANNEL, 0);
   } else {
-    digitalWrite(GPS_SEND_OK_LED_PIN, LOW);
+    ledcWrite(GPS_SEND_OK_LED_CHANNEL, 0);
     gpsSendFailBlinkState = !gpsSendFailBlinkState;
-    digitalWrite(GPS_SEND_FAIL_LED_PIN, gpsSendFailBlinkState);
+    ledcWrite(GPS_SEND_FAIL_LED_CHANNEL, gpsSendFailBlinkState ? LED_DIM_DUTY : 0);
   }
   if (statusCode > 0) {
     Serial.printf("[DBG-http] POST -> %d (%lu ms)\n", statusCode, postMs);
@@ -622,10 +633,12 @@ void setup() {
 
   pinMode(WIFI_STATUS_LED_PIN, OUTPUT);
   digitalWrite(WIFI_STATUS_LED_PIN, LOW);
-  pinMode(GPS_SEND_OK_LED_PIN, OUTPUT);
-  digitalWrite(GPS_SEND_OK_LED_PIN, LOW);
-  pinMode(GPS_SEND_FAIL_LED_PIN, OUTPUT);
-  digitalWrite(GPS_SEND_FAIL_LED_PIN, LOW);
+  ledcSetup(GPS_SEND_OK_LED_CHANNEL, LED_PWM_FREQ_HZ, LED_PWM_RESOLUTION_BITS);
+  ledcAttachPin(GPS_SEND_OK_LED_PIN, GPS_SEND_OK_LED_CHANNEL);
+  ledcWrite(GPS_SEND_OK_LED_CHANNEL, 0);
+  ledcSetup(GPS_SEND_FAIL_LED_CHANNEL, LED_PWM_FREQ_HZ, LED_PWM_RESOLUTION_BITS);
+  ledcAttachPin(GPS_SEND_FAIL_LED_PIN, GPS_SEND_FAIL_LED_CHANNEL);
+  ledcWrite(GPS_SEND_FAIL_LED_CHANNEL, 0);
 
   // checkForcePortal() needs WIFI_STATUS_LED_PIN already in OUTPUT mode
   // (above) to blink its "press BOOT now" cue, so it must run after that.
@@ -661,8 +674,8 @@ void loop() {
   digitalWrite(WIFI_STATUS_LED_PIN, WiFi.status() == WL_CONNECTED ? HIGH : LOW);
 
   if (!gpsFixed) {
-    digitalWrite(GPS_SEND_OK_LED_PIN, LOW);
-    digitalWrite(GPS_SEND_FAIL_LED_PIN, HIGH); // solid ON: no GPS signal
+    ledcWrite(GPS_SEND_OK_LED_CHANNEL, 0);
+    ledcWrite(GPS_SEND_FAIL_LED_CHANNEL, LED_DIM_DUTY); // dim ON: no GPS signal
 
     if (millis() - lastGpsRearmMs >= GPS_REARM_INTERVAL_MS) {
       lastGpsRearmMs = millis();

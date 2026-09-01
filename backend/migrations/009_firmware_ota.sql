@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS firmware_releases (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  version      VARCHAR(20) NOT NULL UNIQUE,
+  filename     VARCHAR(255) NOT NULL,
+  md5          CHAR(32) NOT NULL,
+  size_bytes   INT NOT NULL,
+  notes        TEXT,
+  is_stable    TINYINT(1) NOT NULL DEFAULT 0,
+  uploaded_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS firmware_targets (
+  device_id      VARCHAR(10) PRIMARY KEY,
+  target_version VARCHAR(20),
+  updated_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { BusData } from '@/lib/api';
+import { LINE_COLORS } from '@/lib/theme';
 import { useBusMarkers } from './useBusMarkers';
 import type { Map as LeafletMap, Marker } from 'leaflet';
 
@@ -24,7 +25,7 @@ const USER_ICON_HTML = `
       width:12px;height:12px;
       transform:translate(-50%,-50%);
       border-radius:50%;
-      background:#3498db;
+      background:${LINE_COLORS.Blue};
       border:2px solid #fff;
       box-shadow:0 0 6px rgba(52,152,219,0.8);
     "></div>
@@ -68,9 +69,9 @@ export default function BusMap({ buses, selectedLine, selectedBus }: Props) {
       ).addTo(map);
 
       const kmlFiles = [
-        { file: '/kml/up_bus_transit_red.kml',   color: '#e74c3c', key: 'Red' },
-        { file: '/kml/up_bus_transit_green.kml',  color: '#2ecc71', key: 'Green' },
-        { file: '/kml/up_bus_transit_blue.kml',   color: '#3498db', key: 'Blue' },
+        { file: '/kml/up_bus_transit_red.kml',   color: LINE_COLORS.Red, key: 'Red' },
+        { file: '/kml/up_bus_transit_green.kml',  color: LINE_COLORS.Green, key: 'Green' },
+        { file: '/kml/up_bus_transit_blue.kml',   color: LINE_COLORS.Blue, key: 'Blue' },
       ];
 
       const stopMarkersList: { marker: Marker; isReturn: boolean }[] = [];

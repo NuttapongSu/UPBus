@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { BusData } from '@/lib/api';
+import { LINE_COLORS } from '@/lib/theme';
 
 interface Props {
   buses: BusData[];
@@ -15,11 +16,7 @@ interface Alert {
   distanceM: number;
 }
 
-const LINE_COLOR: Record<string, string> = {
-  Green: '#2ecc71',
-  Blue:  '#3498db',
-  Red:   '#e74c3c',
-};
+const LINE_COLOR = LINE_COLORS;
 
 const LINE_STOPS: Record<string, { name: string; lat: number; lng: number }[]> = {
   Green: [

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { BusData } from '@/lib/api';
+import { LINE_COLORS } from '@/lib/theme';
 
 interface Props {
   buses: BusData[];
@@ -10,9 +11,9 @@ interface Props {
 }
 
 const LINES: Record<string, { name: string; route: string; color: string }> = {
-  Green: { name: 'สายหน้ามอ',    route: 'หน้ามหาวิทยาลัย → อาคารเรียนรวม', color: '#2ecc71' },
-  Blue:  { name: 'สายประตูสาม', route: 'ประตูสาม → คณะ ICT',               color: '#3498db' },
-  Red:   { name: 'สายหอพัก',    route: 'อาคาร PKY → โรงเรียนสาธิต',        color: '#e74c3c' },
+  Green: { name: 'สายหน้ามอ',    route: 'หน้ามหาวิทยาลัย → อาคารเรียนรวม', color: LINE_COLORS.Green },
+  Blue:  { name: 'สายประตูสาม', route: 'ประตูสาม → คณะ ICT',               color: LINE_COLORS.Blue },
+  Red:   { name: 'สายหอพัก',    route: 'อาคาร PKY → โรงเรียนสาธิต',        color: LINE_COLORS.Red },
 };
 
 const LINE_STOPS: Record<string, { name: string; lat: number; lng: number }[]> = {

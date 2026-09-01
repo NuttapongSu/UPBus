@@ -10,6 +10,10 @@ const CNAME = 'PHAYAO01';
 const API_URL = 'https://api01.sitgps.com/api/get_list_deviceV2';
 const POLL_INTERVAL_MS = 10000; // 10 วินาที (ตาม rate limit จริง)
 const SNAPSHOT_RETENTION_HOURS = 24;
+// ESP32 GPS boards (bus_id like 'ESP32-%', ingested via /api/gps/ingest) get a
+// longer retention than vendor buses so the stability-analysis view has
+// enough history to work with.
+const ESP32_SNAPSHOT_RETENTION_DAYS = 3;
 const USE_MOCK_GPS = process.env.USE_MOCK_GPS === 'true';
 
 const PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
@@ -171,14 +175,19 @@ async function fetchAndStore() {
   }
 }
 
-// ลบ snapshot เก่ากว่า 24 ชั่วโมง (รัน 1 ครั้ง/วัน)
+// ลบ snapshot เก่า (รัน 1 ครั้ง/วัน) — รถบัส vendor ลบที่ 24 ชม., บอร์ด ESP32
+// เก็บนานกว่าเพื่อให้หน้าวิเคราะห์ความเสถียรมีประวัติย้อนหลังพอใช้งาน
 async function cleanOldSnapshots() {
   try {
-    const [result] = await db.query(
-      `DELETE FROM gps_snapshots WHERE recorded_at < NOW() - INTERVAL ? HOUR`,
+    const [vendorResult] = await db.query(
+      `DELETE FROM gps_snapshots WHERE bus_id NOT LIKE 'ESP32-%' AND recorded_at < NOW() - INTERVAL ? HOUR`,
       [SNAPSHOT_RETENTION_HOURS]
     );
-    console.log(`🗑️  Cleaned ${result.affectedRows} old snapshots`);
+    const [esp32Result] = await db.query(
+      `DELETE FROM gps_snapshots WHERE bus_id LIKE 'ESP32-%' AND recorded_at < NOW() - INTERVAL ? DAY`,
+      [ESP32_SNAPSHOT_RETENTION_DAYS]
+    );
+    console.log(`🗑️  Cleaned ${vendorResult.affectedRows} old vendor snapshots, ${esp32Result.affectedRows} old ESP32 snapshots`);
   } catch (err) {
     console.error('❌ Clean snapshots error:', err.message);
   }

@@ -1,4 +1,5 @@
 import AnimatedNumber from './AnimatedNumber';
+import { COLORS } from '@/lib/theme';
 
 interface Props {
   label: string;
@@ -9,7 +10,7 @@ interface Props {
   color?: string;
 }
 
-export default function StatCard({ label, value, numericValue, unit, sub, color = '#2ecc71' }: Props) {
+export default function StatCard({ label, value, numericValue, unit, sub, color = COLORS.green }: Props) {
   return (
     <div className="bg-[#1a1a2e] rounded-xl p-3 border border-[#2a2a4a]">
       <p className="text-xs text-gray-400 mb-1">{label}</p>

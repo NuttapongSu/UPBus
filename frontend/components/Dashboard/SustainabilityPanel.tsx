@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import { getSustainability, SustainabilityData } from '@/lib/api';
 import StatCard from '@/components/ui/StatCard';
 import AnimatedNumber from '@/components/ui/AnimatedNumber';
+import { COLORS } from '@/lib/theme';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement,
   PointElement, Tooltip, Legend
@@ -40,7 +41,7 @@ export default function SustainabilityPanel() {
     datasets: [{
       label: 'CO₂ (kg)',
       data: weekly.map(w => w.co2),
-      backgroundColor: '#2ecc71',
+      backgroundColor: COLORS.green,
       borderRadius: 4,
     }],
   };
@@ -52,9 +53,9 @@ export default function SustainabilityPanel() {
       </h3>
 
       {/* CO₂ หลัก */}
-      <div className="bg-[#1a3a1a] border border-[#2ecc71] rounded-xl p-4">
+      <div className="bg-[#1a3a1a] border border-brand-green rounded-xl p-4">
         <p className="text-xs text-gray-400">CO₂ ลดได้วันนี้</p>
-        <p className="text-4xl font-bold text-[#2ecc71]">
+        <p className="text-4xl font-bold text-brand-green">
           <AnimatedNumber value={co2Saved} format={(n) => n.toFixed(2)} />
           {' '}<span className="text-lg">kg</span>
         </p>
@@ -63,9 +64,9 @@ export default function SustainabilityPanel() {
 
       {/* stats row */}
       <div className="grid grid-cols-3 gap-2">
-        <StatCard label="ต้นไม้/วัน"  numericValue={trees}  color="#2ecc71" />
-        <StatCard label="คัน ลดได้"   numericValue={busesActive} color="#f39c12" />
-        <StatCard label="PM2.5"        value="-62%"          color="#3498db" />
+        <StatCard label="ต้นไม้/วัน"  numericValue={trees}  color={COLORS.green} />
+        <StatCard label="คัน ลดได้"   numericValue={busesActive} color={COLORS.orange} />
+        <StatCard label="PM2.5"        value="-62%"          color={COLORS.blue} />
       </div>
 
       {/* Energy + Distance */}
@@ -74,14 +75,14 @@ export default function SustainabilityPanel() {
           label="พลังงานที่ใช้"
           numericValue={kwhUsed}
           unit="kWh"
-          color="#f39c12"
+          color={COLORS.orange}
         />
         <StatCard
           label="ระยะทางรวม"
           numericValue={kmTotal}
           unit="km"
           sub={`${co2PerKm.toFixed(4)} kg CO₂/km`}
-          color="#3498db"
+          color={COLORS.blue}
         />
       </div>
 
@@ -93,7 +94,7 @@ export default function SustainabilityPanel() {
         <div className="grid grid-cols-2 gap-2 mb-2">
           <div className="bg-[#0d1f0d] rounded-lg p-2">
             <p className="text-[10px] text-gray-500 mb-1">EV (ไฟฟ้ากริด)</p>
-            <p className="text-lg font-bold text-[#2ecc71]">
+            <p className="text-lg font-bold text-brand-green">
               <AnimatedNumber value={evCO2} format={(n) => n.toFixed(2)} />
             </p>
             <p className="text-[10px] text-gray-500">kgCO₂e</p>
@@ -110,11 +111,11 @@ export default function SustainabilityPanel() {
         <div className="flex items-center gap-2">
           <div className="flex-1 bg-[#2a2a4a] rounded-full h-2 overflow-hidden">
             <div
-              className="h-full bg-[#2ecc71] rounded-full transition-all duration-700"
+              className="h-full bg-brand-green rounded-full transition-all duration-700"
               style={{ width: `${Math.min(100, savingPct)}%` }}
             />
           </div>
-          <span className="text-xs font-bold text-[#2ecc71] w-12 text-right">
+          <span className="text-xs font-bold text-brand-green w-12 text-right">
             -{savingPct}%
           </span>
         </div>

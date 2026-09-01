@@ -1,0 +1,30 @@
+{
+  "apps": [
+    {
+      "name": "UPbustransit-backend-fulltest",
+      "script": "index.js",
+      "cwd": "C:\\UPbustransit-fulltest\\backend",
+      "exec_mode": "fork",
+      "instances": 1,
+      "autorestart": true,
+      "watch": false,
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    {
+      "name": "UPbustransit-frontend-fulltest",
+      "script": "node",
+      "args": "node_modules\\next\\dist\\bin\\next start -p 3001",
+      "cwd": "C:\\UPbustransit-fulltest\\frontend",
+      "exec_mode": "fork",
+      "instances": 1,
+      "autorestart": true,
+      "watch": false,
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "3001"
+      }
+    }
+  ]
+}

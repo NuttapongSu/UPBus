@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { COLORS } from '@/lib/theme';
 
 const DEPARTMENTS = [
   'คณะวิทยาศาสตร์','คณะวิศวกรรมศาสตร์','คณะเทคโนโลยีสารสนเทศและการสื่อสาร',
@@ -75,7 +76,7 @@ export default function BusRequestModal({ onClose }: Props) {
     finally { setLoading(false); }
   }
 
-  const inputCls = 'w-full bg-[#1a1a2e] border border-[#2a2a4a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#9b59b6]';
+  const inputCls = 'w-full bg-[#1a1a2e] border border-[#2a2a4a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-brand-purple';
 
   return (
     <div className="fixed inset-0 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', zIndex: 9999 }}>
@@ -107,7 +108,7 @@ export default function BusRequestModal({ onClose }: Props) {
             )}
             <p className="text-xs text-gray-400">Admin จะตรวจสอบและแจ้งผลให้ทราบ</p>
             <button onClick={onClose}
-              className="mt-2 px-6 py-2 text-xs font-bold rounded-lg bg-[#9b59b6] text-white hover:bg-[#8e44ad] transition-colors">
+              className="mt-2 px-6 py-2 text-xs font-bold rounded-lg bg-brand-purple text-white hover:bg-brand-purple-dark transition-colors">
               ปิด
             </button>
           </div>
@@ -171,7 +172,7 @@ export default function BusRequestModal({ onClose }: Props) {
                 <label className="text-xs text-gray-400">ช่วงเวลาที่ขอรถ <span className="text-red-400">*</span></label>
                 <label className="flex items-center gap-1.5 cursor-pointer select-none">
                   <input type="checkbox" checked={allDay} onChange={e => setAllDay(e.target.checked)}
-                    className="accent-[#9b59b6] w-3.5 h-3.5" />
+                    className="accent-brand-purple w-3.5 h-3.5" />
                   <span className="text-xs text-gray-300">ทั้งวัน</span>
                 </label>
               </div>
@@ -228,8 +229,8 @@ export default function BusRequestModal({ onClose }: Props) {
             <div>
               <label className="block text-xs text-gray-400 mb-1">เอกสารบันทึกขอรถ</label>
               <a href="https://dms.up.ac.th" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 w-full px-4 py-3 rounded-lg text-xs font-medium text-white border border-[#9b59b6] hover:bg-[#9b59b6]/20 transition-colors"
-                style={{ background: '#9b59b625' }}>
+                className="flex items-center gap-2 w-full px-4 py-3 rounded-lg text-xs font-medium text-white border border-brand-purple hover:bg-brand-purple/20 transition-colors"
+                style={{ background: `${COLORS.purple}25` }}>
                 <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                 </svg>
@@ -251,7 +252,7 @@ export default function BusRequestModal({ onClose }: Props) {
               </button>
               <button type="submit" disabled={loading || availability?.remaining === 0}
                 className="flex-1 py-2 text-xs font-bold rounded-lg text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: '#9b59b6' }}>
+                style={{ background: COLORS.purple }}>
                 {loading ? 'กำลังส่ง...' : 'ส่งคำขอจองรถ'}
               </button>
             </div>

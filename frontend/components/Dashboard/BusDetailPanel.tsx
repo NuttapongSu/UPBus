@@ -1,6 +1,7 @@
 'use client';
 import useSWR from 'swr';
 import { getBusDetail, getBusHourly, BusDetail, HourlyData } from '@/lib/api';
+import { COLORS, LINE_COLORS } from '@/lib/theme';
 
 interface Props {
   busId: string;
@@ -8,10 +9,10 @@ interface Props {
 }
 
 const LINE_META: Record<string, { name: string; route: string; color: string }> = {
-  Green:  { name: 'สายหน้ามอ',    route: 'หน้ามหาวิทยาลัย → อาคารเรียนรวม', color: '#2ecc71' },
-  Blue:   { name: 'สายประตูสาม', route: 'ประตูสาม → คณะ ICT',               color: '#3498db' },
-  Red:    { name: 'สายหอพัก',    route: 'อาคาร PKY → โรงเรียนสาธิต',        color: '#e74c3c' },
-  Purple: { name: 'ไม่มีสาย',    route: 'ยังไม่ได้กำหนดสาย',                color: '#9b59b6' },
+  Green:  { name: 'สายหน้ามอ',    route: 'หน้ามหาวิทยาลัย → อาคารเรียนรวม', color: LINE_COLORS.Green },
+  Blue:   { name: 'สายประตูสาม', route: 'ประตูสาม → คณะ ICT',               color: LINE_COLORS.Blue },
+  Red:    { name: 'สายหอพัก',    route: 'อาคาร PKY → โรงเรียนสาธิต',        color: LINE_COLORS.Red },
+  Purple: { name: 'ไม่มีสาย',    route: 'ยังไม่ได้กำหนดสาย',                color: LINE_COLORS.Purple },
 };
 
 const DAYS_TH = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
@@ -151,16 +152,16 @@ export default function BusDetailPanel({ busId, onBack }: Props) {
           {/* แบนเนอร์หน่วยงานที่ขอใช้รถ */}
           {data.department && (
             <div className="mb-4 rounded-xl p-3 border flex items-start gap-3"
-              style={{ background: '#9b59b614', borderColor: '#9b59b655' }}>
+              style={{ background: `${COLORS.purple}14`, borderColor: `${COLORS.purple}55` }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: '#9b59b622' }}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="#9b59b6" strokeWidth={2}>
+                style={{ background: `${COLORS.purple}22` }}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke={COLORS.purple} strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-gray-400 mb-0.5">หน่วยงานที่ขอใช้รถวันนี้</p>
-                <p className="text-xs font-bold" style={{ color: '#9b59b6' }}>{data.department}</p>
+                <p className="text-xs font-bold" style={{ color: COLORS.purple }}>{data.department}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5">รถคันนี้ถูกนำออกจากทุกสายชั่วคราว</p>
               </div>
             </div>
@@ -174,7 +175,7 @@ export default function BusDetailPanel({ busId, onBack }: Props) {
             </div>
             <div className="bg-[#1a1a2e] rounded-xl p-3 border border-[#2a2a4a]">
               <p className="text-[10px] text-gray-500 mb-1">แบตเตอรี่</p>
-              <p className="text-sm font-bold" style={{ color: data.soc > 20 ? line.color : '#e74c3c' }}>
+              <p className="text-sm font-bold" style={{ color: data.soc > 20 ? line.color : COLORS.red }}>
                 {data.soc}%
               </p>
             </div>

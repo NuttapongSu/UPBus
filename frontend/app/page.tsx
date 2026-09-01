@@ -3,6 +3,8 @@ import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { useState, useEffect, useMemo } from 'react';
 import { getBuses, BusData } from '@/lib/api';
+import { isBusCharging, isBusAvailable } from '@/lib/busStatus';
+import { LINE_COLORS } from '@/lib/theme';
 import SystemOverview from '@/components/Dashboard/SystemOverview';
 import SustainabilityPanel from '@/components/Dashboard/SustainabilityPanel';
 import BusLineCards from '@/components/Dashboard/BusLineCards';
@@ -15,10 +17,12 @@ import BusDetailPanel from '@/components/Dashboard/BusDetailPanel';
 const BusMap = dynamic(() => import('@/components/Map/BusMap'), { ssr: false });
 
 const LINES = [
-  { key: 'Green', name: 'สายหน้ามอ',    color: '#2ecc71' },
-  { key: 'Blue',  name: 'สายประตูสาม',  color: '#3498db' },
-  { key: 'Red',   name: 'สายหอพัก',     color: '#e74c3c' },
+  { key: 'Green', name: 'สายหน้ามอ',    color: LINE_COLORS.Green },
+  { key: 'Blue',  name: 'สายประตูสาม',  color: LINE_COLORS.Blue },
+  { key: 'Red',   name: 'สายหอพัก',     color: LINE_COLORS.Red },
 ];
+
+const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://bustransit.up.ac.th/admin/dashboard';
 
 export default function HomePage() {
   const { data: buses = [] } = useSWR<BusData[]>('/api/buses', getBuses, {
@@ -28,6 +32,7 @@ export default function HomePage() {
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const [selectedBus,  setSelectedBus]  = useState<string | null>(null);
   const [busFilter, setBusFilter] = useState<'charging' | 'available' | null>(null);
+  const [search, setSearch] = useState('');
   const [showRequest,     setShowRequest]     = useState(false);
   const [leftDrawerOpen,  setLeftDrawerOpen]  = useState(false);
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
@@ -52,10 +57,20 @@ export default function HomePage() {
   const displayBuses = useMemo(() => {
     let result = buses;
     if (selectedLine) result = result.filter(b => b.color === selectedLine);
-    if (busFilter === 'charging')  result = result.filter(b => b.acc === 0);
-    if (busFilter === 'available') result = result.filter(b => b.color === 'Purple' && !b.department);
+    if (busFilter === 'charging')  result = result.filter(b => isBusCharging(b) && !b.department);
+    if (busFilter === 'available') result = result.filter(isBusAvailable);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      const matchingLines = new Set(LINES.filter(l => l.name.toLowerCase().includes(q)).map(l => l.key));
+      result = result.filter(b =>
+        b.imei_id.toLowerCase().includes(q) ||
+        (b.driver?.toLowerCase().includes(q) ?? false) ||
+        (b.department?.toLowerCase().includes(q) ?? false) ||
+        matchingLines.has(b.color)
+      );
+    }
     return result;
-  }, [buses, selectedLine, busFilter]);
+  }, [buses, selectedLine, busFilter, search]);
 
   const [now, setNow] = useState('');
   useEffect(() => {
@@ -105,13 +120,15 @@ export default function HomePage() {
         </div>
         <input
           className="hidden md:flex flex-1 mx-4 bg-[#1a1a2e] border border-[#2a2a4a] rounded-full px-4 py-2 text-sm outline-none"
-          placeholder="ค้นหาเส้นทาง/ป้ายรถ/จุดหมาย..."
+          placeholder="ค้นหาสาย/เลขรถ/คนขับ/หน่วยงาน..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
         />
         <p className="hidden lg:block text-sm text-gray-300 ml-auto shrink-0">อัปเดต {now}</p>
         <div className="flex items-center gap-2 ml-auto md:ml-0">
           <button
             onClick={() => setShowRequest(true)}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-[#9b59b6] bg-[#9b59b6] text-white hover:bg-[#8e44ad] transition-colors shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-brand-purple bg-brand-purple text-white hover:bg-brand-purple-dark transition-colors shrink-0"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -119,10 +136,10 @@ export default function HomePage() {
             <span className="hidden sm:inline">ขอรถ</span>
           </button>
           <a
-            href="https://bustransit.up.ac.th/admin/dashboard"
+            href={ADMIN_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-[#9b59b6] text-[#9b59b6] hover:bg-[#9b59b6] hover:text-white transition-colors shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-brand-purple text-brand-purple hover:bg-brand-purple hover:text-white transition-colors shrink-0"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

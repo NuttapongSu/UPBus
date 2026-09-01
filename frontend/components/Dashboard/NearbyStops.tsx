@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { LINE_COLORS } from '@/lib/theme';
 
 interface Stop {
   name: string;
@@ -32,11 +33,7 @@ function parseKmlStops(kml: string) {
   return stops;
 }
 
-const LINE_COLOR: Record<string, string> = {
-  Red: '#e74c3c',
-  Green: '#2ecc71',
-  Blue: '#3498db',
-};
+const LINE_COLOR = LINE_COLORS;
 
 const KML_FILES = [
   { file: '/kml/up_bus_transit_red.kml',   line: 'Red' },

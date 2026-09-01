@@ -1,5 +1,6 @@
 'use client';
 import { BusData } from '@/lib/api';
+import { LINE_COLORS } from '@/lib/theme';
 
 interface Props {
   buses: BusData[];
@@ -13,11 +14,7 @@ const LINES = [
   { key: 'Red', name: 'สายหอพัก', route: 'อาคาร PKY → โรงเรียนสาธิต', capacity: 25 },
 ];
 
-const COLOR_HEX: Record<string, string> = {
-  Green: '#2ecc71',
-  Blue: '#3498db',
-  Red: '#e74c3c',
-};
+const COLOR_HEX = LINE_COLORS;
 
 export default function BusLineCards({ buses, selectedLine, onSelectLine }: Props) {
   return (
